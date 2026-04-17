@@ -7,10 +7,10 @@
 
 - **Phase 0 — Foundation:** ✅ complete (already done before this session)
 - **Phase 1 — Schema Migration:** ✅ complete (all 7 tasks)
-- **Phase 2 — Parent Registration Flow:** 1 of 12 tasks done
+- **Phase 2 — Parent Registration Flow:** 2 of 12 tasks done
   - ✅ 2.1 Zod validators + unit tests
-  - ⬜ 2.2 Magic-link token helpers (next)
-  - ⬜ 2.3 Registration POST API
+  - ✅ 2.2 Magic-link token helpers
+  - ⬜ 2.3 Registration POST API (next)
   - ⬜ 2.4–2.7 Registration form UI + assembly
   - ⬜ 2.8 E2E happy path
   - ⬜ 2.9 Magic-link edit API + page
