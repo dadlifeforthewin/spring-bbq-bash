@@ -26,7 +26,24 @@
   - ✅ 4.5 Photo gallery (`/admin/photos`) with signed URLs + untag/delete; **bulk-ZIP download deferred**
   - ✅ 4.6 Settings (`/admin/settings`) + `/api/admin/settings` — event times, default tickets, faith tone, email branding, AI prompt template
   - 🟡 4.7 Gate: typecheck clean · 35/35 unit+component · **22/22 E2E** (6 new admin specs cover login, dashboard stats, child edit, bulk, catalog CRUD, settings round-trip). Applitools baselines not run.
-- **Phase 5–7:** not started
+- **Phase 5 — AI Story Pipeline:** ✅ complete (8/8)
+  - ✅ 5.1 `src/lib/claude.ts` — lazy Anthropic client + `HAIKU_MODEL = claude-haiku-4-5-20251001`
+  - ✅ 5.2 `0005_seed_gold_standard.sql` — v6 gold standard + prompt template seeded into `events`
+  - ✅ 5.3 `src/lib/story-generator.ts` — builds payload (timeline, favorite station, dropoff, photo meta), calls Haiku, formats body + stats line. Unit tests cover stats/favorite math + Claude call shape.
+  - ✅ 5.4 `src/lib/auto-check.ts` — 6-rule scoring (word-count ±30%, opening mentions child, ≥2 timeline stations, ≥2 stations in closer, banned phrases, no timestamps). Unit tests cover pass + 3 failure modes.
+  - ✅ 5.5 `POST /api/stories/generate` — authed as admin OR volunteer; writes `ai_stories` with `auto_approved` or `needs_review`.
+  - ✅ 5.6 `/api/checkout` fires `POST /api/stories/generate` in background (cookie forwarded, not awaited).
+  - ✅ 5.7 `/admin/stories` list (status filter + score) + `/admin/stories/[id]` editor (text edit, regenerate, approve / send-back / skip).
+  - ✅ 5.8 Gate: `tests/e2e/stories.spec.ts` runs the full pipeline against real Claude — register → admin bulk balance → check-in → 5 spends across 4 stations → checkout → generate → asserts `auto_approved|needs_review` + no timestamps + child name present + ≥2 timeline stations mentioned. **23/23 E2E now green** (auto-skips when `ANTHROPIC_API_KEY` is missing).
+- **Phase 6–7:** not started
+
+## Phase 5 follow-ups (deferred)
+
+1. **Supabase Edge Function polling** — the plan contemplates an Edge Function polling `ai_stories.status = 'pending'`. Current pipeline fires from `/api/checkout` as a background `fetch`; simpler and works in dev. Add a cron fallback if the deploy target kills in-flight fetches.
+2. **Banned-phrase / threshold tuning from `/admin/settings`** — both are module-level defaults. Wire them through the events row so the admin can edit without a redeploy.
+3. **Photo vision summaries** — `payload.photos_meta[].vision_summary` is always null (Phase 6 fills it). Story quality jumps when vision descriptions flow in.
+4. **Cost / latency telemetry** — record Claude response times + token counts per row.
+5. **E2E cost** — `stories.spec.ts` hits real Claude (~$0.002 per run). Auto-skips without `ANTHROPIC_API_KEY`. CI should mock Claude or budget for it.
 
 ## Environment setup (done — don't redo)
 
