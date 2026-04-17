@@ -1,4 +1,9 @@
 import { defineConfig } from '@playwright/test'
+import { loadEnv } from 'vite'
+
+// Mirror vitest.config.ts: load .env.local into the test process so specs can
+// read VOLUNTEER_PASSWORD, etc. Next.js already loads these into the dev server.
+Object.assign(process.env, loadEnv('', process.cwd(), ''))
 
 export default defineConfig({
   testDir: './tests/e2e',
