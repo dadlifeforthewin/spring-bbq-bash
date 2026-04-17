@@ -158,6 +158,60 @@ export default function Settings() {
         </button>
         {saved && <span className="text-sm text-green-700">Saved.</span>}
       </div>
+
+      <TestEmailBlock />
     </div>
+  )
+}
+
+function TestEmailBlock() {
+  const [to, setTo] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [result, setResult] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  async function send() {
+    setResult(null); setError(null); setBusy(true)
+    try {
+      const res = await fetch('/api/stories/test-send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to }),
+      })
+      const body = await res.json()
+      if (!res.ok) {
+        setError(body.details ?? body.error ?? 'Send failed')
+        return
+      }
+      setResult(body.message_id ? `Sent · id ${body.message_id}` : 'Sent.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <section className="space-y-3 rounded border border-slate-200 bg-white p-4">
+      <h2 className="text-lg font-bold">Send a test email</h2>
+      <p className="text-sm text-slate-500">
+        Fires a rendered copy of the keepsake email (using the reference story) to the address you provide.
+        Requires RESEND_API_KEY + EMAIL_FROM.
+      </p>
+      <div className="flex gap-2">
+        <input type="email" value={to} onChange={(e) => setTo(e.target.value)}
+          placeholder="you@example.com"
+          aria-label="test email address"
+          className="flex-1 rounded border px-3 py-2" />
+        <button type="button" onClick={send} disabled={busy || !to}
+          className="rounded bg-slate-900 px-4 py-2 font-bold text-white disabled:opacity-50">
+          {busy ? 'Sending…' : 'Send test'}
+        </button>
+        <a href="/api/stories/preview" target="_blank" rel="noreferrer"
+          className="self-center text-sm text-blue-600 underline">
+          Preview HTML
+        </a>
+      </div>
+      {result && <p className="rounded bg-green-50 px-3 py-2 text-sm text-green-700">{result}</p>}
+      {error && <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+    </section>
   )
 }
