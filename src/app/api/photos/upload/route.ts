@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { serverClient } from '@/lib/supabase'
 import { isVolunteerAuthed } from '@/lib/volunteer-auth'
+import { describeFace, summarizeVision } from '@/lib/face-matching'
 
 const ALLOWED_MIME = new Set(['image/jpeg', 'image/png'])
 const MAX_BYTES = 8 * 1024 * 1024 // 8 MB
@@ -45,24 +46,33 @@ export async function POST(req: NextRequest) {
   } catch {
     return Response.json({ error: 'child_ids must be JSON array' }, { status: 400 })
   }
-  if (!Array.isArray(childIds) || childIds.length === 0) {
-    return Response.json({ error: 'at least one child_id required' }, { status: 400 })
+  if (!Array.isArray(childIds)) {
+    return Response.json({ error: 'child_ids must be JSON array' }, { status: 400 })
+  }
+  // Roaming photos upload with empty child_ids (face matching fills them in); station scans require ≥1.
+  if (captureMode === 'station_scan' && childIds.length === 0) {
+    return Response.json({ error: 'at least one child_id required for station_scan' }, { status: 400 })
   }
 
   const sb = serverClient()
 
-  // Hard-block if any child has photo_consent_app = false (station flow only)
-  const { data: childRows, error: childErr } = await sb
-    .from('children')
-    .select('id, photo_consent_app')
-    .in('id', childIds)
-  if (childErr) return Response.json({ error: 'db error', details: childErr.message }, { status: 500 })
-  if (!childRows || childRows.length !== childIds.length) {
-    return Response.json({ error: 'one or more child_ids not found' }, { status: 404 })
-  }
-  const blocked = childRows.filter((c) => !c.photo_consent_app).map((c) => c.id)
-  if (blocked.length > 0) {
-    return Response.json({ error: 'photo consent missing for child(ren)', blocked }, { status: 403 })
+  let childRows: { id: string; photo_consent_app: boolean; first_name: string; vision_matching_consent: boolean }[] = []
+  if (childIds.length > 0) {
+    const { data, error: childErr } = await sb
+      .from('children')
+      .select('id, photo_consent_app, first_name, vision_matching_consent')
+      .in('id', childIds)
+    if (childErr) return Response.json({ error: 'db error', details: childErr.message }, { status: 500 })
+    if (!data || data.length !== childIds.length) {
+      return Response.json({ error: 'one or more child_ids not found' }, { status: 404 })
+    }
+    childRows = data
+
+    // Consent hard-block applies to station_scan flows (roaming has no known kids yet)
+    const blockedIds = data.filter((c) => !c.photo_consent_app).map((c) => c.id)
+    if (blockedIds.length > 0) {
+      return Response.json({ error: 'photo consent missing for child(ren)', blocked: blockedIds }, { status: 403 })
+    }
   }
 
   // Upload to Storage: photos/<yyyy>/<mm>/<uuid>.<ext>
@@ -85,13 +95,17 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: 'storage upload failed', details: upErr.message }, { status: 500 })
   }
 
+  // New roaming uploads start unmatched; the /api/photos/match pipeline updates this.
+  const initialMatchStatus =
+    captureMode === 'station_scan' ? 'confirmed' : 'unmatched'
+
   const { data: photoRow, error: photoErr } = await sb
     .from('photos')
     .insert({
       storage_path: storagePath,
       capture_mode: captureMode,
       volunteer_name: typeof volunteerName === 'string' && volunteerName ? volunteerName : null,
-      match_status: captureMode === 'station_scan' ? 'confirmed' : 'pending_review',
+      match_status: initialMatchStatus,
     })
     .select('id')
     .single()
@@ -99,23 +113,38 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: 'photos insert failed', details: photoErr?.message }, { status: 500 })
   }
 
-  const tagRows = childIds.map((id) => ({
-    photo_id: photoRow.id,
-    child_id: id,
-    tagged_by: captureMode === 'station_scan' ? 'scan' : 'vision_auto',
-  }))
-  const { error: tagErr } = await sb.from('photo_tags').insert(tagRows)
-  if (tagErr) {
-    return Response.json({ error: 'photo_tags insert failed', details: tagErr.message }, { status: 500 })
+  if (childIds.length > 0) {
+    const tagRows = childIds.map((id) => ({
+      photo_id: photoRow.id,
+      child_id: id,
+      tagged_by: captureMode === 'station_scan' ? 'scan' : 'vision_auto',
+    }))
+    const { error: tagErr } = await sb.from('photo_tags').insert(tagRows)
+    if (tagErr) {
+      return Response.json({ error: 'photo_tags insert failed', details: tagErr.message }, { status: 500 })
+    }
+
+    const eventRows = childIds.map((id) => ({
+      child_id: id,
+      station,
+      event_type: 'photo_taken',
+      volunteer_name: typeof volunteerName === 'string' && volunteerName ? volunteerName : null,
+    }))
+    await sb.from('station_events').insert(eventRows)
   }
 
-  const eventRows = childIds.map((id) => ({
-    child_id: id,
+  // Fire-and-forget vision work. We don't block the upload response.
+  const base64 = Buffer.from(arrayBuffer).toString('base64')
+  const mediaType: 'image/jpeg' | 'image/png' = file.type === 'image/png' ? 'image/png' : 'image/jpeg'
+
+  void runVisionBackground({
+    photoId: photoRow.id,
     station,
-    event_type: 'photo_taken',
-    volunteer_name: typeof volunteerName === 'string' && volunteerName ? volunteerName : null,
-  }))
-  await sb.from('station_events').insert(eventRows)
+    captureMode,
+    base64,
+    mediaType,
+    childRows,
+  }).catch((e) => console.error('[photos/upload] vision background failed', e))
 
   return Response.json({
     ok: true,
@@ -123,4 +152,62 @@ export async function POST(req: NextRequest) {
     storage_path: storagePath,
     tagged_child_ids: childIds,
   })
+}
+
+async function runVisionBackground(opts: {
+  photoId: string
+  station: string
+  captureMode: string
+  base64: string
+  mediaType: 'image/jpeg' | 'image/png'
+  childRows: { id: string; photo_consent_app: boolean; first_name: string; vision_matching_consent: boolean }[]
+}) {
+  if (!process.env.ANTHROPIC_API_KEY) return // no-op in envs without a key
+
+  const sb = serverClient()
+
+  // Summarize every photo for richer story generation later
+  try {
+    const summary = await summarizeVision(opts.base64, opts.mediaType)
+    if (summary) {
+      await sb.from('photos').update({ vision_summary: summary }).eq('id', opts.photoId)
+    }
+  } catch (e) {
+    console.error('[photos/upload] summarize failed', e)
+  }
+
+  // Jail mugshot + vision_matching_consent → extract face reference feature vector
+  if (opts.captureMode === 'station_scan' && opts.station === 'jail') {
+    for (const child of opts.childRows) {
+      if (!child.vision_matching_consent) continue
+      try {
+        const features = await describeFace(opts.base64, opts.mediaType, child.first_name)
+        if (features) {
+          await sb.from('face_references').insert({
+            child_id: child.id,
+            reference_photo_id: opts.photoId,
+            embedding_data: features,
+          })
+        }
+      } catch (e) {
+        console.error('[photos/upload] describeFace failed', e)
+      }
+    }
+  }
+
+  // Roaming mode → kick off the match pipeline for this photo
+  if (opts.captureMode === 'roaming_vision') {
+    const url = process.env.NEXT_PUBLIC_SITE_URL ?? ''
+    if (!url) return
+    try {
+      // Uses the service role via internal route; no cookie needed server-side.
+      await fetch(`${url}/api/photos/match`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-internal-key': process.env.MAGIC_LINK_SECRET ?? '' },
+        body: JSON.stringify({ photo_id: opts.photoId }),
+      })
+    } catch (e) {
+      console.error('[photos/upload] match kick-off failed', e)
+    }
+  }
 }
