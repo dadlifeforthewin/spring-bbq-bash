@@ -1,6 +1,7 @@
 'use client'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import ChildCard from './ChildCard'
+import PhotoViewfinder, { PhotoViewfinderHandle } from './PhotoViewfinder'
 
 type Lookup = {
   child: {
@@ -33,16 +34,18 @@ export default function CheckInStation() {
   const [staffName, setStaffName] = useState('')
   const [lookupError, setLookupError] = useState<string | null>(null)
   const [checkInError, setCheckInError] = useState<string | null>(null)
+  const [mugshotError, setMugshotError] = useState<string | null>(null)
+  const [mugshotTaken, setMugshotTaken] = useState(false)
+  const [mugshotUploading, setMugshotUploading] = useState(false)
   const [success, setSuccess] = useState(false)
   const [busy, setBusy] = useState(false)
+  const viewfinderRef = useRef<PhotoViewfinderHandle>(null)
 
   async function doLookup(e?: React.FormEvent) {
     e?.preventDefault()
-    setLookupError(null)
-    setCheckInError(null)
-    setSuccess(false)
-    setData(null)
-    setDropoff(null)
+    setLookupError(null); setCheckInError(null); setMugshotError(null)
+    setSuccess(false); setMugshotTaken(false)
+    setData(null); setDropoff(null)
     if (!qr.trim()) return
     setBusy(true)
     try {
@@ -52,10 +55,37 @@ export default function CheckInStation() {
         setLookupError(err.error ?? 'Lookup failed')
         return
       }
-      const body = (await res.json()) as Lookup
-      setData(body)
+      setData(await res.json())
     } finally {
       setBusy(false)
+    }
+  }
+
+  async function takeMugshot() {
+    if (!data) return
+    setMugshotError(null)
+    setMugshotUploading(true)
+    try {
+      const blob = await viewfinderRef.current?.capture()
+      if (!blob) {
+        setMugshotError('Capture failed — try again.')
+        return
+      }
+      const form = new FormData()
+      form.set('photo', blob, 'mugshot.jpg')
+      form.set('child_ids', JSON.stringify([data.child.id]))
+      form.set('station', 'jail')
+      form.set('capture_mode', 'station_scan')
+      if (staffName.trim()) form.set('volunteer_name', staffName.trim())
+      const res = await fetch('/api/photos/upload', { method: 'POST', body: form })
+      const body = await res.json()
+      if (!res.ok) {
+        setMugshotError(body.error ?? 'Upload failed')
+        return
+      }
+      setMugshotTaken(true)
+    } finally {
+      setMugshotUploading(false)
     }
   }
 
@@ -91,14 +121,19 @@ export default function CheckInStation() {
     setStaffName('')
     setLookupError(null)
     setCheckInError(null)
+    setMugshotError(null)
+    setMugshotTaken(false)
     setSuccess(false)
   }
+
+  const needsMugshot = !!data && data.child.photo_consent_app && !data.child.checked_in_at
+  const mugshotReady = !needsMugshot || mugshotTaken
 
   return (
     <main className="mx-auto max-w-xl space-y-4 p-6">
       <header>
         <h1 className="text-3xl font-black">Check-In</h1>
-        <p className="text-slate-600">Scan wristband or paste QR code below.</p>
+        <p className="text-slate-600">Scan wristband. Take the jail mugshot. Check in.</p>
       </header>
 
       <form onSubmit={doLookup} className="flex gap-2">
@@ -110,11 +145,8 @@ export default function CheckInStation() {
           aria-label="QR code"
           className="flex-1 rounded border px-3 py-2"
         />
-        <button
-          type="submit"
-          disabled={busy}
-          className="rounded bg-slate-900 px-4 py-2 font-bold text-white disabled:opacity-50"
-        >
+        <button type="submit" disabled={busy}
+          className="rounded bg-slate-900 px-4 py-2 font-bold text-white disabled:opacity-50">
           Look up
         </button>
       </form>
@@ -144,6 +176,36 @@ export default function CheckInStation() {
             </p>
           ) : (
             <>
+              <label className="block">
+                <span className="block text-sm">Your name (staff)</span>
+                <input
+                  type="text"
+                  value={staffName}
+                  onChange={(e) => setStaffName(e.target.value)}
+                  aria-label="staff name"
+                  className="w-full rounded border px-3 py-2"
+                />
+              </label>
+
+              {needsMugshot ? (
+                <section className="space-y-2">
+                  <h2 className="text-sm font-bold">Jail mugshot</h2>
+                  <PhotoViewfinder ref={viewfinderRef} facingMode="environment" />
+                  <button type="button" onClick={takeMugshot}
+                    disabled={mugshotUploading || mugshotTaken}
+                    className="w-full rounded bg-slate-900 py-2 font-bold text-white disabled:opacity-50">
+                    {mugshotTaken ? '📸 Mugshot saved' : mugshotUploading ? 'Uploading…' : '📸 Take mugshot'}
+                  </button>
+                  {mugshotError && (
+                    <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">{mugshotError}</p>
+                  )}
+                </section>
+              ) : data && !data.child.photo_consent_app ? (
+                <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-800">
+                  No photo consent — skipping mugshot. Check-in still completes.
+                </p>
+              ) : null}
+
               <fieldset className="space-y-2">
                 <legend className="text-sm font-bold">Dropoff</legend>
                 {DROPOFF_OPTIONS.map((o) => (
@@ -160,21 +222,10 @@ export default function CheckInStation() {
                 ))}
               </fieldset>
 
-              <label className="block">
-                <span className="block text-sm">Your name (staff)</span>
-                <input
-                  type="text"
-                  value={staffName}
-                  onChange={(e) => setStaffName(e.target.value)}
-                  aria-label="staff name"
-                  className="w-full rounded border px-3 py-2"
-                />
-              </label>
-
               <button
                 type="button"
                 onClick={doCheckIn}
-                disabled={!dropoff || busy}
+                disabled={!dropoff || !mugshotReady || busy}
                 className="w-full rounded bg-fuchsia-600 py-3 font-bold text-white disabled:opacity-50"
               >
                 {busy ? 'Checking in…' : 'Check In'}

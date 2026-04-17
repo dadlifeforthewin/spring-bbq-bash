@@ -39,9 +39,11 @@ test('volunteer checks in a child via QR', async ({ page, request }) => {
   await page.getByRole('button', { name: /look up/i }).click()
   await expect(page.getByText(/CheckIn Kid/)).toBeVisible()
 
-  // Pick dropoff + check in
-  await page.getByLabel(/both parents/i).check()
+  // Staff name + mugshot + dropoff + check in
   await page.getByLabel(/staff name/i).fill('Volunteer A')
+  await page.getByRole('button', { name: /take mugshot/i }).click()
+  await expect(page.getByRole('button', { name: /mugshot saved/i })).toBeVisible()
+  await page.getByLabel(/both parents/i).check()
   await page.getByRole('button', { name: /^check in$/i }).click()
   await expect(page.getByText(/checked in! next kid/i)).toBeVisible()
 })

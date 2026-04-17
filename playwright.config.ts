@@ -15,6 +15,13 @@ export default defineConfig({
   use: {
     baseURL: 'http://localhost:3050',
     trace: 'on-first-retry',
+    permissions: ['camera'],
+    launchOptions: {
+      args: [
+        '--use-fake-device-for-media-stream',
+        '--use-fake-ui-for-media-stream',
+      ],
+    },
   },
   webServer: {
     command: 'npm run dev',
