@@ -1,9 +1,6 @@
-import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase";
-
 export async function GET() {
-  const sb = supabaseAdmin();
-  const { data, error } = await sb.from("zones").select("*").order("sort_order");
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ zones: data });
+  return Response.json(
+    { ok: false, error: "deprecated — see /api/register + /api/checkin (v2)" },
+    { status: 410 }
+  );
 }
