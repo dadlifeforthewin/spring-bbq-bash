@@ -29,6 +29,10 @@ next-env.d.ts
 /playwright-report/
 /playwright/.cache/
 
+# supabase local state
+/supabase/.temp/
+/supabase/.branches/
+
 # misc
 .DS_Store
 *.pem
