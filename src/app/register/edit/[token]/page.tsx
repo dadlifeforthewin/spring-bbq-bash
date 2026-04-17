@@ -2,6 +2,8 @@ import { verifyToken } from '@/lib/magic-link'
 import { serverClient } from '@/lib/supabase'
 import EditForm, { EditInitial } from '@/components/registration/EditForm'
 
+export const dynamic = 'force-dynamic'
+
 async function loadInitial(token: string): Promise<EditInitial | null> {
   const payload = verifyToken(token)
   if (!payload || payload.scope !== 'edit' || !payload.family_primary_email) return null
