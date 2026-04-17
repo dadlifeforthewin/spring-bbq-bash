@@ -107,8 +107,9 @@ export async function POST(req: NextRequest) {
   // so /api/stories/generate's auth check passes; we don't await the response (the
   // generation takes ~2-5s; parent UI should not block on it).
   const cookie = req.headers.get('cookie') ?? ''
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? new URL(req.url).origin
-  void fetch(`${siteUrl}/api/stories/generate`, {
+  const url = process.env.NEXT_PUBLIC_SITE_URL
+    ?? (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : new URL(req.url).origin)
+  void fetch(`${url}/api/stories/generate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', cookie },
     body: JSON.stringify({ child_id: parsed.data.child_id }),

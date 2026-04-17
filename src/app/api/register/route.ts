@@ -96,7 +96,7 @@ export async function POST(req: NextRequest) {
   console.log('[registration] confirmation email payload:', {
     to: parsed.data.primary_parent.email,
     children: created,
-    edit_url: `${process.env.NEXT_PUBLIC_SITE_URL}/register/edit/${editToken}`,
+    edit_url: `${process.env.NEXT_PUBLIC_SITE_URL ?? (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '')}/register/edit/${editToken}`,
   })
 
   return Response.json({ ok: true, created, edit_token: editToken })

@@ -197,7 +197,8 @@ async function runVisionBackground(opts: {
 
   // Roaming mode → kick off the match pipeline for this photo
   if (opts.captureMode === 'roaming_vision') {
-    const url = process.env.NEXT_PUBLIC_SITE_URL ?? ''
+    const url = process.env.NEXT_PUBLIC_SITE_URL
+      ?? (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '')
     if (!url) return
     try {
       // Uses the service role via internal route; no cookie needed server-side.
