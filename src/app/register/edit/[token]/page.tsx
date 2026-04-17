@@ -5,11 +5,21 @@ import EditForm, { EditInitial } from '@/components/registration/EditForm'
 export const dynamic = 'force-dynamic'
 
 async function loadInitial(token: string): Promise<EditInitial | null> {
-  const payload = verifyToken(token)
+  let payload
+  try {
+    payload = verifyToken(token)
+  } catch {
+    return null
+  }
   if (!payload || payload.scope !== 'edit' || !payload.family_primary_email) return null
   const email = payload.family_primary_email
 
-  const sb = serverClient()
+  let sb
+  try {
+    sb = serverClient()
+  } catch {
+    return null
+  }
 
   const { data: primaryGuardians } = await sb
     .from('guardians')
