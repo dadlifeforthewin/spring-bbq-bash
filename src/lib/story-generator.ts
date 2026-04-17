@@ -1,0 +1,259 @@
+import { serverClient } from './supabase'
+import { claude, HAIKU_MODEL } from './claude'
+
+type DropoffType = 'both_parents' | 'one_parent' | 'grandparent' | 'other_approved_adult' | null
+
+type TimelineRow = {
+  station: string
+  event_type: string
+  tickets_delta: number
+  item_name: string | null
+  vibe_tags: string[] | null
+  created_at: string
+}
+
+type PhotoMeta = {
+  id: string
+  station: string | null
+  capture_mode: string
+  vision_summary: Record<string, unknown> | null
+  taken_at: string
+}
+
+export type GeneratorPayload = {
+  child: { first_name: string; age: number | null; grade: string | null }
+  family_last_name: string
+  event: { name: string; faith_tone: string }
+  timeline: TimelineRow[]
+  dropoff_type: DropoffType
+  photos_meta: PhotoMeta[]
+  stats: {
+    stations_visited: number
+    tickets_spent: number
+    photos: number
+    favorite: { name: string; visits: number } | null
+  }
+}
+
+export type GeneratedStory = {
+  story_text: string
+  story_html: string
+  word_count: number
+  payload: GeneratorPayload
+  variety_seed: string
+  photo_count: number
+}
+
+const VARIETY_SEEDS = [
+  'open with season + grade, close with a list of three',
+  'open with a wry observation, close with a callback to the mugshot',
+  'open with the child showing up, close with the dance floor',
+  'open with energy level, close with favorite station',
+  'open with a quick scene-set, close with the family being named',
+]
+
+const NON_VISIT_EVENT_TYPES = new Set(['check_in', 'check_out', 'reload', 'photo_taken'])
+
+function stationLabel(slug: string): string {
+  return slug.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+}
+
+function computeStats(timeline: TimelineRow[], photoCount: number) {
+  const visitCounts = new Map<string, number>()
+  const ticketsByStation = new Map<string, number>()
+  const photosByStation = new Map<string, number>()
+  let ticketsSpent = 0
+
+  for (const e of timeline) {
+    if (e.event_type === 'ticket_spend') {
+      ticketsSpent += Math.abs(e.tickets_delta || 0)
+      visitCounts.set(e.station, (visitCounts.get(e.station) ?? 0) + 1)
+      ticketsByStation.set(e.station, (ticketsByStation.get(e.station) ?? 0) + Math.abs(e.tickets_delta || 0))
+    }
+    if (e.event_type === 'photo_taken') {
+      photosByStation.set(e.station, (photosByStation.get(e.station) ?? 0) + 1)
+    }
+  }
+
+  const stationsVisited = visitCounts.size
+
+  // Favorite: most-visited non check-in/out; tie-breakers: photos-at-station, tickets-at-station
+  let favorite: { name: string; visits: number } | null = null
+  let best = -1
+  let bestPhotos = -1
+  let bestTickets = -1
+  for (const [station, visits] of visitCounts) {
+    const photos = photosByStation.get(station) ?? 0
+    const tickets = ticketsByStation.get(station) ?? 0
+    const better =
+      visits > best ||
+      (visits === best && photos > bestPhotos) ||
+      (visits === best && photos === bestPhotos && tickets > bestTickets)
+    if (better) {
+      best = visits
+      bestPhotos = photos
+      bestTickets = tickets
+      favorite = { name: stationLabel(station), visits }
+    }
+  }
+
+  return {
+    stations_visited: stationsVisited,
+    tickets_spent: ticketsSpent,
+    photos: photoCount,
+    favorite,
+  }
+}
+
+function pickVarietySeed(): string {
+  return VARIETY_SEEDS[Math.floor(Math.random() * VARIETY_SEEDS.length)]
+}
+
+function paragraphsToHtml(text: string): string {
+  return text
+    .split(/\n\s*\n/)
+    .map((p) => p.trim())
+    .filter(Boolean)
+    .map((p) => `<p>${escapeHtml(p)}</p>`)
+    .join('\n')
+}
+
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+}
+
+function splitBodyAndStats(raw: string): { body: string; stats: string } {
+  const trimmed = raw.trim()
+  const byNumbersIdx = trimmed.search(/\n\s*by the numbers[:]/i)
+  if (byNumbersIdx === -1) {
+    return { body: trimmed, stats: '' }
+  }
+  return {
+    body: trimmed.slice(0, byNumbersIdx).trim(),
+    stats: trimmed.slice(byNumbersIdx).trim(),
+  }
+}
+
+function buildStatsLine(stats: GeneratorPayload['stats']): string {
+  const parts = [
+    `${stats.stations_visited} stations visited`,
+    `${stats.tickets_spent} tickets spent`,
+    `${stats.photos} photos`,
+  ]
+  if (stats.favorite) {
+    parts.push(`favorite stop: ${stats.favorite.name} (${stats.favorite.visits} visits)`)
+  }
+  return `By the numbers: ${parts.join(' · ')}`
+}
+
+export async function buildPayload(childId: string): Promise<GeneratorPayload> {
+  const sb = serverClient()
+
+  const [{ data: child }, { data: evt }, { data: guardians }] = await Promise.all([
+    sb
+      .from('children')
+      .select('id, first_name, last_name, age, grade, checked_in_dropoff_type')
+      .eq('id', childId)
+      .maybeSingle(),
+    sb.from('events').select('name, faith_tone_level').limit(1).maybeSingle(),
+    sb.from('guardians').select('name, is_primary').eq('child_id', childId),
+  ])
+  if (!child) throw new Error(`child ${childId} not found`)
+  if (!evt) throw new Error('no event row')
+
+  const { data: events } = await sb
+    .from('station_events')
+    .select('station, event_type, tickets_delta, item_name, vibe_tags, created_at')
+    .eq('child_id', childId)
+    .order('created_at', { ascending: true })
+    .limit(500)
+
+  const { data: photoTags } = await sb
+    .from('photo_tags')
+    .select('photos(id, taken_at, capture_mode, vision_summary)')
+    .eq('child_id', childId)
+    .limit(200)
+
+  const timeline: TimelineRow[] = (events ?? []).map((e) => ({
+    station: e.station,
+    event_type: e.event_type,
+    tickets_delta: e.tickets_delta ?? 0,
+    item_name: e.item_name,
+    vibe_tags: e.vibe_tags ?? [],
+    created_at: e.created_at,
+  }))
+
+  const photos_meta: PhotoMeta[] = (photoTags ?? [])
+    .map((t) => t.photos as unknown as { id: string; taken_at: string; capture_mode: string; vision_summary: Record<string, unknown> | null } | null)
+    .filter((p): p is NonNullable<typeof p> => !!p)
+    .map((p) => {
+      const stationEvt = timeline.find(
+        (e) => e.event_type === 'photo_taken' && Math.abs(new Date(e.created_at).getTime() - new Date(p.taken_at).getTime()) < 5000,
+      )
+      return {
+        id: p.id,
+        station: stationEvt?.station ?? null,
+        capture_mode: p.capture_mode,
+        vision_summary: p.vision_summary,
+        taken_at: p.taken_at,
+      }
+    })
+
+  const stats = computeStats(timeline, photos_meta.length)
+
+  // Family last name comes from child row; fall back to primary guardian surname if needed
+  const primary = (guardians ?? []).find((g) => g.is_primary)
+  const family_last_name = child.last_name || (primary?.name.split(/\s+/).slice(-1)[0] ?? '')
+
+  return {
+    child: { first_name: child.first_name, age: child.age, grade: child.grade },
+    family_last_name,
+    event: { name: evt.name, faith_tone: evt.faith_tone_level },
+    timeline: timeline.filter((e) => !NON_VISIT_EVENT_TYPES.has(e.event_type) || e.event_type === 'photo_taken'),
+    dropoff_type: (child.checked_in_dropoff_type ?? null) as DropoffType,
+    photos_meta,
+    stats,
+  }
+}
+
+export async function generateStory(childId: string): Promise<GeneratedStory> {
+  const payload = await buildPayload(childId)
+
+  const sb = serverClient()
+  const { data: evt } = await sb.from('events').select('story_prompt_template').limit(1).maybeSingle()
+  const template = evt?.story_prompt_template ??
+    'You are writing a warm keepsake story. VARIETY_SEED: {variety_seed}. Return the story body and a By the numbers stats line.'
+
+  const variety_seed = pickVarietySeed()
+  const system = template.replace('{variety_seed}', variety_seed)
+
+  const resp = await claude().messages.create({
+    model: HAIKU_MODEL,
+    max_tokens: 600,
+    system,
+    messages: [{ role: 'user', content: JSON.stringify(payload) }],
+  })
+
+  const text = resp.content
+    .map((c) => (c.type === 'text' ? c.text : ''))
+    .join('')
+    .trim()
+
+  const { body, stats } = splitBodyAndStats(text)
+  const statsLine = stats || buildStatsLine(payload.stats)
+  const story_text = `${body}\n\n${statsLine}`
+  const word_count = body.split(/\s+/).filter(Boolean).length
+  const story_html = `${paragraphsToHtml(body)}\n<div class="stats"><strong>${escapeHtml(statsLine.split(':')[0])}:</strong>${escapeHtml(statsLine.slice(statsLine.indexOf(':') + 1))}</div>`
+
+  return {
+    story_text,
+    story_html,
+    word_count,
+    payload,
+    variety_seed,
+    photo_count: payload.stats.photos,
+  }
+}

@@ -103,7 +103,18 @@ export async function POST(req: NextRequest) {
     })
   }
 
-  // TODO(plan Phase 5): kick off /api/stories/generate for this child_id
+  // Kick off AI story generation in the background. We forward the volunteer cookie
+  // so /api/stories/generate's auth check passes; we don't await the response (the
+  // generation takes ~2-5s; parent UI should not block on it).
+  const cookie = req.headers.get('cookie') ?? ''
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? new URL(req.url).origin
+  void fetch(`${siteUrl}/api/stories/generate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', cookie },
+    body: JSON.stringify({ child_id: parsed.data.child_id }),
+  }).catch((e) => {
+    console.error('[checkout] background story generate failed', e)
+  })
 
   return Response.json({ ok: true, checked_out_at: now })
 }
