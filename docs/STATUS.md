@@ -17,14 +17,15 @@
   - ✅ 3.6 Spend station + `/api/catalog` GET + `/api/spend` POST with balance guard
   - ✅ 3.7 Reload station + `/api/reload` GET/POST with FACTS allowance guard
   - ✅ 3.8 Profile lookup (`/api/children/by-qr/[qr]/timeline` + read-only page)
-  - 🟡 3.9 Gate: typecheck clean · 33/33 unit+component · 5/5 runnable E2E (2 skipped behind `VOLUNTEER_PASSWORD`). Applitools + motion review not run this session.
+  - 🟡 3.9 Gate: typecheck clean · 33/33 unit+component · **13/13 E2E** (check-in + check-out + spend + reload happy and negative paths). Applitools + motion review still not run this session.
 - **Phase 4–7:** not started
 
 ## Environment setup (done — don't redo)
 
 - **Port pinned to 3050** (avoids A2D :3000 / A&E Cafe :3100 collision)
 - **Supabase CLI linked** to project `jujobpieydbyfsfhycsp` (LCA Spring BBQ) — `supabase db push` applies migrations
-- **`.env.local`** populated with Supabase URL + anon + service_role + `MAGIC_LINK_SECRET` + `SESSION_COOKIE_SECRET`. Still empty (fill when needed): `VOLUNTEER_PASSWORD`, `ADMIN_PASSWORD`, `ANTHROPIC_API_KEY`, `RESEND_API_KEY`, `EMAIL_FROM`.
+- **`.env.local`** populated: Supabase URL + anon + service_role + `MAGIC_LINK_SECRET` + `SESSION_COOKIE_SECRET` + `VOLUNTEER_PASSWORD` + `ADMIN_PASSWORD` + `ANTHROPIC_API_KEY`. Still empty (fill when needed): `RESEND_API_KEY`, `EMAIL_FROM`.
+- **Playwright loads `.env.local`** into the test process via `loadEnv` in `playwright.config.ts`, same way `vitest.config.ts` does.
 - **Vitest** loads env via `loadEnv('', cwd, '')` from `vite` in `vitest.config.ts`
 - **Playwright** runs workers=1 locally (CI uses 2 workers + 1 retry). Next.js dev-server races when multiple RSC pages compile in parallel; serial is stable.
 
@@ -53,7 +54,7 @@
 1. **Task 3.5 Photo station + mugshot capture** — needs a Supabase Storage bucket (`photos`), `PhotoViewfinder` component (getUserMedia + canvas), and `POST /api/photos/upload` (multipart + signed upload + `photos` + `photo_tags` + `station_events` rows). Wires back into check-in (mugshot before Check In) and the roaming photo station.
 2. **Vibe tags on spend events** — plan 3.6 Step 5 mentions a one-tap vibe-tag row after spend; not built.
 3. **Catalog realtime** — plan 3.6 mentions Supabase Realtime subscription for live catalog edits; currently `/api/catalog` is a one-shot fetch.
-4. **E2E coverage for check-in / check-out / spend / reload / lookup** — specs are wired to skip when `VOLUNTEER_PASSWORD` is missing; set the env var and rerun `npm run test:e2e` to exercise the happy paths. A check-in spec is already in `tests/e2e/check-in.spec.ts`; add symmetric specs for check-out / spend / reload / lookup before calling Phase 3 shipped.
+4. **E2E coverage** — check-in, check-out, spend, reload specs all green (happy + negative paths). Profile lookup does not have a dedicated spec yet (low priority, it's read-only and would duplicate the by-qr route coverage already exercised by every other spec).
 5. **Applitools baseline** for every station screen (per `_config/visual-review-protocol.md`) and Chrome DevTools motion review (per `_config/motion-review-checklist.md`) — not run.
 
 ## How to resume
