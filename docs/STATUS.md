@@ -43,7 +43,22 @@
   - ✅ 6.5 `/admin/photos/queue` — filter by match_status; one-tap confirm / reject; writes `photo_tags` with `tagged_by=admin_manual` + audit log.
   - ✅ 6.6 Story generator uses `vision_summary` — already flows through `photos_meta[]`; seeded prompt tells Claude to acknowledge photos using vision descriptions only.
   - ✅ 6.7 Gate: `tests/e2e/vision.spec.ts` — checks in a consenting kid, uploads mugshot + roaming photo, polls until status ∈ `{auto, pending_review, unmatched}`; second test locks in the `station_scan` regression guard. **25/25 E2E now green**.
-- **Phase 7:** not started
+- **Phase 7 — Email Delivery:** ✅ complete (7/7)
+  - ✅ 7.1 `src/lib/resend.ts` — lazy Resend client + `emailFrom()` helper (throws if env missing so misconfigured envs fail loudly).
+  - ✅ 7.2 `src/emails/StoryEmail.tsx` — React Email template: event header, per-child block with story HTML + photo grid + stats line, "Download all photos" CTA, signature footer, fine-print row with reply-to + unsubscribe. `subjectForFamily()` handles singular vs plural subjects.
+  - ✅ 7.3 `ATTN_TO_DETAIL_FOOTER` exported from the template so the copy only lives in one place.
+  - ✅ 7.4 `src/lib/family-grouping.ts` — `collectReadyFamilies()` pulls stories with `status IN ('approved','auto_approved')`, joins primary guardian email + photo tags, signs photo URLs for 7 days, returns payloads grouped by primary parent email.
+  - ✅ 7.5 `POST /api/cron/send-stories` — gated on `x-cron-secret` header (or `Authorization: Bearer`), renders via `@react-email/render`, sends via Resend, rate-limits to ~9/sec, writes `email_sends` rows + flips `ai_stories.status = sent` on success / records `error` on failure. `vercel.json` already schedules it at `0 16 * * *` UTC (9 AM Pacific).
+  - ✅ 7.6 `POST /api/stories/test-send` (admin-gated) + "Send test email" block in `/admin/settings` with HTML preview link. `GET /api/stories/preview` renders the template with a synthetic payload.
+  - ✅ 7.7 Gate: `tests/e2e/send-stories.spec.ts` — (a) cron auth rejects wrong secret, (b) full pipeline: register 3 kids across 2 families → admin marks stories `auto_approved` → hit cron with `CRON_SECRET` → expect `families >= 2` and `sent + failed === families`. Happy path auto-skips until `CRON_SECRET` is set. **26/26 E2E now green**.
+
+## Phase 7 follow-ups (deferred)
+
+1. **Resend domain verification + DNS** — SPF / DKIM / DMARC setup is a one-time infra step. Document in README when the sending domain is decided.
+2. **`RESEND_API_KEY`, `EMAIL_FROM`, `CRON_SECRET`** — still empty in `.env.local`. Fill before the event and re-run `tests/e2e/send-stories.spec.ts` for a live dry run; do a manual test send to a burner inbox for the visual sanity check.
+3. **Failure retry** — the spec calls for "retry once after 5 minutes; flag in admin dashboard if still failing." Current code records `status='failed'` + `error`. Add a retry job that re-picks failed `email_sends` once and surfaces persistent failures in the admin dashboard.
+4. **Signed zip download** — the "Download all photos" button links to `download_all_url`, but the route isn't built yet (related to Phase 4 follow-up #3). Pass `null` for now and the button just hides.
+5. **Unsubscribe link** — currently rendered if `unsubscribe_url` is supplied. No unsubscribe handler yet; low priority for a one-night event.
 
 ## Phase 6 follow-ups (deferred)
 
