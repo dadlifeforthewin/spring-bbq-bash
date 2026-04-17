@@ -15,7 +15,7 @@ describe('WaiverSection', () => {
     const setTypedName = vi.fn()
     const setAck = vi.fn()
     render(<WaiverSection typedName="" setTypedName={setTypedName} ack={false} setAck={setAck} />)
-    fireEvent.click(screen.getByLabelText(/i acknowledge/i))
+    fireEvent.click(screen.getByLabelText(/electronically sign/i))
     expect(setAck).toHaveBeenCalledWith(true)
   })
 

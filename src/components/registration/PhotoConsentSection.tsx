@@ -41,7 +41,7 @@ export default function PhotoConsentSection({
           type="checkbox"
           checked={value.photo_consent_promo}
           onChange={(e) => set('photo_consent_promo', e.target.checked)}
-          aria-label="Allow promotional use of my child's photos"
+          aria-label="Include my child's photos for LCA promotional or social media use"
           className="mt-1"
         />
         <span className="text-sm">
@@ -56,7 +56,7 @@ export default function PhotoConsentSection({
           type="checkbox"
           checked={value.vision_matching_consent}
           onChange={(e) => set('vision_matching_consent', e.target.checked)}
-          aria-label="Enable vision matching for my child"
+          aria-label="Allow roaming photographer to auto-identify my child in photos"
           className="mt-1"
         />
         <span className="text-sm">

@@ -61,7 +61,6 @@ export default function WaiverSection({
           required
           value={typedName}
           onChange={(e) => setTypedName(e.target.value)}
-          aria-label="Type your full name"
           className="w-full rounded border px-3 py-2"
         />
       </label>
@@ -71,7 +70,7 @@ export default function WaiverSection({
           type="checkbox"
           checked={ack}
           onChange={(e) => setAck(e.target.checked)}
-          aria-label="I acknowledge this electronic signature"
+          aria-label="I electronically sign this permission slip"
           className="mt-1"
         />
         <span className="text-sm">
