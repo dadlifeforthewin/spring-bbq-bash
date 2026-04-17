@@ -7,10 +7,11 @@
 
 - **Phase 0 — Foundation:** ✅ complete (already done before this session)
 - **Phase 1 — Schema Migration:** ✅ complete (all 7 tasks)
-- **Phase 2 — Parent Registration Flow:** 2 of 12 tasks done
+- **Phase 2 — Parent Registration Flow:** 3 of 12 tasks done
   - ✅ 2.1 Zod validators + unit tests
   - ✅ 2.2 Magic-link token helpers
-  - ⬜ 2.3 Registration POST API (next)
+  - ✅ 2.3 Registration POST API
+  - ⬜ 2.4 ParentSection component (next)
   - ⬜ 2.4–2.7 Registration form UI + assembly
   - ⬜ 2.8 E2E happy path
   - ⬜ 2.9 Magic-link edit API + page
@@ -30,6 +31,7 @@
 
 1. **`supabase.ts`** — `supabase` const is a `browserClient()` factory instead (plan's const crashes at import when .env missing). Also `supabaseAdmin()` renamed to `serverClient()` per plan.
 2. **`0001_drop_legacy.sql`** — removed the invalid `drop file if exists public.schema_v1_sentinel;` line (typo in plan; `drop file` isn't valid Postgres).
+3. **`api/register/route.ts`** — cast changed to `parsed.data as unknown as { qr_code: string }` (plan's `parsed.data as { qr_code: string }` fails TS due to insufficient overlap). Also omitted unused `writeAudit` import from plan.
 
 ## How to resume
 
