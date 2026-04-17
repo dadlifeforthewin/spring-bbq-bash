@@ -35,7 +35,23 @@
   - ✅ 5.6 `/api/checkout` fires `POST /api/stories/generate` in background (cookie forwarded, not awaited).
   - ✅ 5.7 `/admin/stories` list (status filter + score) + `/admin/stories/[id]` editor (text edit, regenerate, approve / send-back / skip).
   - ✅ 5.8 Gate: `tests/e2e/stories.spec.ts` runs the full pipeline against real Claude — register → admin bulk balance → check-in → 5 spends across 4 stations → checkout → generate → asserts `auto_approved|needs_review` + no timestamps + child name present + ≥2 timeline stations mentioned. **23/23 E2E now green** (auto-skips when `ANTHROPIC_API_KEY` is missing).
-- **Phase 6–7:** not started
+- **Phase 6 — Roaming Photographer + Vision:** ✅ complete (7/7)
+  - ✅ 6.1 Face reference extraction — `src/lib/face-matching.ts` (`describeFace`) + upload route: when station=jail + vision_matching_consent=true, fire-and-forget writes `face_references.embedding_data`.
+  - ✅ 6.2 Vision summary — `summarizeVision()` called in background on every upload; writes `photos.vision_summary`.
+  - ✅ 6.3 Match pipeline — `POST /api/photos/match` loops consented, checked-in kids, calls `scoreMatch` per candidate, classifies by confidence (≥0.9 auto-tag · 0.7–0.89 pending_review · <0.7 unmatched). Kicked off in background from upload for `roaming_vision`.
+  - ✅ 6.4 `/station/roaming` — `PhotoViewfinder` + upload with `capture_mode=roaming_vision` + empty `child_ids`; polls `/api/admin/photos/status` for outcome.
+  - ✅ 6.5 `/admin/photos/queue` — filter by match_status; one-tap confirm / reject; writes `photo_tags` with `tagged_by=admin_manual` + audit log.
+  - ✅ 6.6 Story generator uses `vision_summary` — already flows through `photos_meta[]`; seeded prompt tells Claude to acknowledge photos using vision descriptions only.
+  - ✅ 6.7 Gate: `tests/e2e/vision.spec.ts` — checks in a consenting kid, uploads mugshot + roaming photo, polls until status ∈ `{auto, pending_review, unmatched}`; second test locks in the `station_scan` regression guard. **25/25 E2E now green**.
+- **Phase 7:** not started
+
+## Phase 6 follow-ups (deferred)
+
+1. **Real face matching quality** — Claude vision returns descriptive features, not embeddings. Works for a 50-kid event with diverse appearance; for larger scale or similar-looking kids, plan fallback: `@vladmandic/face-api` server-side.
+2. **Unmatched drag-to-child tagger** — `/admin/photos/queue` `unmatched` filter says "tag manually below (coming soon)". Add dropdown/autocomplete to pick a checked-in kid and write `photo_tags` with `tagged_by=admin_manual`.
+3. **Match retry queue** — if `scoreMatch` throws (rate limit, transient 500), the candidate is skipped. Add a retry channel that re-runs the pipeline for a photo.
+4. **Match batching** — each candidate is a separate Claude call today. For dense roaming sessions, batch candidate comparisons into one prompt to cut cost.
+5. **Real photo fixtures in vision E2E** — `tests/e2e/vision.spec.ts` uses a 1x1 JPEG that Claude can't process. Test validates pipeline structure; swap in real portraits later for a meaningful quality check.
 
 ## Phase 5 follow-ups (deferred)
 
