@@ -58,7 +58,7 @@ export default function ParentSection({
         aria-label="Email"
         type="email"
         required={!optional}
-        hint={!optional ? 'Your keepsake email lands here the morning after the event.' : undefined}
+        hint={!optional ? "Make sure this is a real inbox — there's something worth catching the morning after." : undefined}
         value={value.email}
         onChange={set('email')}
         placeholder="you@example.com"
