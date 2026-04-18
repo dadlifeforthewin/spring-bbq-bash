@@ -38,7 +38,7 @@ export default function ConfirmPage() {
             </li>
             <li className="flex items-start gap-3">
               <span className="mt-0.5 text-neon-uv">03</span>
-              <span>Keepsake email lands the morning after with photos, your kid&apos;s story, and a download link.</span>
+              <span>Watch your inbox the morning after the party. Something small and glowy is on its way — we&apos;ll let it surprise you.</span>
             </li>
           </ul>
         </Card>

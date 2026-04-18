@@ -10,23 +10,17 @@ describe('ChildBlock', () => {
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ first_name: 'Maya' }))
   })
 
-  it('zeroes facts_max_amount when FACTS permission is toggled off', () => {
-    const onChange = vi.fn()
-    const v = { ...emptyChild(), facts_reload_permission: true, facts_max_amount: 10 }
-    render(<ChildBlock value={v} onChange={onChange} />)
-    fireEvent.click(screen.getByLabelText(/facts reload permission/i))
-    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({
-      facts_reload_permission: false,
-      facts_max_amount: 0,
-    }))
+  it('emptyChild defaults FACTS billing to off (parent-facing UI removed)', () => {
+    const v = emptyChild()
+    expect(v.facts_reload_permission).toBe(false)
+    expect(v.facts_max_amount).toBe(0)
   })
 
-  it('caps the FACTS amount input at max=10', () => {
-    const onChange = vi.fn()
-    const v = { ...emptyChild(), facts_reload_permission: true, facts_max_amount: 10 }
-    render(<ChildBlock value={v} onChange={onChange} />)
-    const amount = screen.getByLabelText(/facts max amount/i) as HTMLInputElement
-    expect(amount.max).toBe('10')
-    expect(amount.min).toBe('0')
+  it('renders the perks-included chips', () => {
+    render(<ChildBlock value={emptyChild()} onChange={() => {}} />)
+    expect(screen.getByText(/2 drinks/i)).toBeInTheDocument()
+    expect(screen.getByText(/3 jail/i)).toBeInTheDocument()
+    expect(screen.getByText(/1 prize spin/i)).toBeInTheDocument()
+    expect(screen.getByText(/1 DJ shoutout/i)).toBeInTheDocument()
   })
 })

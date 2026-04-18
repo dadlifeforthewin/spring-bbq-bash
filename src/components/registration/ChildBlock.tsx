@@ -1,7 +1,7 @@
 'use client'
 import PickupList from './PickupList'
 import { Card, CardEyebrow, CardTitle } from '@/components/glow/Card'
-import { Input, Textarea, Checkbox } from '@/components/glow/Input'
+import { Input, Textarea } from '@/components/glow/Input'
 import { Chip } from '@/components/glow/Chip'
 
 export type ChildInput = {
@@ -25,8 +25,10 @@ export function emptyChild(): ChildInput {
     allergies: '',
     special_instructions: '',
     pickup_authorizations: [],
-    facts_reload_permission: true,
-    facts_max_amount: 10,
+    // FACTS billing is not parent-facing in the glow-party edition.
+    // Kept on the payload for back-compat + admin override; default off.
+    facts_reload_permission: false,
+    facts_max_amount: 0,
   }
 }
 
@@ -140,45 +142,6 @@ export default function ChildBlock({
         </p>
       </section>
 
-      <section className="rounded-xl border border-ink-hair bg-ink-2/60 p-4 space-y-3">
-        <header>
-          <h3 className="text-xs font-semibold uppercase tracking-widest text-mist">
-            Extra drinks via FACTS
-            <span className="ml-2 text-faint font-normal normal-case tracking-normal">(optional)</span>
-          </h3>
-          <p className="text-xs text-faint mt-1">
-            Allow volunteers to bill extra drink tickets to your FACTS account
-            if your child asks for more during the night.
-          </p>
-        </header>
-        <Checkbox
-          label="Yes, allow FACTS billing for extra drinks"
-          aria-label="FACTS reload permission"
-          checked={value.facts_reload_permission}
-          onChange={(e) => {
-            const next = e.target.checked
-            onChange({
-              ...value,
-              facts_reload_permission: next,
-              facts_max_amount: next ? (value.facts_max_amount || 10) : 0,
-            })
-          }}
-        />
-        <Input
-          label="Max additional amount ($0–$10)"
-          type="number"
-          min={0}
-          max={10}
-          aria-label="FACTS max amount"
-          value={value.facts_max_amount}
-          disabled={!value.facts_reload_permission}
-          onChange={(e) => {
-            const n = Math.max(0, Math.min(10, Number(e.target.value) || 0))
-            set('facts_max_amount', n)
-          }}
-          className="max-w-[140px]"
-        />
-      </section>
     </Card>
   )
 }

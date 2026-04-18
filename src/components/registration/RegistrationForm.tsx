@@ -152,10 +152,10 @@ export default function RegistrationForm({ qrOverride }: { qrOverride?: string }
           <Card tone="glow-gold" padded className="flex items-start gap-3">
             <div className="text-2xl animate-sparkle" aria-hidden>✨</div>
             <div>
-              <CardEyebrow className="text-neon-gold">The morning after</CardEyebrow>
+              <CardEyebrow className="text-neon-gold">One more thing…</CardEyebrow>
               <CardTitle className="font-sans font-normal text-base text-paper">
-                A keepsake email with your child&apos;s photos and story lands
-                in your inbox. Keep an eye out!
+                A little something is landing in your inbox the morning after
+                the party. Watch for it — we think you&apos;ll like it.
               </CardTitle>
             </div>
           </Card>
