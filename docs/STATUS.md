@@ -1,7 +1,50 @@
 # Kid Profile Rebuild — STATUS
 
-**Branch:** `kid-profile-rebuild` · **Last update:** 2026-04-17
+**Branch:** `kid-profile-rebuild` · **Last update:** 2026-04-18
+**Live:** https://spring-bbq-bash.vercel.app · **Event:** Saturday, April 25, 2026
 **Plan:** `docs/plans/2026-04-16-kid-profile-rebuild-plan.md` · **Spec:** `docs/specs/2026-04-16-kid-profile-rebuild-design.md`
+
+## Go-live status (2026-04-18)
+
+Phases 1–7 of the plan are shipped. A full visual rebuild (D1–D9 glow pass) was layered on top and is also live. The site represents Attn: To Detail's first public-facing project — donated to LCA for the event. Craft bar: everything the parents see needs to feel like it came from a real studio.
+
+**What's live right now:**
+- Parent flow at `/register` with aurora-glow hero, "Spring BBQ Bash · Glow Party Edition" wordmark, glow-lit LCA cross, and a mysterious keepsake teaser (no reveal of what the email contains).
+- `/register/confirm` with "See you Saturday under the blacklight" hero and the event's 3 preloaded perks displayed as neon chips.
+- Volunteer portal at `/station` with emoji station picker and a unified `/station/activity` endpoint for drinks, jail, prize wheel, DJ, and free-visit logging.
+- Admin at `/admin` with dark-mode dashboard, children list showing per-kid perks, story moderation, photo queue, settings.
+- Keepsake email template (`src/emails/StoryEmail.tsx`) — dark hero, Unbounded wordmark, per-child block with photo grid + stats pill + A2D signature footer. Not yet wired to a real inbox (`RESEND_API_KEY` empty).
+
+**Ticket model (locked):** every kid starts with 2 drink tickets, 3 jail/pass tickets (one bucket, two uses), 1 prize wheel spin, 1 DJ shoutout. Free stations just log a visit for the keepsake email.
+
+**Credentials:** volunteer password `SpringBBQ2026$` · admin password `LCAadmin2026$` (both in `.env.local` + Vercel env).
+
+## Before the event (Saturday, April 25) — critical path
+
+Ordered by urgency. The first three are non-negotiable; skip any of them and the event has a real problem.
+
+1. **Real LCA waiver text.** `src/components/registration/WaiverSection.tsx` carries placeholder copy marked `TODO(plan Phase 2)`. Legal liability if this ships as-is. Source: LCA's existing paper permission slip.
+2. **Email delivery live.** Set `RESEND_API_KEY` + `EMAIL_FROM` in Vercel env (and `.env.local`). Complete Resend domain DNS (SPF / DKIM / DMARC). Without this, the keepsake email can't send the morning after. `CRON_SECRET` is already set; the Vercel cron fires at `0 16 * * *` UTC (9 AM Pacific) automatically.
+3. **Full manual dry-run on a real phone.** Test family → `/register` → check-in with jail mugshot → visit 5+ stations (including drinks, jail, prize wheel, DJ) → check out → confirm story generates via `/admin/stories` → confirm keepsake email renders in a real burner inbox via the test-send button in `/admin/settings`.
+4. **Volunteer device setup.** Each station gets a tablet/phone, logged into `/station`, station slug picked (stored in `localStorage`). Print a one-page volunteer cheat-sheet showing each station's UI.
+5. **Wristband printing.** Blank QR wristbands pre-printed in batches of ~20 for walk-up registrations (see spec §2 walk-up flow). Confirm the QR decoder reads them at event-lighting.
+
+## Nice-to-have before the event
+
+6. Replace the text event header in the keepsake email with LCA's actual logo as an image (`email_logo_url` in `/admin/settings`). LCA crest file available at `lcalincoln.com`.
+7. Re-seed `events.reference_story_text` with a story written for the actual LCA event (not the Maya/Carter reference from spec §5.3). Improves auto-check quality.
+8. Applitools baseline capture for the parent flow + email (enables regression detection post-event).
+9. Swap the teaser-email copy to final voice once the reveal is confirmed okay. Current copy is the "surprise" direction Brian approved.
+
+## Post-event / longer-term
+
+- **Phase 8** — audit log sweep (verify every sensitive action writes to `audit_log`) + retention purge cron (face embeddings at 30 days, photos/stories/profiles at 90 days, waiver records at 7 years).
+- **Phase 4 admin quick-actions** — "Add tickets" (comp reload shortcut), "Resend email", "Trigger story preview" on `/admin/children/[id]` — skeletons only right now.
+- **Legacy page cleanup** — `/admin/catalog`, `/admin/tickets`, `/admin/wristbands`, `/checkin`, `/zone/*` from the pre-rebuild era still exist with the old `sbbq_auth` cookie. Either delete or route to the new equivalents.
+- **Supabase Realtime** — dashboard + catalog currently poll every 5s. Realtime channels would be instant.
+- **Bulk photo ZIP download** — plan 4.5 called for a server-side ZIP stream; "Download all photos" button in the keepsake email links to `null` currently.
+- **Vision match batching + retry** — per Phase 6 follow-ups; cost optimization.
+- **Roaming-photo drag-to-tag** for the `unmatched` filter in `/admin/photos/queue` — currently says "coming soon".
 
 ## Progress
 
