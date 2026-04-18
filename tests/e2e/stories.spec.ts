@@ -3,6 +3,9 @@ import { registerChild, loginVolunteer, apiCheckIn } from './helpers/volunteer'
 import { loginAdmin } from './helpers/admin'
 
 test.describe('Phase 5 story pipeline', () => {
+  // Real Claude call; sometimes 10–20s. Bump the default 30s timeout.
+  test.setTimeout(90_000)
+
   test('register → check-in → spends → checkout → generation produces a grounded story', async ({ page, request, browser }) => {
     const volunteerPw = process.env.VOLUNTEER_PASSWORD
     const adminPw = process.env.ADMIN_PASSWORD
@@ -12,36 +15,25 @@ test.describe('Phase 5 story pipeline', () => {
 
     const { child_id, qr_code } = await registerChild(request, { first_name: 'Zephyra' })
 
-    // Admin bulk-bump the child's balance so we have room for multiple spends
-    const adminCtx = await browser.newContext()
-    const adminPage = await adminCtx.newPage()
-    await loginAdmin(adminPage, adminPw!)
-    const bulkRes = await adminPage.request.post('/api/bulk/set-initial-balance', {
-      data: { balance: 30, only_not_checked_in: true },
-    })
-    expect(bulkRes.ok()).toBeTruthy()
-    await adminCtx.close()
-
-    // Volunteer: check in + multiple spends across ≥3 stations + checkout
+    // Volunteer: check in + log activity across multiple stations + checkout.
+    // Post-rebuild: everything runs through /api/stations/activity; free stations
+    // just log a visit. We hit cornhole twice so it ties for the favorite station.
+    void browser; void adminPw
     await loginVolunteer(page, volunteerPw!)
     await apiCheckIn(page, child_id)
 
-    const spendAt = async (station: string) => {
-      const cat = await page.request.get(`/api/catalog?station=${station}`)
-      expect(cat.ok()).toBeTruthy()
-      const items: { id: string }[] = (await cat.json()).items
-      expect(items.length).toBeGreaterThan(0)
-      const res = await page.request.post('/api/spend', {
-        data: { child_id, station, catalog_item_id: items[0].id },
+    const visit = async (station: string, extra?: Record<string, unknown>) => {
+      const res = await page.request.post('/api/stations/activity', {
+        data: { child_id, station, ...extra },
       })
       expect(res.ok()).toBeTruthy()
     }
 
-    await spendAt('cornhole')
-    await spendAt('cornhole') // same station twice — makes cornhole the favorite
-    await spendAt('face_painting')
-    await spendAt('arts_crafts')
-    await spendAt('prize_wheel')
+    await visit('cornhole')
+    await visit('cornhole') // same station twice — favorite
+    await visit('face_painting')
+    await visit('arts_crafts')
+    await visit('prize_wheel')
 
     const checkoutRes = await page.request.post('/api/checkout', {
       data: {

@@ -36,7 +36,7 @@ test('admin edits a child and the PATCH persists', async ({ page, request }) => 
   expect(body.child.allergies).toBe('peanuts, dairy')
 })
 
-test('admin bulk set-initial-balance updates not-yet-checked-in kids', async ({ page, request }) => {
+test('admin bulk reset-perks restores glow-party buckets + clears one-time flags', async ({ page, request }) => {
   const pw = process.env.ADMIN_PASSWORD
   test.skip(!pw, 'ADMIN_PASSWORD env var not set')
 
@@ -44,7 +44,7 @@ test('admin bulk set-initial-balance updates not-yet-checked-in kids', async ({ 
   await loginAdmin(page, pw!)
 
   const res = await page.request.post('/api/bulk/set-initial-balance', {
-    data: { balance: 15, only_not_checked_in: true },
+    data: { drink_tickets: 2, jail_tickets: 3, clear_one_time_flags: true, only_not_checked_in: true },
   })
   expect(res.ok()).toBeTruthy()
   const body = await res.json()
@@ -52,7 +52,10 @@ test('admin bulk set-initial-balance updates not-yet-checked-in kids', async ({ 
 
   const getRes = await page.request.get(`/api/children/${child_id}`)
   const child = await getRes.json()
-  expect(child.child.ticket_balance).toBe(15)
+  expect(child.child.drink_tickets_remaining).toBe(2)
+  expect(child.child.jail_tickets_remaining).toBe(3)
+  expect(child.child.prize_wheel_used_at).toBeNull()
+  expect(child.child.dj_shoutout_used_at).toBeNull()
 })
 
 test('admin catalog CRUD: create, edit, delete a custom item', async ({ page }) => {

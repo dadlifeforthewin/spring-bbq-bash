@@ -19,7 +19,7 @@ test('cron send-stories groups approved stories per family and writes email_send
   const sharedEmail = `familyA-${Date.now()}@test.com`
   const regRes1 = await request.post('/api/register', {
     data: {
-      primary_parent: { name: 'Family A', phone: '555-1', email: sharedEmail },
+      primary_parent: { name: 'Family A', phone: '555-100-2000', email: sharedEmail },
       secondary_parent: null,
       children: [{
         first_name: 'AlphaKid', last_name: 'Aye', age: 6, grade: '1st',
@@ -38,7 +38,7 @@ test('cron send-stories groups approved stories per family and writes email_send
 
   const regRes2 = await request.post('/api/register', {
     data: {
-      primary_parent: { name: 'Family A', phone: '555-1', email: sharedEmail },
+      primary_parent: { name: 'Family A', phone: '555-100-2000', email: sharedEmail },
       secondary_parent: null,
       children: [{
         first_name: 'BetaKid', last_name: 'Aye', age: 8, grade: '3rd',
@@ -59,7 +59,7 @@ test('cron send-stories groups approved stories per family and writes email_send
   const familyBEmail = `familyB-${Date.now()}@test.com`
   const regRes3 = await request.post('/api/register', {
     data: {
-      primary_parent: { name: 'Family B', phone: '555-2', email: familyBEmail },
+      primary_parent: { name: 'Family B', phone: '555-200-3000', email: familyBEmail },
       secondary_parent: null,
       children: [{
         first_name: 'SoloKid', last_name: 'Bee', age: 5, grade: 'K',

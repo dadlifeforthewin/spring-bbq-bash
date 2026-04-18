@@ -36,7 +36,9 @@ export async function POST(req: NextRequest) {
       vision_matching_consent: parsed.data.vision_matching_consent,
       facts_reload_permission: child.facts_reload_permission,
       facts_max_amount: child.facts_max_amount,
-      ticket_balance: eventRow.default_initial_tickets,
+      // drink_tickets_remaining (2), jail_tickets_remaining (3) default via schema.
+      // Legacy ticket_balance preserved for any residual reads; unused going forward.
+      ticket_balance: 0,
     }
     if (isWalkup) insertRow.qr_code = (parsed.data as unknown as { qr_code: string }).qr_code
 

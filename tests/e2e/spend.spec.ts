@@ -1,57 +1,64 @@
 import { test, expect } from '@playwright/test'
 import { registerChild, loginVolunteer, apiCheckIn } from './helpers/volunteer'
 
-test('volunteer spends tickets at a station', async ({ page, request, context }) => {
+// Post-rebuild: /api/spend is deprecated. Activity goes through /api/stations/activity
+// with station-specific logic. "Drinks" is the metered spend analog (2 per kid).
+
+test('volunteer redeems a drink ticket', async ({ page, request }) => {
   const pw = process.env.VOLUNTEER_PASSWORD
   test.skip(!pw, 'VOLUNTEER_PASSWORD env var not set')
 
-  const { child_id, qr_code } = await registerChild(request, { first_name: 'SpenderKid' })
+  const { child_id } = await registerChild(request, { first_name: 'DrinkKid' })
   await loginVolunteer(page, pw!)
   await apiCheckIn(page, child_id)
 
-  // Pick a station that has catalog items — cornhole has "Game (3 tosses)" seeded at 2 🎟
-  await context.addInitScript(() => {
-    localStorage.setItem('sbbq_station', 'cornhole')
+  // Kid starts with 2 drink tickets (schema default)
+  const first = await page.request.post('/api/stations/activity', {
+    data: { child_id, station: 'drinks' },
   })
+  expect(first.ok()).toBeTruthy()
+  const firstBody = await first.json()
+  expect(firstBody.balance.drink_tickets).toBe(1)
 
-  await page.goto('/station/spend')
-  await page.getByLabel(/qr code/i).fill(qr_code)
-  await page.getByRole('button', { name: /look up/i }).click()
-  await expect(page.getByText(/SpenderKid/)).toBeVisible()
+  const second = await page.request.post('/api/stations/activity', {
+    data: { child_id, station: 'drinks' },
+  })
+  expect(second.ok()).toBeTruthy()
+  const secondBody = await second.json()
+  expect(secondBody.balance.drink_tickets).toBe(0)
 
-  // Click the first catalog item
-  await page.getByRole('button', { name: /game \(3 tosses\)/i }).click()
-  // Confirm modal
-  await page.getByRole('button', { name: /^confirm$/i }).click()
-
-  await expect(page.getByText(/spent 2 🎟 on game \(3 tosses\)/i)).toBeVisible()
+  // Third drink should fail — no tickets left
+  const third = await page.request.post('/api/stations/activity', {
+    data: { child_id, station: 'drinks' },
+  })
+  expect(third.status()).toBe(409)
+  const thirdBody = await third.json()
+  expect(thirdBody.error).toMatch(/no drink tickets/i)
 })
 
-test('insufficient balance blocks a spend', async ({ page, request, context }) => {
+test('free stations log a visit but do not deduct anything', async ({ page, request }) => {
   const pw = process.env.VOLUNTEER_PASSWORD
   test.skip(!pw, 'VOLUNTEER_PASSWORD env var not set')
 
-  const { child_id } = await registerChild(request, { first_name: 'BrokeKid' })
+  const { child_id, qr_code } = await registerChild(request, { first_name: 'CornholeKid' })
   await loginVolunteer(page, pw!)
   await apiCheckIn(page, child_id)
 
-  // Drain balance by spending 10 tickets' worth at cornhole via direct API calls
-  // (cornhole game is 2 tickets — five purchases takes them to 0, then one more fails)
-  const catRes = await page.request.get('/api/catalog?station=cornhole')
-  const cat = await catRes.json()
-  const item = cat.items[0]
-  for (let i = 0; i < 5; i++) {
-    const ok = await page.request.post('/api/spend', {
-      data: { child_id, station: 'cornhole', catalog_item_id: item.id },
-    })
-    expect(ok.ok()).toBeTruthy()
-  }
-  const blocked = await page.request.post('/api/spend', {
-    data: { child_id, station: 'cornhole', catalog_item_id: item.id },
+  const res = await page.request.post('/api/stations/activity', {
+    data: { child_id, station: 'cornhole' },
   })
-  expect(blocked.status()).toBe(409)
-  const body = await blocked.json()
-  expect(body.error).toMatch(/insufficient tickets/i)
+  expect(res.ok()).toBeTruthy()
+  const body = await res.json()
+  expect(body.kind).toBe('free_visit')
 
-  void context // lint: touch context so the fixture is used
+  // Timeline should carry the visit for the keepsake email
+  const tl = await page.request.get(`/api/children/by-qr/${encodeURIComponent(qr_code)}/timeline`)
+  const tlBody = await tl.json()
+  const hit = tlBody.events.find((e: { station: string }) => e.station === 'cornhole')
+  expect(hit).toBeTruthy()
+})
+
+test('legacy /api/spend is gone (410)', async ({ request }) => {
+  const res = await request.post('/api/spend', { data: {} })
+  expect(res.status()).toBe(410)
 })

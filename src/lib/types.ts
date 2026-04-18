@@ -57,7 +57,11 @@ export type Child = {
   vision_matching_consent: boolean
   facts_reload_permission: boolean
   facts_max_amount: number
-  ticket_balance: number
+  ticket_balance: number // legacy — kept for migration compatibility; new code reads the buckets below
+  drink_tickets_remaining: number
+  jail_tickets_remaining: number
+  prize_wheel_used_at: string | null
+  dj_shoutout_used_at: string | null
   checked_in_at: string | null
   checked_in_dropoff_type: DropoffType | null
   checked_out_at: string | null

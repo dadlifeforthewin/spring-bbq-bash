@@ -10,7 +10,7 @@ export async function GET(_req: NextRequest) {
   const sb = serverClient()
 
   const [children, events, reloads, aiStories, photos, evt] = await Promise.all([
-    sb.from('children').select('id, checked_in_at, checked_out_at, ticket_balance'),
+    sb.from('children').select('id, checked_in_at, checked_out_at, drink_tickets_remaining, jail_tickets_remaining, prize_wheel_used_at, dj_shoutout_used_at'),
     sb.from('station_events').select('station, event_type, tickets_delta'),
     sb.from('reload_events').select('tickets_added, payment_method, amount_charged'),
     sb.from('ai_stories').select('status'),
@@ -23,7 +23,10 @@ export async function GET(_req: NextRequest) {
   const checkedIn = kids.filter((k) => k.checked_in_at && !k.checked_out_at).length
   const checkedOut = kids.filter((k) => k.checked_out_at).length
   const notArrived = kids.filter((k) => !k.checked_in_at).length
-  const totalBalance = kids.reduce((s, k) => s + (k.ticket_balance ?? 0), 0)
+  const drinksLeft = kids.reduce((s, k) => s + (k.drink_tickets_remaining ?? 0), 0)
+  const jailLeft   = kids.reduce((s, k) => s + (k.jail_tickets_remaining ?? 0), 0)
+  const wheelUsed  = kids.filter((k) => !!k.prize_wheel_used_at).length
+  const djUsed     = kids.filter((k) => !!k.dj_shoutout_used_at).length
 
   const evts = events.data ?? []
   const ticketsSpent = evts
@@ -71,8 +74,13 @@ export async function GET(_req: NextRequest) {
       checked_in: checkedIn,
       checked_out: checkedOut,
       not_arrived: notArrived,
-      tickets_outstanding: totalBalance,
+      drinks_remaining: drinksLeft,
+      jail_remaining: jailLeft,
+      prize_wheel_used: wheelUsed,
+      dj_shoutout_used: djUsed,
       tickets_spent: ticketsSpent,
+      // Back-compat for components that haven't been redesigned yet (D8 replaces this).
+      tickets_outstanding: drinksLeft + jailLeft,
       photos: photosCount,
       not_checked_out_after_end: notCheckedOutAfterEnd,
     },

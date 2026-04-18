@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
   const sb = serverClient()
   let q = sb
     .from('children')
-    .select('id, qr_code, first_name, last_name, age, grade, allergies, photo_consent_app, photo_consent_promo, vision_matching_consent, ticket_balance, checked_in_at, checked_out_at, created_at')
+    .select('id, qr_code, first_name, last_name, age, grade, allergies, photo_consent_app, photo_consent_promo, vision_matching_consent, drink_tickets_remaining, jail_tickets_remaining, prize_wheel_used_at, dj_shoutout_used_at, checked_in_at, checked_out_at, created_at')
     .order('last_name', { ascending: true })
     .order('first_name', { ascending: true })
     .limit(500)

@@ -4,8 +4,13 @@ import { serverClient } from '@/lib/supabase'
 import { isAdminAuthed } from '@/lib/admin-auth'
 import { writeAudit } from '@/lib/audit'
 
+// Post-rebuild: this is now "reset perks" — restore every kid's drink + jail buckets and
+// clear the prize-wheel / DJ-shoutout flags. Rarely used; helpful when the event starts
+// over or when test data leaks into production.
 const schema = z.object({
-  balance: z.number().int().min(0).max(100),
+  drink_tickets: z.number().int().min(0).max(20).optional().default(2),
+  jail_tickets:  z.number().int().min(0).max(20).optional().default(3),
+  clear_one_time_flags: z.boolean().optional().default(true),
   only_not_checked_in: z.boolean().optional().default(true),
 })
 
@@ -22,7 +27,7 @@ export async function POST(req: NextRequest) {
 
   const sb = serverClient()
 
-  let q = sb.from('children').select('id, ticket_balance')
+  let q = sb.from('children').select('id')
   if (parsed.data.only_not_checked_in) q = q.is('checked_in_at', null)
   const { data: children, error } = await q
   if (error) return Response.json({ error: 'db error', details: error.message }, { status: 500 })
@@ -30,21 +35,19 @@ export async function POST(req: NextRequest) {
   const ids = (children ?? []).map((c) => c.id)
   if (ids.length === 0) return Response.json({ ok: true, updated: 0 })
 
-  let updateQ = sb.from('children').update({ ticket_balance: parsed.data.balance }).in('id', ids)
+  const patch: Record<string, unknown> = {
+    drink_tickets_remaining: parsed.data.drink_tickets,
+    jail_tickets_remaining:  parsed.data.jail_tickets,
+  }
+  if (parsed.data.clear_one_time_flags) {
+    patch.prize_wheel_used_at = null
+    patch.dj_shoutout_used_at = null
+  }
+
+  let updateQ = sb.from('children').update(patch).in('id', ids)
   if (parsed.data.only_not_checked_in) updateQ = updateQ.is('checked_in_at', null)
   const { error: updErr } = await updateQ
   if (updErr) return Response.json({ error: 'update failed', details: updErr.message }, { status: 500 })
-
-  // Insert a comp reload row per child so the audit trail + stats reflect the top-up
-  await sb.from('reload_events').insert(
-    ids.map((child_id) => ({
-      child_id,
-      tickets_added: parsed.data.balance,
-      payment_method: 'comp' as const,
-      amount_charged: null,
-      staff_name: 'admin-bulk',
-    }))
-  )
 
   await writeAudit({
     action: 'reload',
@@ -52,8 +55,10 @@ export async function POST(req: NextRequest) {
     target_type: 'bulk',
     ip_address: ip,
     details: {
-      scope: 'set_initial_balance',
-      balance: parsed.data.balance,
+      scope: 'reset_perks',
+      drink_tickets: parsed.data.drink_tickets,
+      jail_tickets: parsed.data.jail_tickets,
+      clear_one_time_flags: parsed.data.clear_one_time_flags,
       count: ids.length,
       only_not_checked_in: parsed.data.only_not_checked_in,
     },

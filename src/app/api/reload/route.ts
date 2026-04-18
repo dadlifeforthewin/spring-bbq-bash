@@ -6,9 +6,10 @@ import { writeAudit } from '@/lib/audit'
 
 const PAYMENT_METHODS = ['facts', 'cash', 'venmo', 'comp'] as const
 
+// Only drink tickets can be topped up — jail, prize wheel, DJ are fixed per the glow-party model.
 const reloadSchema = z.object({
   child_id: z.string().uuid(),
-  tickets_added: z.number().int().min(1).max(100),
+  tickets_added: z.number().int().min(1).max(20),
   payment_method: z.enum(PAYMENT_METHODS),
   amount_charged: z.number().min(0).max(100).optional(),
   staff_name: z.string().max(120).optional().or(z.literal('')),
@@ -26,7 +27,7 @@ export async function GET(req: NextRequest) {
   const sb = serverClient()
   const { data: child } = await sb
     .from('children')
-    .select('id, facts_reload_permission, facts_max_amount, ticket_balance')
+    .select('id, facts_reload_permission, facts_max_amount, drink_tickets_remaining')
     .eq('id', childId)
     .maybeSingle()
   if (!child) return Response.json({ error: 'child not found' }, { status: 404 })
@@ -41,7 +42,7 @@ export async function GET(req: NextRequest) {
   const factsRemaining = Math.max(0, child.facts_max_amount - factsSpent)
 
   return Response.json({
-    balance: child.ticket_balance,
+    drink_tickets: child.drink_tickets_remaining,
     facts_reload_permission: child.facts_reload_permission,
     facts_max_amount: child.facts_max_amount,
     facts_spent: factsSpent,
@@ -65,7 +66,7 @@ export async function POST(req: NextRequest) {
 
   const { data: child } = await sb
     .from('children')
-    .select('id, facts_reload_permission, facts_max_amount, ticket_balance, checked_in_at, checked_out_at')
+    .select('id, facts_reload_permission, facts_max_amount, drink_tickets_remaining, checked_in_at, checked_out_at')
     .eq('id', parsed.data.child_id)
     .maybeSingle()
   if (!child) return Response.json({ error: 'child not found' }, { status: 404 })
@@ -94,21 +95,19 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const newBalance = child.ticket_balance + parsed.data.tickets_added
+  const newBalance = child.drink_tickets_remaining + parsed.data.tickets_added
 
-  await sb
-    .from('reload_events')
-    .insert({
-      child_id: parsed.data.child_id,
-      tickets_added: parsed.data.tickets_added,
-      payment_method: parsed.data.payment_method,
-      amount_charged: parsed.data.amount_charged ?? null,
-      staff_name: parsed.data.staff_name || null,
-    })
+  await sb.from('reload_events').insert({
+    child_id: parsed.data.child_id,
+    tickets_added: parsed.data.tickets_added,
+    payment_method: parsed.data.payment_method,
+    amount_charged: parsed.data.amount_charged ?? null,
+    staff_name: parsed.data.staff_name || null,
+  })
 
   await sb
     .from('children')
-    .update({ ticket_balance: newBalance })
+    .update({ drink_tickets_remaining: newBalance })
     .eq('id', parsed.data.child_id)
 
   await sb.from('station_events').insert({
@@ -116,6 +115,7 @@ export async function POST(req: NextRequest) {
     station: 'reload',
     event_type: 'reload',
     tickets_delta: parsed.data.tickets_added,
+    item_name: 'Drink ticket reload',
     volunteer_name: parsed.data.staff_name || null,
   })
 
@@ -129,8 +129,9 @@ export async function POST(req: NextRequest) {
       tickets_added: parsed.data.tickets_added,
       payment_method: parsed.data.payment_method,
       amount_charged: parsed.data.amount_charged ?? null,
+      ticket_type: 'drink',
     },
   })
 
-  return Response.json({ ok: true, balance: newBalance })
+  return Response.json({ ok: true, drink_tickets: newBalance })
 }

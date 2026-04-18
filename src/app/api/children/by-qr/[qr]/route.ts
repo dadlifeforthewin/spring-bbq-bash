@@ -10,7 +10,7 @@ export async function GET(_req: NextRequest, { params }: { params: { qr: string 
   const sb = serverClient()
   const { data: child, error } = await sb
     .from('children')
-    .select('id, qr_code, first_name, last_name, age, grade, allergies, special_instructions, photo_consent_app, photo_consent_promo, vision_matching_consent, facts_reload_permission, facts_max_amount, ticket_balance, checked_in_at, checked_in_dropoff_type, checked_out_at, checked_out_to_name')
+    .select('id, qr_code, first_name, last_name, age, grade, allergies, special_instructions, photo_consent_app, photo_consent_promo, vision_matching_consent, facts_reload_permission, facts_max_amount, ticket_balance, drink_tickets_remaining, jail_tickets_remaining, prize_wheel_used_at, dj_shoutout_used_at, checked_in_at, checked_in_dropoff_type, checked_out_at, checked_out_to_name')
     .eq('qr_code', params.qr)
     .maybeSingle()
 

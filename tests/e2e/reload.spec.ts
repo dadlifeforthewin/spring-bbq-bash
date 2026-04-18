@@ -1,27 +1,28 @@
 import { test, expect } from '@playwright/test'
 import { registerChild, loginVolunteer, apiCheckIn } from './helpers/volunteer'
 
-test('volunteer reloads tickets via cash', async ({ page, request }) => {
+// Post-rebuild: /api/reload now tops up drink_tickets_remaining (the only metered bucket
+// that can be reloaded). Jail / prize wheel / DJ are fixed and cannot be refilled.
+
+test('cash reload adds to drink_tickets_remaining', async ({ page, request }) => {
   const pw = process.env.VOLUNTEER_PASSWORD
   test.skip(!pw, 'VOLUNTEER_PASSWORD env var not set')
 
-  const { child_id, qr_code } = await registerChild(request, { first_name: 'ReloadKid' })
+  const { child_id } = await registerChild(request, { first_name: 'ReloadKid' })
   await loginVolunteer(page, pw!)
   await apiCheckIn(page, child_id)
 
-  await page.goto('/station/reload')
-  await page.getByLabel(/qr code/i).fill(qr_code)
-  await page.getByRole('button', { name: /look up/i }).click()
-  await expect(page.getByText(/ReloadKid/)).toBeVisible()
+  // Default is 2; add 3 more
+  const res = await page.request.post('/api/reload', {
+    data: { child_id, tickets_added: 3, payment_method: 'cash', amount_charged: 3, staff_name: 'Bot' },
+  })
+  expect(res.ok()).toBeTruthy()
+  const body = await res.json()
+  expect(body.drink_tickets).toBe(5)
 
-  await page.getByLabel(/tickets to add/i).fill('5')
-  await page.getByLabel(/amount charged/i).fill('5')
-  // Cash is the default method, but click to be deterministic
-  await page.getByRole('button', { name: /^cash$/i }).click()
-  await page.getByLabel(/staff name/i).fill('Volunteer C')
-  await page.getByRole('button', { name: /^Add 5/ }).click()
-
-  await expect(page.getByText(/balance \d+/i)).toBeVisible()
+  const status = await page.request.get(`/api/reload?child_id=${child_id}`)
+  const statusBody = await status.json()
+  expect(statusBody.drink_tickets).toBe(5)
 })
 
 test('FACTS allowance caps the reload', async ({ page, request }) => {
@@ -36,13 +37,11 @@ test('FACTS allowance caps the reload', async ({ page, request }) => {
   await loginVolunteer(page, pw!)
   await apiCheckIn(page, child_id)
 
-  // Burn the FACTS cap
   const first = await page.request.post('/api/reload', {
     data: { child_id, tickets_added: 5, payment_method: 'facts', amount_charged: 5, staff_name: 'Bot' },
   })
   expect(first.ok()).toBeTruthy()
 
-  // Next FACTS reload should 403
   const capped = await page.request.post('/api/reload', {
     data: { child_id, tickets_added: 1, payment_method: 'facts', amount_charged: 1, staff_name: 'Bot' },
   })
