@@ -1,10 +1,7 @@
-import { isVolunteerAuthed } from '@/lib/volunteer-auth'
-import VolunteerLogin from '@/components/station/VolunteerLogin'
-import SpendStation from '@/components/station/SpendStation'
+import { redirect } from 'next/navigation'
 
 export const dynamic = 'force-dynamic'
 
-export default function SpendPage() {
-  if (!isVolunteerAuthed()) return <VolunteerLogin />
-  return <SpendStation />
+export default function SpendRedirect() {
+  redirect('/station/activity')
 }

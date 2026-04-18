@@ -2,7 +2,7 @@ import { HTMLAttributes } from 'react'
 import { clsx } from './clsx'
 
 type CardProps = HTMLAttributes<HTMLDivElement> & {
-  tone?: 'default' | 'raised' | 'outline' | 'glow-magenta' | 'glow-cyan' | 'glow-uv' | 'glow-gold'
+  tone?: 'default' | 'raised' | 'outline' | 'glow-magenta' | 'glow-cyan' | 'glow-uv' | 'glow-gold' | 'glow-mint'
   padded?: boolean
 }
 
@@ -14,6 +14,7 @@ const toneClasses: Record<NonNullable<CardProps['tone']>, string> = {
   'glow-cyan':    'bg-ink-2/70 border-neon-cyan/40 shadow-glow-cyan',
   'glow-uv':      'bg-ink-2/70 border-neon-uv/40 shadow-glow-uv',
   'glow-gold':    'bg-ink-2/70 border-neon-gold/40 shadow-glow-gold',
+  'glow-mint':    'bg-ink-2/70 border-neon-mint/40 shadow-glow-mint',
 }
 
 export function Card({ tone = 'default', padded = true, className, ...rest }: CardProps) {

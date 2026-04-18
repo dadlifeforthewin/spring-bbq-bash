@@ -1,7 +1,11 @@
 'use client'
 import { useRef, useState } from 'react'
+import { StationShell } from './StationShell'
 import ChildCard from './ChildCard'
 import PhotoViewfinder, { PhotoViewfinderHandle } from './PhotoViewfinder'
+import { Input } from '@/components/glow/Input'
+import { Button } from '@/components/glow/Button'
+import { Card, CardEyebrow } from '@/components/glow/Card'
 
 type Lookup = {
   child: {
@@ -12,8 +16,11 @@ type Lookup = {
     grade: string | null
     allergies: string | null
     photo_consent_app: boolean
-    ticket_balance: number
     checked_in_at: string | null
+    drink_tickets_remaining: number
+    jail_tickets_remaining: number
+    prize_wheel_used_at: string | null
+    dj_shoutout_used_at: string | null
   }
   primary_parent: { name: string; phone: string | null } | null
 }
@@ -130,129 +137,116 @@ export default function CheckInStation() {
   const mugshotReady = !needsMugshot || mugshotTaken
 
   return (
-    <main className="mx-auto max-w-xl space-y-4 p-6">
-      <header>
-        <h1 className="text-3xl font-black">Check-In</h1>
-        <p className="text-slate-600">Scan wristband. Take the jail mugshot. Check in.</p>
-      </header>
-
+    <StationShell
+      eyebrow="Station · Check-in"
+      title="Welcome the kid in"
+      subtitle="Scan their wristband, take the jail mugshot, assign a dropoff, check them in."
+    >
       <form onSubmit={doLookup} className="flex gap-2">
-        <input
+        <Input
           type="text"
           value={qr}
           onChange={(e) => setQr(e.target.value)}
-          placeholder="QR code / child UUID"
+          placeholder="Scan or paste QR"
           aria-label="QR code"
-          className="flex-1 rounded border px-3 py-2"
+          className="flex-1"
         />
-        <button type="submit" disabled={busy}
-          className="rounded bg-slate-900 px-4 py-2 font-bold text-white disabled:opacity-50">
-          Look up
-        </button>
+        <Button type="submit" tone="ghost" size="md" loading={busy}>Look up</Button>
       </form>
 
       {lookupError && (
-        <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">{lookupError}</p>
+        <p className="rounded-xl border border-danger/60 bg-danger/10 px-3 py-2 text-sm text-danger">{lookupError}</p>
       )}
 
       {data && (
         <div className="space-y-4">
-          <ChildCard
-            child={{
-              first_name: data.child.first_name,
-              last_name: data.child.last_name,
-              age: data.child.age,
-              grade: data.child.grade,
-              allergies: data.child.allergies,
-              photo_consent_app: data.child.photo_consent_app,
-              ticket_balance: data.child.ticket_balance,
-            }}
-            primary_parent={data.primary_parent ?? { name: '—', phone: null }}
-          />
+          <ChildCard child={data.child} primary_parent={data.primary_parent ?? { name: '—', phone: null }} />
 
           {data.child.checked_in_at ? (
-            <p className="rounded bg-amber-50 px-3 py-2 text-sm text-amber-900">
-              Already checked in at {new Date(data.child.checked_in_at).toLocaleString()}.
+            <p className="rounded-xl border border-warn/60 bg-warn/10 px-3 py-2 text-sm text-warn">
+              Already checked in at {new Date(data.child.checked_in_at).toLocaleTimeString()}.
             </p>
           ) : (
             <>
-              <label className="block">
-                <span className="block text-sm">Your name (staff)</span>
-                <input
-                  type="text"
-                  value={staffName}
-                  onChange={(e) => setStaffName(e.target.value)}
-                  aria-label="staff name"
-                  className="w-full rounded border px-3 py-2"
-                />
-              </label>
+              <Input
+                label="Your name (staff)"
+                value={staffName}
+                onChange={(e) => setStaffName(e.target.value)}
+                aria-label="staff name"
+              />
 
               {needsMugshot ? (
-                <section className="space-y-2">
-                  <h2 className="text-sm font-bold">Jail mugshot</h2>
+                <section className="space-y-3 rounded-2xl border border-neon-magenta/30 bg-ink-2/70 p-4 shadow-[0_0_30px_-10px_rgba(255,46,147,.5)]">
+                  <CardEyebrow className="text-neon-magenta">Jail mugshot</CardEyebrow>
                   <PhotoViewfinder ref={viewfinderRef} facingMode="environment" />
-                  <button type="button" onClick={takeMugshot}
+                  <Button
+                    tone={mugshotTaken ? 'mint' : 'magenta'}
+                    size="lg"
+                    fullWidth
+                    onClick={takeMugshot}
                     disabled={mugshotUploading || mugshotTaken}
-                    className="w-full rounded bg-slate-900 py-2 font-bold text-white disabled:opacity-50">
+                  >
                     {mugshotTaken ? '📸 Mugshot saved' : mugshotUploading ? 'Uploading…' : '📸 Take mugshot'}
-                  </button>
+                  </Button>
                   {mugshotError && (
-                    <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">{mugshotError}</p>
+                    <p className="rounded-xl border border-danger/60 bg-danger/10 px-3 py-2 text-sm text-danger">{mugshotError}</p>
                   )}
                 </section>
-              ) : data && !data.child.photo_consent_app ? (
-                <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-800">
-                  No photo consent — skipping mugshot. Check-in still completes.
-                </p>
+              ) : !data.child.photo_consent_app ? (
+                <Card tone="glow-magenta" padded className="text-sm text-danger">
+                  🚫 No photo consent — mugshot is skipped. Check-in still completes.
+                </Card>
               ) : null}
 
-              <fieldset className="space-y-2">
-                <legend className="text-sm font-bold">Dropoff</legend>
-                {DROPOFF_OPTIONS.map((o) => (
-                  <label key={o.value} className="flex items-center gap-2">
-                    <input
-                      type="radio"
-                      name="dropoff"
-                      value={o.value}
-                      checked={dropoff === o.value}
-                      onChange={() => setDropoff(o.value)}
-                    />
-                    <span>{o.label}</span>
-                  </label>
-                ))}
+              <fieldset className="space-y-2 rounded-2xl border border-ink-hair bg-ink-2/70 p-4">
+                <legend className="text-xs font-semibold uppercase tracking-widest text-mist">Dropoff</legend>
+                <div className="grid grid-cols-2 gap-2">
+                  {DROPOFF_OPTIONS.map((o) => (
+                    <label key={o.value} className="flex items-start gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="dropoff"
+                        value={o.value}
+                        checked={dropoff === o.value}
+                        onChange={() => setDropoff(o.value)}
+                        className="mt-0.5 appearance-none h-5 w-5 rounded-full border border-ink-hair bg-ink-2 checked:border-neon-cyan checked:bg-neon-cyan/20 checked:shadow-[0_0_14px_rgba(0,230,247,.45)]"
+                      />
+                      <span className="text-sm text-paper">{o.label}</span>
+                    </label>
+                  ))}
+                </div>
               </fieldset>
 
-              <button
+              <Button
                 type="button"
+                tone="magenta"
+                size="xl"
+                fullWidth
                 onClick={doCheckIn}
                 disabled={!dropoff || !mugshotReady || busy}
-                className="w-full rounded bg-fuchsia-600 py-3 font-bold text-white disabled:opacity-50"
+                loading={busy}
               >
-                {busy ? 'Checking in…' : 'Check In'}
-              </button>
+                Check In
+              </Button>
 
               {checkInError && (
-                <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">{checkInError}</p>
+                <p className="rounded-xl border border-danger/60 bg-danger/10 px-3 py-2 text-sm text-danger">{checkInError}</p>
               )}
             </>
           )}
 
           {success && (
             <>
-              <p className="rounded bg-green-50 px-3 py-2 text-sm text-green-700">
-                Checked in! Next kid?
+              <p className="rounded-xl border border-neon-mint/60 bg-neon-mint/10 px-3 py-2 text-sm text-neon-mint shadow-glow-mint animate-rise">
+                ✨ Checked in! Next kid?
               </p>
-              <button
-                type="button"
-                onClick={reset}
-                className="w-full rounded bg-slate-900 py-3 font-bold text-white"
-              >
+              <Button tone="ghost" size="md" fullWidth onClick={reset}>
                 Scan next wristband
-              </button>
+              </Button>
             </>
           )}
         </div>
       )}
-    </main>
+    </StationShell>
   )
 }

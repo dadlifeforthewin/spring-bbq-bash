@@ -1,6 +1,10 @@
 'use client'
 import { useState } from 'react'
+import { StationShell } from './StationShell'
 import ChildCard from './ChildCard'
+import { Input } from '@/components/glow/Input'
+import { Button } from '@/components/glow/Button'
+import { Card, CardEyebrow } from '@/components/glow/Card'
 
 type Lookup = {
   child: {
@@ -11,15 +15,18 @@ type Lookup = {
     grade: string | null
     allergies: string | null
     photo_consent_app: boolean
-    ticket_balance: number
     checked_in_at: string | null
     checked_out_at: string | null
+    drink_tickets_remaining: number
+    jail_tickets_remaining: number
+    prize_wheel_used_at: string | null
+    dj_shoutout_used_at: string | null
   }
   primary_parent: { name: string; phone: string | null } | null
 }
 
 type FactsInfo = {
-  balance: number
+  drink_tickets: number
   facts_reload_permission: boolean
   facts_max_amount: number
   facts_spent: number
@@ -27,9 +34,9 @@ type FactsInfo = {
 }
 
 const PAYMENT_METHODS = [
-  { value: 'facts', label: 'FACTS' },
   { value: 'cash', label: 'Cash' },
   { value: 'venmo', label: 'Venmo' },
+  { value: 'facts', label: 'FACTS' },
   { value: 'comp', label: 'Comp' },
 ] as const
 
@@ -39,8 +46,8 @@ export default function ReloadStation() {
   const [qr, setQr] = useState('')
   const [data, setData] = useState<Lookup | null>(null)
   const [facts, setFacts] = useState<FactsInfo | null>(null)
-  const [tickets, setTickets] = useState('5')
-  const [amount, setAmount] = useState('5.00')
+  const [tickets, setTickets] = useState('1')
+  const [amount, setAmount] = useState('1.00')
   const [method, setMethod] = useState<PaymentMethod>('cash')
   const [staffName, setStaffName] = useState('')
   const [busy, setBusy] = useState(false)
@@ -86,7 +93,7 @@ export default function ReloadStation() {
         payment_method: method,
         staff_name: staffName,
       }
-      if (method === 'facts' || method === 'cash' || method === 'venmo') {
+      if (method !== 'comp') {
         const amt = Number(amount)
         if (!Number.isFinite(amt) || amt < 0) {
           setSubmitError('Enter a valid amount.')
@@ -105,8 +112,8 @@ export default function ReloadStation() {
         setSubmitError(body.error ?? 'Reload failed')
         return
       }
-      setSuccess(`+${ticketsNum} 🎟 · balance ${body.balance}`)
-      // Refresh facts info
+      setSuccess(`+${ticketsNum} drink ticket${ticketsNum === 1 ? '' : 's'} · balance now ${body.drink_tickets}`)
+      setData({ ...data, child: { ...data.child, drink_tickets_remaining: body.drink_tickets } })
       const fRes = await fetch(`/api/reload?child_id=${encodeURIComponent(data.child.id)}`)
       if (fRes.ok) setFacts(await fRes.json())
     } finally {
@@ -117,71 +124,69 @@ export default function ReloadStation() {
   const factsDisabled = facts ? !facts.facts_reload_permission || facts.facts_remaining <= 0 : false
 
   return (
-    <main className="mx-auto max-w-xl space-y-4 p-6">
-      <header>
-        <h1 className="text-3xl font-black">Reload</h1>
-        <p className="text-slate-600">Top up a wristband with tickets. FACTS caps per child.</p>
-      </header>
-
+    <StationShell
+      eyebrow="Station · Reload"
+      title="Top up drink tickets"
+      subtitle="Only drink tickets reload — jail, prize wheel, and DJ are fixed at the start."
+    >
       <form onSubmit={doLookup} className="flex gap-2">
-        <input
+        <Input
           type="text"
           value={qr}
           onChange={(e) => setQr(e.target.value)}
-          placeholder="QR code / child UUID"
+          placeholder="Scan or paste QR"
           aria-label="QR code"
-          className="flex-1 rounded border px-3 py-2"
+          className="flex-1"
         />
-        <button type="submit" disabled={busy}
-          className="rounded bg-slate-900 px-4 py-2 font-bold text-white disabled:opacity-50">
-          Look up
-        </button>
+        <Button type="submit" tone="ghost" size="md" loading={busy}>Look up</Button>
       </form>
 
-      {lookupError && <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">{lookupError}</p>}
+      {lookupError && (
+        <p className="rounded-xl border border-danger/60 bg-danger/10 px-3 py-2 text-sm text-danger">{lookupError}</p>
+      )}
 
       {data && facts && (
         <div className="space-y-4">
-          <ChildCard
-            child={{
-              first_name: data.child.first_name,
-              last_name: data.child.last_name,
-              age: data.child.age,
-              grade: data.child.grade,
-              allergies: data.child.allergies,
-              photo_consent_app: data.child.photo_consent_app,
-              ticket_balance: facts.balance,
-            }}
-            primary_parent={data.primary_parent ?? { name: '—', phone: null }}
-          />
+          <ChildCard child={data.child} primary_parent={data.primary_parent ?? { name: '—', phone: null }} />
 
-          <div className="rounded bg-slate-50 p-3 text-sm">
-            FACTS: {facts.facts_reload_permission ? (
-              <span>${facts.facts_spent.toFixed(2)} used of ${facts.facts_max_amount.toFixed(2)} · ${facts.facts_remaining.toFixed(2)} left</span>
-            ) : (
-              <span className="text-slate-500">not permitted</span>
-            )}
-          </div>
+          <Card tone="default" padded className="text-sm">
+            <CardEyebrow className="text-neon-cyan">FACTS allowance</CardEyebrow>
+            <div className="mt-1 text-mist">
+              {facts.facts_reload_permission ? (
+                <>
+                  ${facts.facts_spent.toFixed(2)} used of ${facts.facts_max_amount.toFixed(2)} —{' '}
+                  <span className="text-paper font-semibold">${facts.facts_remaining.toFixed(2)} left</span>
+                </>
+              ) : (
+                <span className="text-faint">Not permitted</span>
+              )}
+            </div>
+          </Card>
 
-          <label className="block">
-            <span className="block text-sm">Tickets to add</span>
-            <input type="number" min={1} max={100} value={tickets}
+          <div className="grid grid-cols-2 gap-3">
+            <Input
+              label="Tickets to add"
+              type="number"
+              min={1}
+              max={20}
+              value={tickets}
               onChange={(e) => setTickets(e.target.value)}
               aria-label="tickets to add"
-              className="w-full rounded border px-3 py-2" />
-          </label>
-
-          <label className="block">
-            <span className="block text-sm">Amount charged ($)</span>
-            <input type="number" min={0} step="0.01" value={amount}
+            />
+            <Input
+              label="Amount charged ($)"
+              type="number"
+              min={0}
+              step={0.01}
+              value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              aria-label="amount charged"
               disabled={method === 'comp'}
-              className="w-full rounded border px-3 py-2 disabled:bg-slate-100" />
-          </label>
+              aria-label="amount charged"
+            />
+          </div>
 
-          <fieldset className="space-y-2">
-            <legend className="text-sm font-bold">Payment method</legend>
+          <fieldset className="space-y-2 rounded-2xl border border-ink-hair bg-ink-2/70 p-4">
+            <legend className="text-xs font-semibold uppercase tracking-widest text-mist">Payment method</legend>
             <div className="grid grid-cols-2 gap-2">
               {PAYMENT_METHODS.map((m) => {
                 const disabled = m.value === 'facts' && factsDisabled
@@ -193,13 +198,15 @@ export default function ReloadStation() {
                     onClick={() => setMethod(m.value)}
                     disabled={disabled}
                     aria-pressed={active}
-                    className={`rounded border-2 px-3 py-2 font-bold disabled:opacity-40 ${
-                      active ? 'border-fuchsia-600 bg-fuchsia-50' : 'border-slate-200 bg-white'
+                    className={`rounded-xl border-2 px-3 py-2.5 text-sm font-bold transition disabled:opacity-40 ${
+                      active
+                        ? 'border-neon-magenta bg-neon-magenta/10 text-neon-magenta shadow-glow-magenta'
+                        : 'border-ink-hair bg-ink-2 text-paper hover:border-neon-magenta/40'
                     }`}
                   >
                     {m.label}
                     {m.value === 'facts' && facts.facts_reload_permission && (
-                      <span className="block text-xs font-normal text-slate-500">
+                      <span className="block text-[10px] font-normal text-faint mt-0.5">
                         ${facts.facts_remaining.toFixed(2)} left
                       </span>
                     )}
@@ -209,23 +216,35 @@ export default function ReloadStation() {
             </div>
           </fieldset>
 
-          <label className="block">
-            <span className="block text-sm">Your name (staff)</span>
-            <input type="text" value={staffName}
-              onChange={(e) => setStaffName(e.target.value)}
-              aria-label="staff name"
-              className="w-full rounded border px-3 py-2" />
-          </label>
+          <Input
+            label="Your name (staff)"
+            value={staffName}
+            onChange={(e) => setStaffName(e.target.value)}
+            aria-label="staff name"
+          />
 
-          <button type="button" onClick={doReload} disabled={busy}
-            className="w-full rounded bg-fuchsia-600 py-3 font-bold text-white disabled:opacity-50">
-            {busy ? 'Reloading…' : `Add ${tickets} 🎟`}
-          </button>
+          <Button
+            type="button"
+            tone="magenta"
+            size="xl"
+            fullWidth
+            onClick={doReload}
+            disabled={busy}
+            loading={busy}
+          >
+            Add {tickets} drink ticket{Number(tickets) === 1 ? '' : 's'}
+          </Button>
 
-          {submitError && <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">{submitError}</p>}
-          {success && <p className="rounded bg-green-50 px-3 py-2 text-sm text-green-700">{success}</p>}
+          {submitError && (
+            <p className="rounded-xl border border-danger/60 bg-danger/10 px-3 py-2 text-sm text-danger">{submitError}</p>
+          )}
+          {success && (
+            <p className="rounded-xl border border-neon-mint/60 bg-neon-mint/10 px-3 py-2 text-sm text-neon-mint shadow-glow-mint animate-rise">
+              ✨ {success}
+            </p>
+          )}
         </div>
       )}
-    </main>
+    </StationShell>
   )
 }

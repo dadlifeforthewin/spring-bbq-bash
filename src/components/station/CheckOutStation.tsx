@@ -1,6 +1,9 @@
 'use client'
 import { useState } from 'react'
+import { StationShell } from './StationShell'
 import ChildCard from './ChildCard'
+import { Input } from '@/components/glow/Input'
+import { Button } from '@/components/glow/Button'
 
 type Lookup = {
   child: {
@@ -11,9 +14,12 @@ type Lookup = {
     grade: string | null
     allergies: string | null
     photo_consent_app: boolean
-    ticket_balance: number
     checked_in_at: string | null
     checked_out_at: string | null
+    drink_tickets_remaining: number
+    jail_tickets_remaining: number
+    prize_wheel_used_at: string | null
+    dj_shoutout_used_at: string | null
   }
   primary_parent: { name: string; phone: string | null } | null
   secondary_parent: { name: string; phone: string | null } | null
@@ -34,11 +40,8 @@ export default function CheckOutStation() {
 
   async function doLookup(e?: React.FormEvent) {
     e?.preventDefault()
-    setLookupError(null)
-    setSubmitError(null)
-    setSuccess(false)
-    setData(null)
-    setSelected(null)
+    setLookupError(null); setSubmitError(null); setSuccess(false)
+    setData(null); setSelected(null)
     if (!qr.trim()) return
     setBusy(true)
     try {
@@ -98,56 +101,45 @@ export default function CheckOutStation() {
     : []
 
   return (
-    <main className="mx-auto max-w-xl space-y-4 p-6">
-      <header>
-        <h1 className="text-3xl font-black">Check-Out</h1>
-        <p className="text-slate-600">Scan wristband, confirm who&apos;s picking up, enter your name.</p>
-      </header>
-
+    <StationShell
+      eyebrow="Station · Check-out"
+      title="Send them home safely"
+      subtitle="Scan the wristband, confirm who&apos;s picking up, type your name."
+    >
       <form onSubmit={doLookup} className="flex gap-2">
-        <input
+        <Input
           type="text"
           value={qr}
           onChange={(e) => setQr(e.target.value)}
-          placeholder="QR code / child UUID"
+          placeholder="Scan or paste QR"
           aria-label="QR code"
-          className="flex-1 rounded border px-3 py-2"
+          className="flex-1"
         />
-        <button type="submit" disabled={busy}
-          className="rounded bg-slate-900 px-4 py-2 font-bold text-white disabled:opacity-50">
-          Look up
-        </button>
+        <Button type="submit" tone="ghost" size="md" loading={busy}>Look up</Button>
       </form>
 
-      {lookupError && <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">{lookupError}</p>}
+      {lookupError && (
+        <p className="rounded-xl border border-danger/60 bg-danger/10 px-3 py-2 text-sm text-danger">{lookupError}</p>
+      )}
 
       {data && (
         <div className="space-y-4">
-          <ChildCard
-            child={{
-              first_name: data.child.first_name,
-              last_name: data.child.last_name,
-              age: data.child.age,
-              grade: data.child.grade,
-              allergies: data.child.allergies,
-              photo_consent_app: data.child.photo_consent_app,
-              ticket_balance: data.child.ticket_balance,
-            }}
-            primary_parent={data.primary_parent ?? { name: '—', phone: null }}
-          />
+          <ChildCard child={data.child} primary_parent={data.primary_parent ?? { name: '—', phone: null }} />
 
           {data.child.checked_out_at ? (
-            <p className="rounded bg-amber-50 px-3 py-2 text-sm text-amber-900">
-              Already checked out at {new Date(data.child.checked_out_at).toLocaleString()}.
+            <p className="rounded-xl border border-warn/60 bg-warn/10 px-3 py-2 text-sm text-warn">
+              Already checked out at {new Date(data.child.checked_out_at).toLocaleTimeString()}.
             </p>
           ) : !data.child.checked_in_at ? (
-            <p className="rounded bg-amber-50 px-3 py-2 text-sm text-amber-900">
-              This kid isn&apos;t checked in yet — send them to the check-in station.
+            <p className="rounded-xl border border-warn/60 bg-warn/10 px-3 py-2 text-sm text-warn">
+              This kid isn&apos;t checked in yet — send them to check-in first.
             </p>
           ) : (
             <>
-              <fieldset className="space-y-2">
-                <legend className="text-sm font-bold">Who&apos;s picking up?</legend>
+              <fieldset className="space-y-2 rounded-2xl border border-ink-hair bg-ink-2/70 p-4">
+                <legend className="text-xs font-semibold uppercase tracking-widest text-mist">
+                  Who&apos;s picking up?
+                </legend>
                 <div className="grid gap-2">
                   {options.map((o) => {
                     const active = selected?.name === o.name && selected?.kind === o.kind
@@ -157,58 +149,59 @@ export default function CheckOutStation() {
                         type="button"
                         onClick={() => setSelected(o)}
                         aria-pressed={active}
-                        className={`rounded border-2 px-3 py-2 text-left font-semibold ${
-                          active ? 'border-fuchsia-600 bg-fuchsia-50' : 'border-slate-200 bg-white'
+                        className={`rounded-xl border-2 px-4 py-3 text-left transition ${
+                          active
+                            ? 'border-neon-magenta bg-neon-magenta/10 shadow-glow-magenta'
+                            : 'border-ink-hair bg-ink-2 hover:border-neon-magenta/40'
                         }`}
                       >
-                        <div>{o.name}</div>
-                        {o.relationship && <div className="text-xs text-slate-500">{o.relationship}</div>}
+                        <div className={`text-sm font-semibold ${active ? 'text-neon-magenta' : 'text-paper'}`}>{o.name}</div>
+                        {o.relationship && <div className="text-xs text-faint mt-0.5">{o.relationship}</div>}
                       </button>
                     )
                   })}
                 </div>
                 {options.length === 0 && (
-                  <p className="text-sm text-slate-500">No pickup options on file — contact the school admin.</p>
+                  <p className="text-sm text-faint">No pickup options on file — contact the school admin.</p>
                 )}
               </fieldset>
 
-              <label className="block">
-                <span className="block text-sm">Your name (staff)</span>
-                <input
-                  type="text"
-                  value={staffName}
-                  onChange={(e) => setStaffName(e.target.value)}
-                  aria-label="staff name"
-                  className="w-full rounded border px-3 py-2"
-                />
-              </label>
+              <Input
+                label="Your name (staff)"
+                required
+                value={staffName}
+                onChange={(e) => setStaffName(e.target.value)}
+                aria-label="staff name"
+              />
 
-              <button
+              <Button
                 type="button"
+                tone="mint"
+                size="xl"
+                fullWidth
                 onClick={doCheckOut}
                 disabled={!selected || !staffName.trim() || busy}
-                className="w-full rounded bg-fuchsia-600 py-3 font-bold text-white disabled:opacity-50"
+                loading={busy}
               >
-                {busy ? 'Checking out…' : 'Release to selected'}
-              </button>
+                Release to selected
+              </Button>
 
-              {submitError && <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">{submitError}</p>}
+              {submitError && (
+                <p className="rounded-xl border border-danger/60 bg-danger/10 px-3 py-2 text-sm text-danger">{submitError}</p>
+              )}
             </>
           )}
 
           {success && (
             <>
-              <p className="rounded bg-green-50 px-3 py-2 text-sm text-green-700">
-                Checked out safely. See you next time!
+              <p className="rounded-xl border border-neon-mint/60 bg-neon-mint/10 px-3 py-2 text-sm text-neon-mint shadow-glow-mint animate-rise">
+                ✨ Checked out safely. See them next time.
               </p>
-              <button type="button" onClick={reset}
-                className="w-full rounded bg-slate-900 py-3 font-bold text-white">
-                Next kid
-              </button>
+              <Button tone="ghost" size="md" fullWidth onClick={reset}>Next kid</Button>
             </>
           )}
         </div>
       )}
-    </main>
+    </StationShell>
   )
 }

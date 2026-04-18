@@ -1,6 +1,11 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { Aurora } from '@/components/glow/Aurora'
+import { GlowCross } from '@/components/glow/GlowCross'
+import { Button } from '@/components/glow/Button'
+import { Input } from '@/components/glow/Input'
+import { Heading, Eyebrow } from '@/components/glow/Heading'
 
 export default function VolunteerLogin() {
   const router = useRouter()
@@ -29,29 +34,44 @@ export default function VolunteerLogin() {
   }
 
   return (
-    <main className="mx-auto flex min-h-[60vh] max-w-sm items-center p-6">
-      <form onSubmit={onSubmit} className="w-full space-y-4">
-        <h1 className="text-3xl font-black">Volunteer Sign-In</h1>
-        <label className="block">
-          <span className="block text-sm text-slate-600">Shared password</span>
-          <input
+    <div className="relative min-h-screen">
+      <Aurora className="fixed inset-0 z-0" />
+      <main className="relative z-10 mx-auto flex min-h-[85vh] max-w-sm items-center px-6">
+        <form onSubmit={onSubmit} className="w-full space-y-6">
+          <div className="text-center space-y-4">
+            <div className="inline-flex justify-center">
+              <GlowCross size={56} tone="cyan" />
+            </div>
+            <Eyebrow tone="magenta">Volunteers only</Eyebrow>
+            <Heading level={1} size="lg" tone="wordmark">
+              Volunteer Sign-In
+            </Heading>
+            <p className="text-sm text-mist">
+              Shared password from the volunteer brief.
+            </p>
+          </div>
+
+          <Input
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             autoFocus
             aria-label="volunteer password"
-            className="w-full rounded border px-3 py-2"
+            label="Volunteer password"
+            placeholder="••••••••"
           />
-        </label>
-        {error && <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
-        <button
-          type="submit"
-          disabled={submitting}
-          className="w-full rounded bg-fuchsia-600 py-3 font-bold text-white disabled:opacity-50"
-        >
-          {submitting ? 'Signing in…' : 'Sign in'}
-        </button>
-      </form>
-    </main>
+
+          {error && (
+            <p role="alert" className="rounded-xl border border-danger/60 bg-danger/10 px-3 py-2 text-sm text-danger">
+              {error}
+            </p>
+          )}
+
+          <Button type="submit" tone="magenta" size="xl" fullWidth loading={submitting}>
+            {submitting ? 'Signing in…' : 'Sign in'}
+          </Button>
+        </form>
+      </main>
+    </div>
   )
 }

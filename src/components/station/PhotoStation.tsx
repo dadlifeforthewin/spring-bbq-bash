@@ -1,6 +1,10 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
+import { StationShell } from './StationShell'
 import PhotoViewfinder, { PhotoViewfinderHandle } from './PhotoViewfinder'
+import { Input } from '@/components/glow/Input'
+import { Button } from '@/components/glow/Button'
+import { Chip } from '@/components/glow/Chip'
 
 type ScannedKid = {
   id: string
@@ -53,9 +57,7 @@ export default function PhotoStation() {
         last_name: body.child.last_name,
         photo_consent_app: body.child.photo_consent_app,
       }
-      if (!scanned.some((k) => k.id === kid.id)) {
-        setScanned([...scanned, kid])
-      }
+      if (!scanned.some((k) => k.id === kid.id)) setScanned([...scanned, kid])
       setQr('')
     } finally {
       setBusy(false)
@@ -99,50 +101,53 @@ export default function PhotoStation() {
 
   if (!station) {
     return (
-      <main className="mx-auto max-w-xl p-6">
-        <p className="rounded bg-amber-50 px-3 py-2 text-sm text-amber-900">
-          No station selected. <a href="/station" className="underline">Pick a station.</a>
+      <StationShell eyebrow="Photo" title="No station selected">
+        <p className="rounded-xl border border-warn/60 bg-warn/10 px-3 py-2 text-sm text-warn">
+          Pick a station from the picker first. <a href="/station" className="underline">Back to picker.</a>
         </p>
-      </main>
+      </StationShell>
     )
   }
 
   return (
-    <main className="mx-auto max-w-xl space-y-4 p-6">
-      <header>
-        <h1 className="text-3xl font-black">Photo station</h1>
-        <p className="text-slate-600">Scan the kids in frame, then press the shutter.</p>
-      </header>
-
+    <StationShell
+      eyebrow="Station · Photo"
+      title="Scan then shoot"
+      subtitle="Scan every kid in the frame, then hit shutter."
+    >
       <form onSubmit={addScan} className="flex gap-2">
-        <input
+        <Input
           type="text"
           value={qr}
           onChange={(e) => setQr(e.target.value)}
           placeholder="Scan or paste QR"
           aria-label="QR code"
-          className="flex-1 rounded border px-3 py-2"
+          className="flex-1"
         />
-        <button type="submit" disabled={busy}
-          className="rounded bg-slate-900 px-4 py-2 font-bold text-white disabled:opacity-50">
-          Add to frame
-        </button>
+        <Button type="submit" tone="ghost" size="md" loading={busy}>Add to frame</Button>
       </form>
 
-      {lookupError && <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">{lookupError}</p>}
+      {lookupError && (
+        <p className="rounded-xl border border-danger/60 bg-danger/10 px-3 py-2 text-sm text-danger">{lookupError}</p>
+      )}
 
       {scanned.length > 0 && (
         <section className="space-y-2">
-          <h2 className="text-sm font-bold">In this shot</h2>
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-mist">In this shot</h2>
           <ul className="flex flex-wrap gap-2">
             {scanned.map((k) => (
-              <li key={k.id}
-                className={`flex items-center gap-2 rounded-full px-3 py-1 text-sm ${
-                  k.photo_consent_app ? 'bg-green-100 text-green-900' : 'bg-red-100 text-red-900'
-                }`}>
-                <span>{k.first_name} {k.last_name}</span>
-                <button type="button" onClick={() => removeScan(k.id)} aria-label={`remove-${k.id}`}
-                  className="text-xs font-bold">✕</button>
+              <li key={k.id}>
+                <Chip tone={k.photo_consent_app ? 'mint' : 'danger'} glow={k.photo_consent_app}>
+                  <span>{k.first_name} {k.last_name}</span>
+                  <button
+                    type="button"
+                    onClick={() => removeScan(k.id)}
+                    aria-label={`remove-${k.id}`}
+                    className="ml-1 opacity-60 hover:opacity-100"
+                  >
+                    ✕
+                  </button>
+                </Chip>
               </li>
             ))}
           </ul>
@@ -151,24 +156,30 @@ export default function PhotoStation() {
 
       <PhotoViewfinder ref={viewfinderRef} facingMode="environment" />
 
-      <label className="block">
-        <span className="block text-sm">Your name (staff, optional)</span>
-        <input type="text" value={volunteerName}
-          onChange={(e) => setVolunteerName(e.target.value)}
-          aria-label="volunteer name"
-          className="w-full rounded border px-3 py-2" />
-      </label>
+      <Input
+        label="Your name (staff, optional)"
+        value={volunteerName}
+        onChange={(e) => setVolunteerName(e.target.value)}
+        aria-label="volunteer name"
+      />
 
-      <button type="button" onClick={capture}
+      <Button
+        tone="magenta"
+        size="xl"
+        fullWidth
+        onClick={capture}
         disabled={busy || scanned.length === 0 || anyBlocked}
-        className="w-full rounded bg-fuchsia-600 py-4 text-lg font-black text-white disabled:opacity-50">
-        {busy ? 'Uploading…' : `📸 Shutter (${scanned.length})`}
-      </button>
+        loading={busy}
+      >
+        📸 Shutter ({scanned.length})
+      </Button>
 
-      {uploadError && <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">{uploadError}</p>}
+      {uploadError && (
+        <p className="rounded-xl border border-danger/60 bg-danger/10 px-3 py-2 text-sm text-danger">{uploadError}</p>
+      )}
       {lastUpload && (
-        <p className="rounded bg-green-50 px-3 py-2 text-sm text-green-700">
-          Uploaded · tagged {lastUpload.count} {lastUpload.count === 1 ? 'kid' : 'kids'}.
+        <p className="rounded-xl border border-neon-mint/60 bg-neon-mint/10 px-3 py-2 text-sm text-neon-mint shadow-glow-mint animate-rise">
+          ✨ Uploaded · tagged {lastUpload.count} {lastUpload.count === 1 ? 'kid' : 'kids'}.
         </p>
       )}
 
@@ -177,22 +188,26 @@ export default function PhotoStation() {
           role="dialog"
           aria-modal="true"
           aria-label="photo consent block"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-red-900/90 p-6 text-white"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-danger/90 p-6 text-white"
         >
           <div className="max-w-md space-y-4 text-center">
-            <h3 className="text-3xl font-black">🚫 NO PHOTOS</h3>
+            <h3 className="font-display text-3xl">🚫 No Photos</h3>
             <p>
-              One of the scanned kids doesn&apos;t have photo consent. Remove them from the list to take a
-              shot of the others, or step out of frame.
+              One of the scanned kids doesn&apos;t have photo consent. Remove
+              them from the list to take a shot of the others, or step out of
+              frame.
             </p>
-            <button type="button"
+            <Button
+              tone="ghost"
+              size="md"
               onClick={() => setScanned(scanned.filter((k) => k.photo_consent_app))}
-              className="rounded bg-white px-4 py-2 font-bold text-red-900">
+              className="!bg-white !text-danger !border-white"
+            >
               Remove no-consent kids
-            </button>
+            </Button>
           </div>
         </div>
       )}
-    </main>
+    </StationShell>
   )
 }

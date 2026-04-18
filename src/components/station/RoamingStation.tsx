@@ -1,6 +1,9 @@
 'use client'
 import { useRef, useState } from 'react'
+import { StationShell } from './StationShell'
 import PhotoViewfinder, { PhotoViewfinderHandle } from './PhotoViewfinder'
+import { Input } from '@/components/glow/Input'
+import { Button } from '@/components/glow/Button'
 
 type Shot = {
   photo_id: string
@@ -41,20 +44,19 @@ export default function RoamingStation() {
 
       if (!res.ok) {
         setShots((s) =>
-          s.map((shot) => (shot.photo_id === placeholderId
-            ? { ...shot, state: 'error', error: body.error ?? 'Upload failed' }
-            : shot)),
+          s.map((shot) => shot.photo_id === placeholderId
+            ? { ...shot, state: 'error' as const, error: body.error ?? 'Upload failed' }
+            : shot),
         )
         return
       }
 
       setShots((s) =>
-        s.map((shot) => (shot.photo_id === placeholderId
-          ? { ...shot, photo_id: body.photo_id, state: 'processing' }
-          : shot)),
+        s.map((shot) => shot.photo_id === placeholderId
+          ? { ...shot, photo_id: body.photo_id, state: 'processing' as const }
+          : shot),
       )
 
-      // Poll for match status a few times
       void pollMatch(body.photo_id)
     } finally {
       setBusy(false)
@@ -67,62 +69,63 @@ export default function RoamingStation() {
       const res = await fetch(`/api/admin/photos/status?photo_id=${encodeURIComponent(photoId)}`)
       if (!res.ok) continue
       const body = await res.json()
-      const final = body.match_status && body.match_status !== 'pending_review' && body.match_status !== 'unmatched'
+      const terminal = body.match_status === 'auto' || body.match_status === 'unmatched'
       setShots((s) =>
-        s.map((shot) => (shot.photo_id === photoId
-          ? { ...shot, state: 'done', match_status: body.match_status, matched_name: body.matched_name ?? null }
-          : shot)),
+        s.map((shot) => shot.photo_id === photoId
+          ? { ...shot, state: 'done' as const, match_status: body.match_status, matched_name: body.matched_name ?? null }
+          : shot),
       )
-      if (body.match_status === 'auto' || body.match_status === 'unmatched' || final) return
+      if (terminal || body.match_status === 'pending_review') return
     }
   }
 
   return (
-    <main className="mx-auto max-w-xl space-y-4 p-6">
-      <header>
-        <h1 className="text-3xl font-black">Roaming photographer</h1>
-        <p className="text-slate-500">
-          Shoot candid moments — Claude vision will auto-tag kids with matching consent.
-        </p>
-      </header>
-
-      <label className="block">
-        <span className="block text-sm">Your name (staff, optional)</span>
-        <input type="text" value={volunteerName}
-          onChange={(e) => setVolunteerName(e.target.value)}
-          aria-label="volunteer name"
-          className="w-full rounded border px-3 py-2" />
-      </label>
+    <StationShell
+      eyebrow="Station · Roaming photographer"
+      title="Shoot candids"
+      subtitle="Claude vision will try to tag kids with matching consent. You just keep shooting."
+    >
+      <Input
+        label="Your name (staff, optional)"
+        value={volunteerName}
+        onChange={(e) => setVolunteerName(e.target.value)}
+        aria-label="volunteer name"
+      />
 
       <PhotoViewfinder ref={viewfinderRef} facingMode="environment" />
 
-      <button type="button" onClick={capture} disabled={busy}
-        className="w-full rounded bg-fuchsia-600 py-4 text-lg font-black text-white disabled:opacity-50">
-        {busy ? 'Uploading…' : '📸 Shutter'}
-      </button>
+      <Button tone="uv" size="xl" fullWidth onClick={capture} disabled={busy} loading={busy}>
+        📸 Shutter
+      </Button>
 
       {shots.length > 0 && (
         <section className="space-y-2">
-          <h2 className="text-sm font-bold text-slate-600">Recent shots</h2>
-          <ul className="space-y-1">
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-mist">Recent shots</h2>
+          <ul className="space-y-1.5">
             {shots.map((s) => (
-              <li key={s.photo_id} className="rounded border border-slate-200 bg-white px-3 py-2 text-sm">
-                <span className="text-slate-500">{new Date(s.taken_at).toLocaleTimeString()}</span>{' '}
-                {s.state === 'uploading' && <span>uploading…</span>}
-                {s.state === 'processing' && <span>analyzing…</span>}
-                {s.state === 'error' && <span className="text-red-600">error: {s.error}</span>}
+              <li key={s.photo_id} className="rounded-xl border border-ink-hair bg-ink-2/60 px-3 py-2 text-sm">
+                <span className="text-faint tabular-nums">{new Date(s.taken_at).toLocaleTimeString()}</span>{' '}
+                {s.state === 'uploading' && <span className="text-mist">uploading…</span>}
+                {s.state === 'processing' && <span className="text-mist">analyzing…</span>}
+                {s.state === 'error' && <span className="text-danger">error: {s.error}</span>}
                 {s.state === 'done' && (
-                  <span>
-                    {s.match_status === 'auto' && <span className="text-green-700 font-semibold">✅ tagged {s.matched_name ?? ''}</span>}
-                    {s.match_status === 'pending_review' && <span className="text-amber-700 font-semibold">🔍 pending review</span>}
-                    {s.match_status === 'unmatched' && <span className="text-slate-500">❓ unmatched</span>}
-                  </span>
+                  <>
+                    {s.match_status === 'auto' && (
+                      <span className="text-neon-mint font-semibold">✅ tagged {s.matched_name ?? ''}</span>
+                    )}
+                    {s.match_status === 'pending_review' && (
+                      <span className="text-neon-gold font-semibold">🔍 pending review</span>
+                    )}
+                    {s.match_status === 'unmatched' && (
+                      <span className="text-faint">❓ unmatched</span>
+                    )}
+                  </>
                 )}
               </li>
             ))}
           </ul>
         </section>
       )}
-    </main>
+    </StationShell>
   )
 }
