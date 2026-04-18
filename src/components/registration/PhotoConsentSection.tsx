@@ -1,4 +1,6 @@
 'use client'
+import { Card, CardEyebrow, CardTitle } from '@/components/glow/Card'
+import { Input, Checkbox } from '@/components/glow/Input'
 
 export type PhotoConsent = {
   photo_consent_app: boolean
@@ -18,68 +20,79 @@ export default function PhotoConsentSection({
     onChange({ ...value, [field]: v })
 
   return (
-    <fieldset className="space-y-4">
-      <legend className="text-lg font-bold">Photo Permissions</legend>
+    <Card tone="default" padded className="space-y-4">
+      <div className="space-y-1">
+        <CardEyebrow>Step 4</CardEyebrow>
+        <CardTitle>Photo permissions</CardTitle>
+        <p className="text-sm text-mist">
+          Each permission stands on its own — opt in only to what you&apos;re
+          comfortable with.
+        </p>
+      </div>
 
-      <label className="flex items-start gap-3 rounded border border-slate-200 p-3">
-        <input
-          type="checkbox"
-          checked={value.photo_consent_app}
-          onChange={(e) => set('photo_consent_app', e.target.checked)}
-          aria-label="Include my child in photo memories"
-          className="mt-1"
-        />
-        <span className="text-sm">
-          <strong>Include my child in photo memories.</strong>{' '}
-          Photos taken at the event will be included in the keepsake email the
-          next morning.
-        </span>
-      </label>
+      <div className="space-y-3">
+        <label className="block rounded-xl border border-ink-hair bg-ink-2/60 p-4 cursor-pointer hover:border-neon-cyan/40 transition">
+          <Checkbox
+            checked={value.photo_consent_app}
+            onChange={(e) => set('photo_consent_app', e.target.checked)}
+            aria-label="Include my child in photo memories"
+            label={
+              <span className="space-y-1">
+                <span className="block font-semibold text-paper">Include my child in photo memories</span>
+                <span className="block text-xs text-mist leading-relaxed">
+                  Photos taken at the event will be included in the keepsake email
+                  that lands in your inbox the morning after.
+                </span>
+              </span>
+            }
+          />
+        </label>
 
-      <label className="flex items-start gap-3 rounded border border-slate-200 p-3">
-        <input
-          type="checkbox"
-          checked={value.photo_consent_promo}
-          onChange={(e) => set('photo_consent_promo', e.target.checked)}
-          aria-label="Include my child's photos for LCA promotional or social media use"
-          className="mt-1"
-        />
-        <span className="text-sm">
-          <strong>Allow promotional use.</strong>{' '}
-          I also give permission for photos or videos of my child to be used for
-          LCA promotional or social media purposes.
-        </span>
-      </label>
+        <label className="block rounded-xl border border-ink-hair bg-ink-2/60 p-4 cursor-pointer hover:border-neon-uv/40 transition">
+          <Checkbox
+            checked={value.photo_consent_promo}
+            onChange={(e) => set('photo_consent_promo', e.target.checked)}
+            aria-label="Include my child's photos for LCA promotional or social media use"
+            label={
+              <span className="space-y-1">
+                <span className="block font-semibold text-paper">Allow promotional &amp; social use</span>
+                <span className="block text-xs text-mist leading-relaxed">
+                  I also give permission for photos or videos of my child to be
+                  used for LCA promotional or social media purposes.
+                </span>
+              </span>
+            }
+          />
+        </label>
 
-      <label className="flex items-start gap-3 rounded border border-fuchsia-200 bg-fuchsia-50 p-3">
-        <input
-          type="checkbox"
-          checked={value.vision_matching_consent}
-          onChange={(e) => set('vision_matching_consent', e.target.checked)}
-          aria-label="Allow roaming photographer to auto-identify my child in photos"
-          className="mt-1"
-        />
-        <span className="text-sm">
-          <strong>Enable vision matching (optional, opt-in).</strong>{' '}
-          Allow our roaming photographer to auto-identify my child in photos
-          using face recognition. This means more candid shots of your child in
-          the keepsake email without staff stopping them to scan their
-          wristband. Face data stays on our servers and is deleted 30 days after
-          the event.
-        </span>
-      </label>
+        <label className="block rounded-xl border border-neon-uv/30 bg-gradient-to-br from-ink-3/70 to-ink-2/40 p-4 cursor-pointer hover:border-neon-uv/60 transition shadow-glow-uv/30">
+          <Checkbox
+            checked={value.vision_matching_consent}
+            onChange={(e) => set('vision_matching_consent', e.target.checked)}
+            aria-label="Allow roaming photographer to auto-identify my child in photos"
+            label={
+              <span className="space-y-1">
+                <span className="block font-semibold text-paper">Enable vision matching <span className="text-neon-uv text-xs uppercase tracking-wider ml-1">Optional · opt-in</span></span>
+                <span className="block text-xs text-mist leading-relaxed">
+                  Allow our roaming photographer to auto-identify your child in
+                  photos using face recognition — more candid shots of your kid
+                  in the keepsake email without staff stopping them to scan
+                  their wristband. Face data stays on our servers and is deleted
+                  30 days after the event.
+                </span>
+              </span>
+            }
+          />
+        </label>
+      </div>
 
-      <label className="block">
-        <span className="block text-sm">Type your full name to sign these photo consents</span>
-        <input
-          type="text"
-          required
-          value={value.photo_signature_name}
-          onChange={(e) => set('photo_signature_name', e.target.value)}
-          aria-label="Photo consent signature"
-          className="w-full rounded border px-3 py-2"
-        />
-      </label>
-    </fieldset>
+      <Input
+        label="Type your full name to sign these photo consents"
+        aria-label="Photo consent signature"
+        required
+        value={value.photo_signature_name}
+        onChange={(e) => set('photo_signature_name', e.target.value)}
+      />
+    </Card>
   )
 }

@@ -16,7 +16,9 @@ export function Field({ label, hint, error, required, children, className }: Fie
       {label && (
         <span className="block text-xs font-medium uppercase tracking-wider text-mist">
           {label}
-          {required && <span className="ml-1 text-neon-magenta">*</span>}
+          {required && (
+            <span className="ml-1 text-neon-magenta" aria-hidden>*</span>
+          )}
         </span>
       )}
       {children}

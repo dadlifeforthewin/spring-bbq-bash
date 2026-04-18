@@ -5,6 +5,11 @@ import ParentSection, { ParentValue } from './ParentSection'
 import ChildBlock, { ChildInput, emptyChild } from './ChildBlock'
 import WaiverSection from './WaiverSection'
 import PhotoConsentSection, { PhotoConsent } from './PhotoConsentSection'
+import { Aurora } from '@/components/glow/Aurora'
+import { Button } from '@/components/glow/Button'
+import { GlowCross } from '@/components/glow/GlowCross'
+import { Heading, Eyebrow } from '@/components/glow/Heading'
+import { Card, CardEyebrow, CardTitle } from '@/components/glow/Card'
 
 export default function RegistrationForm({ qrOverride }: { qrOverride?: string }) {
   const router = useRouter()
@@ -58,42 +63,132 @@ export default function RegistrationForm({ qrOverride }: { qrOverride?: string }
   }
 
   return (
-    <main className="mx-auto max-w-2xl p-6 space-y-8">
-      <header>
-        <h1 className="text-3xl font-bold">LCA Spring BBQ Glow Party Bash</h1>
-        <p className="text-slate-600">April 25, 2026 · Permission Slip &amp; Registration</p>
-      </header>
-      <form onSubmit={onSubmit} className="space-y-8">
-        <ParentSection label="Primary Parent / Guardian" value={primary} onChange={setPrimary} />
-        {secondary
-          ? <ParentSection label="Secondary Parent" value={secondary} onChange={setSecondary} optional />
-          : <button type="button" onClick={() => setSecondary({ name: '', phone: '', email: '' })}
-              className="text-blue-600 text-sm">+ Add secondary parent</button>}
+    <div className="relative">
+      <Aurora className="fixed inset-0 z-0" />
 
-        <div className="space-y-4">
-          <h2 className="text-xl font-bold">Children</h2>
-          {children.map((c, i) => (
-            <ChildBlock key={i} value={c}
-              onChange={(v) => setChildren(children.map((x, idx) => idx === i ? v : x))}
-              onRemove={children.length > 1 ? () => setChildren(children.filter((_, idx) => idx !== i)) : undefined} />
-          ))}
-          <button type="button" onClick={() => setChildren([...children, emptyChild()])}
-            className="text-blue-600">+ Add another child</button>
-        </div>
+      <main className="relative z-10 mx-auto max-w-2xl px-5 pb-24 pt-14 sm:pt-20">
+        <header className="relative mb-12 text-center space-y-6">
+          <div className="relative inline-flex items-center justify-center">
+            <GlowCross size={72} tone="cyan" />
+          </div>
+          <div className="space-y-3">
+            <Eyebrow tone="magenta">Permission Slip · Lincoln Christian Academy</Eyebrow>
+            <Heading level={1} tone="wordmark" size="2xl" className="px-2">
+              Spring BBQ Bash
+            </Heading>
+            <p className="font-display text-neon-gold text-glow-gold text-lg tracking-wide">
+              Glow Party Edition
+            </p>
+            <p className="text-mist text-sm">
+              Saturday, April 25, 2026 · 5:00–8:00 PM
+            </p>
+          </div>
+          <p className="mx-auto max-w-md text-sm text-paper/80 leading-relaxed">
+            Fill this out once per family. Every kid gets the full Glow Party
+            Edition perks — you just tell us who&apos;s coming and sign the
+            waiver.
+          </p>
+        </header>
 
-        <WaiverSection typedName={waiverName} setTypedName={setWaiverName} ack={waiverAck} setAck={setWaiverAck} />
-        <PhotoConsentSection value={photoConsent} onChange={setPhotoConsent} />
+        <form onSubmit={onSubmit} className="space-y-6">
+          <ParentSection
+            label="Primary Parent / Guardian"
+            eyebrow="Step 1 · Parents"
+            value={primary}
+            onChange={setPrimary}
+          />
 
-        <p className="bg-yellow-50 border border-yellow-200 rounded p-3 text-sm">
-          ✨ A special surprise will land in your inbox the morning after the event. Keep an eye out!
-        </p>
+          {secondary ? (
+            <ParentSection
+              label="Secondary Parent"
+              eyebrow="Step 1b · Optional"
+              value={secondary}
+              onChange={setSecondary}
+              optional
+            />
+          ) : (
+            <button
+              type="button"
+              onClick={() => setSecondary({ name: '', phone: '', email: '' })}
+              className="w-full rounded-xl border border-dashed border-ink-hair bg-ink-2/40 px-4 py-3 text-sm font-semibold text-neon-cyan hover:border-neon-cyan/50 hover:bg-ink-2 transition"
+            >
+              + Add a secondary parent
+            </button>
+          )}
 
-        {error && <p className="rounded bg-red-50 border border-red-200 p-3 text-sm text-red-700">{error}</p>}
-        <button type="submit" disabled={submitting}
-          className="w-full rounded bg-fuchsia-600 text-white py-3 font-bold disabled:opacity-50">
-          {submitting ? 'Submitting…' : 'Submit Permission Slip'}
-        </button>
-      </form>
-    </main>
+          <section className="space-y-4 pt-2">
+            <header className="space-y-1">
+              <Eyebrow tone="cyan">Step 2 · Children</Eyebrow>
+              <Heading level={2} size="md">Who&apos;s coming?</Heading>
+            </header>
+            <div className="space-y-4">
+              {children.map((c, i) => (
+                <ChildBlock
+                  key={i}
+                  index={i}
+                  value={c}
+                  onChange={(v) => setChildren(children.map((x, idx) => idx === i ? v : x))}
+                  onRemove={children.length > 1 ? () => setChildren(children.filter((_, idx) => idx !== i)) : undefined}
+                />
+              ))}
+              <button
+                type="button"
+                onClick={() => setChildren([...children, emptyChild()])}
+                className="w-full rounded-xl border border-dashed border-ink-hair bg-ink-2/40 px-4 py-3 text-sm font-semibold text-neon-cyan hover:border-neon-cyan/50 hover:bg-ink-2 transition"
+              >
+                + Add another child
+              </button>
+            </div>
+          </section>
+
+          <WaiverSection
+            typedName={waiverName}
+            setTypedName={setWaiverName}
+            ack={waiverAck}
+            setAck={setWaiverAck}
+          />
+          <PhotoConsentSection value={photoConsent} onChange={setPhotoConsent} />
+
+          <Card tone="glow-gold" padded className="flex items-start gap-3">
+            <div className="text-2xl animate-sparkle" aria-hidden>✨</div>
+            <div>
+              <CardEyebrow className="text-neon-gold">The morning after</CardEyebrow>
+              <CardTitle className="font-sans font-normal text-base text-paper">
+                A keepsake email with your child&apos;s photos and story lands
+                in your inbox. Keep an eye out!
+              </CardTitle>
+            </div>
+          </Card>
+
+          {error && (
+            <div
+              role="alert"
+              className="rounded-xl border border-danger/60 bg-danger/10 px-4 py-3 text-sm text-danger"
+            >
+              {error}
+            </div>
+          )}
+
+          <div className="space-y-3 pt-2">
+            <Button
+              type="submit"
+              tone="magenta"
+              size="xl"
+              fullWidth
+              loading={submitting}
+            >
+              {submitting ? 'Submitting…' : 'Submit permission slip'}
+            </Button>
+            <p className="text-center text-xs text-faint">
+              Built with love by{' '}
+              <a href="https://attntodetail.ai" className="text-neon-cyan hover:text-glow-cyan">
+                Attn: To Detail
+              </a>
+              {' '}for Lincoln Christian Academy.
+            </p>
+          </div>
+        </form>
+      </main>
+    </div>
   )
 }
