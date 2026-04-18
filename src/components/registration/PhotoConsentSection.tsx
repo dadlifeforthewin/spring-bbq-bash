@@ -40,8 +40,8 @@ export default function PhotoConsentSection({
               <span className="space-y-1">
                 <span className="block font-semibold text-paper">Include my child in photo memories</span>
                 <span className="block text-xs text-mist leading-relaxed">
-                  Photos taken at the event will be included in the keepsake email
-                  that lands in your inbox the morning after.
+                  Allow volunteers and our event photographer to photograph my
+                  child during the party.
                 </span>
               </span>
             }
@@ -75,10 +75,9 @@ export default function PhotoConsentSection({
                 <span className="block font-semibold text-paper">Enable vision matching <span className="text-neon-uv text-xs uppercase tracking-wider ml-1">Optional · opt-in</span></span>
                 <span className="block text-xs text-mist leading-relaxed">
                   Allow our roaming photographer to auto-identify your child in
-                  photos using face recognition — more candid shots of your kid
-                  in the keepsake email without staff stopping them to scan
-                  their wristband. Face data stays on our servers and is deleted
-                  30 days after the event.
+                  photos using face recognition — so staff don&apos;t have to
+                  stop them to scan their wristband every time. Face data stays
+                  on our servers and is deleted 30 days after the event.
                 </span>
               </span>
             }

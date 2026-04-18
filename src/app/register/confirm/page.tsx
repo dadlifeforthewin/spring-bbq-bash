@@ -17,7 +17,7 @@ export default function ConfirmPage() {
         <div className="space-y-4">
           <Eyebrow tone="magenta">You&apos;re registered</Eyebrow>
           <Heading level={1} tone="wordmark" size="xl">
-            See you Friday under the blacklight.
+            See you Saturday under the blacklight.
           </Heading>
           <p className="text-mist text-base leading-relaxed max-w-md mx-auto">
             Every kid arrives with the full Glow Party Edition perks preloaded.
@@ -53,8 +53,10 @@ export default function ConfirmPage() {
         <footer className="pt-8 border-t border-ink-hair/60">
           <p className="text-xs text-faint max-w-md mx-auto leading-relaxed">
             Permission slip saved. Need to update pickup authorizations or
-            contact info? We&apos;ll include an edit link in your keepsake
-            email the morning after the event.
+            contact info? Email{' '}
+            <a href="mailto:events@lcalincoln.com" className="text-neon-cyan hover:text-glow-cyan transition">
+              events@lcalincoln.com
+            </a>.
           </p>
         </footer>
       </main>
