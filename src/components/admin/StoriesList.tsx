@@ -48,7 +48,7 @@ export default function StoriesList() {
         {STATUS_FILTERS.map((s) => (
           <button key={s} type="button" onClick={() => setStatus(s)}
             className={`rounded px-3 py-1 text-sm font-bold ${
-              status === s ? 'bg-fuchsia-600 text-white' : 'bg-slate-100 text-slate-700'
+              status === s ? 'bg-neon-magenta/20 border border-neon-magenta text-neon-magenta' : 'bg-slate-100 text-slate-700'
             }`}>
             {s.replace(/_/g, ' ')}
           </button>

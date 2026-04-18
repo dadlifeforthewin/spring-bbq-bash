@@ -27,7 +27,10 @@ type ChildRow = {
   vision_matching_consent: boolean
   facts_reload_permission: boolean
   facts_max_amount: number
-  ticket_balance: number
+  drink_tickets_remaining: number
+  jail_tickets_remaining: number
+  prize_wheel_used_at: string | null
+  dj_shoutout_used_at: string | null
   checked_in_at: string | null
   checked_out_at: string | null
 }
@@ -112,7 +115,8 @@ export default function ChildEditor({ id }: { id: string }) {
         vision_matching_consent: c.vision_matching_consent,
         facts_reload_permission: c.facts_reload_permission,
         facts_max_amount: c.facts_max_amount,
-        ticket_balance: c.ticket_balance,
+        drink_tickets_remaining: c.drink_tickets_remaining,
+        jail_tickets_remaining: c.jail_tickets_remaining,
         guardians: data.guardians,
         pickup_authorizations: data.pickup_authorizations,
       }
@@ -192,12 +196,22 @@ export default function ChildEditor({ id }: { id: string }) {
         </label>
       </section>
 
-      <section className="space-y-3 rounded border border-slate-200 bg-white p-4">
-        <h2 className="text-lg font-bold">Tickets &amp; FACTS</h2>
-        <label className="block"><span className="text-sm">Current balance</span>
-          <input type="number" min={0} value={c.ticket_balance}
-            onChange={(e) => setChild({ ticket_balance: Number(e.target.value) || 0 })}
-            className="w-32 rounded border px-3 py-2" /></label>
+      <section className="space-y-3 rounded border border-ink-hair bg-ink-2/70 p-4">
+        <h2 className="text-lg font-bold text-paper">Perks &amp; FACTS</h2>
+        <div className="grid grid-cols-2 gap-3">
+          <label className="block"><span className="text-sm text-mist">Drink tickets remaining</span>
+            <input type="number" min={0} max={10} value={c.drink_tickets_remaining}
+              onChange={(e) => setChild({ drink_tickets_remaining: Math.max(0, Math.min(10, Number(e.target.value) || 0)) })}
+              className="w-full rounded-xl border border-ink-hair bg-ink-3 px-3 py-2 text-paper focus:border-neon-cyan/70 focus:ring-4 focus:ring-neon-cyan/20" /></label>
+          <label className="block"><span className="text-sm text-mist">Jail / pass tickets remaining</span>
+            <input type="number" min={0} max={10} value={c.jail_tickets_remaining}
+              onChange={(e) => setChild({ jail_tickets_remaining: Math.max(0, Math.min(10, Number(e.target.value) || 0)) })}
+              className="w-full rounded-xl border border-ink-hair bg-ink-3 px-3 py-2 text-paper focus:border-neon-magenta/70 focus:ring-4 focus:ring-neon-magenta/20" /></label>
+        </div>
+        <p className="text-xs text-faint">
+          Prize wheel {c.prize_wheel_used_at ? `used · ${new Date(c.prize_wheel_used_at).toLocaleTimeString()}` : 'unused'} ·
+          DJ shoutout {c.dj_shoutout_used_at ? `used · ${new Date(c.dj_shoutout_used_at).toLocaleTimeString()}` : 'unused'}
+        </p>
         <label className="flex items-center gap-2">
           <input type="checkbox" checked={c.facts_reload_permission}
             onChange={(e) => setChild({

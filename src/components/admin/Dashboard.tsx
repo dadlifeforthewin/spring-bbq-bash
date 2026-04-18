@@ -1,5 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
+import { Card, CardEyebrow } from '@/components/glow/Card'
+import { Heading, Eyebrow } from '@/components/glow/Heading'
 
 type Stats = {
   event: { id: string; name: string; event_date: string; ends_at: string } | null
@@ -8,6 +10,10 @@ type Stats = {
     checked_in: number
     checked_out: number
     not_arrived: number
+    drinks_remaining?: number
+    jail_remaining?: number
+    prize_wheel_used?: number
+    dj_shoutout_used?: number
     tickets_outstanding: number
     tickets_spent: number
     photos: number
@@ -46,35 +52,42 @@ export default function Dashboard() {
     return () => { cancelled = true; clearInterval(t) }
   }, [])
 
-  if (error) return <p className="rounded bg-red-50 px-3 py-2 text-red-700">{error}</p>
-  if (!stats) return <p className="text-slate-500">Loading…</p>
+  if (error) return <p className="rounded-xl border border-danger/60 bg-danger/10 px-3 py-2 text-danger">{error}</p>
+  if (!stats) return <p className="text-mist">Loading…</p>
 
   const { counts, money, spend_by_station, stories_by_status } = stats
   const maxSpend = Math.max(1, ...Object.values(spend_by_station))
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-3xl font-black">{stats.event?.name ?? 'Dashboard'}</h1>
+      <header className="space-y-1">
+        <Eyebrow tone="magenta">Live dashboard</Eyebrow>
+        <Heading level={1} size="lg" tone="paper">
+          {stats.event?.name ?? 'Spring BBQ Bash · Glow Party Edition'}
+        </Heading>
         {stats.event?.event_date && (
-          <p className="text-slate-500">{stats.event.event_date}</p>
+          <p className="text-mist text-sm">{stats.event.event_date}</p>
         )}
       </header>
 
       {counts.not_checked_out_after_end > 0 && (
-        <div className="rounded border border-red-200 bg-red-50 px-4 py-3 text-red-800">
-          <strong>⚠️ {counts.not_checked_out_after_end}</strong> kid(s) still checked in after event end.
-        </div>
+        <Card tone="glow-magenta" padded>
+          <strong className="text-neon-magenta">⚠️ {counts.not_checked_out_after_end}</strong>
+          <span className="text-paper"> kid(s) still checked in after event end.</span>
+        </Card>
       )}
 
       <section className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <Stat label="Registered" value={counts.registered} />
-        <Stat label="Checked in" value={counts.checked_in} />
-        <Stat label="Checked out" value={counts.checked_out} />
-        <Stat label="Not arrived" value={counts.not_arrived} />
-        <Stat label="Tickets outstanding" value={counts.tickets_outstanding} />
+        <Stat label="Checked in" value={counts.checked_in} tone="cyan" />
+        <Stat label="Checked out" value={counts.checked_out} tone="mint" />
+        <Stat label="Not arrived" value={counts.not_arrived} tone="quiet" />
+        <Stat label="Drinks left" value={counts.drinks_remaining ?? 0} tone="cyan" />
+        <Stat label="Jail left" value={counts.jail_remaining ?? 0} tone="magenta" />
+        <Stat label="Prize wheel used" value={counts.prize_wheel_used ?? 0} tone="gold" />
+        <Stat label="DJ shoutouts used" value={counts.dj_shoutout_used ?? 0} tone="uv" />
         <Stat label="Tickets spent" value={counts.tickets_spent} />
-        <Stat label="Photos" value={counts.photos} />
+        <Stat label="Photos taken" value={counts.photos} />
         <Stat label="Comp reloads" value={money.comp_count} />
       </section>
 
@@ -84,62 +97,78 @@ export default function Dashboard() {
         <MoneyStat label="Venmo collected" value={`$${money.venmo_total.toFixed(2)}`} />
       </section>
 
-      <section className="space-y-2 rounded border border-slate-200 bg-white p-4">
-        <h2 className="text-lg font-bold">Spend by station</h2>
+      <Card tone="default" padded className="space-y-3">
+        <CardEyebrow>Spend by station</CardEyebrow>
         {Object.keys(spend_by_station).length === 0 ? (
-          <p className="text-sm text-slate-500">No spends yet.</p>
+          <p className="text-sm text-faint">No spends yet.</p>
         ) : (
-          <ul className="space-y-1">
+          <ul className="space-y-2">
             {Object.entries(spend_by_station)
               .sort(([, a], [, b]) => b - a)
               .map(([station, tickets]) => (
-                <li key={station} className="flex items-center gap-2 text-sm">
-                  <span className="w-40 shrink-0 capitalize">{station.replace(/_/g, ' ')}</span>
-                  <span className="relative h-4 flex-1 overflow-hidden rounded bg-slate-100">
+                <li key={station} className="flex items-center gap-3 text-sm">
+                  <span className="w-32 shrink-0 capitalize text-mist">{station.replace(/_/g, ' ')}</span>
+                  <span className="relative h-3 flex-1 overflow-hidden rounded-full bg-ink-3">
                     <span
-                      className="absolute inset-y-0 left-0 bg-fuchsia-500"
+                      className="absolute inset-y-0 left-0 bg-gradient-to-r from-neon-magenta via-neon-uv to-neon-cyan shadow-[0_0_12px_rgba(155,92,255,.5)]"
                       style={{ width: `${(tickets / maxSpend) * 100}%` }}
                     />
                   </span>
-                  <span className="w-10 text-right tabular-nums">{tickets}</span>
+                  <span className="w-10 text-right tabular-nums text-paper font-semibold">{tickets}</span>
                 </li>
               ))}
           </ul>
         )}
-      </section>
+      </Card>
 
-      <section className="rounded border border-slate-200 bg-white p-4">
-        <h2 className="text-lg font-bold">AI story status</h2>
+      <Card tone="default" padded className="space-y-2">
+        <CardEyebrow>AI story status</CardEyebrow>
         {Object.keys(stories_by_status).length === 0 ? (
-          <p className="text-sm text-slate-500">No stories yet.</p>
+          <p className="text-sm text-faint">No stories yet.</p>
         ) : (
-          <ul className="flex flex-wrap gap-3 text-sm">
+          <ul className="flex flex-wrap gap-2 text-sm">
             {Object.entries(stories_by_status).map(([status, count]) => (
-              <li key={status} className="rounded bg-slate-100 px-3 py-1">
-                <span className="font-semibold">{count}</span> {status.replace(/_/g, ' ')}
+              <li key={status} className="rounded-full border border-ink-hair bg-ink-3 px-3 py-1">
+                <span className="font-semibold text-paper">{count}</span>
+                <span className="ml-1 text-mist">{status.replace(/_/g, ' ')}</span>
               </li>
             ))}
           </ul>
         )}
-      </section>
+      </Card>
     </div>
   )
 }
 
-function Stat({ label, value }: { label: string; value: number }) {
+type StatTone = 'paper' | 'magenta' | 'cyan' | 'uv' | 'gold' | 'mint' | 'quiet'
+
+function Stat({ label, value, tone = 'paper' }: { label: string; value: number; tone?: StatTone }) {
+  const toneBorder: Record<StatTone, string> = {
+    paper:   'border-ink-hair',
+    magenta: 'border-neon-magenta/40 shadow-[0_0_20px_-5px_rgba(255,46,147,.4)]',
+    cyan:    'border-neon-cyan/40 shadow-[0_0_20px_-5px_rgba(0,230,247,.4)]',
+    uv:      'border-neon-uv/40 shadow-[0_0_20px_-5px_rgba(155,92,255,.4)]',
+    gold:    'border-neon-gold/40 shadow-[0_0_20px_-5px_rgba(255,225,71,.4)]',
+    mint:    'border-neon-mint/40 shadow-[0_0_20px_-5px_rgba(75,230,179,.4)]',
+    quiet:   'border-ink-hair opacity-70',
+  }
+  const toneText: Record<StatTone, string> = {
+    paper: 'text-paper', magenta: 'text-neon-magenta', cyan: 'text-neon-cyan',
+    uv: 'text-neon-uv', gold: 'text-neon-gold', mint: 'text-neon-mint', quiet: 'text-paper',
+  }
   return (
-    <div className="rounded border border-slate-200 bg-white p-3">
-      <div className="text-xs uppercase tracking-wide text-slate-500">{label}</div>
-      <div className="text-3xl font-black tabular-nums">{value}</div>
+    <div className={`rounded-2xl border bg-ink-2/70 backdrop-blur-sm p-4 ${toneBorder[tone]}`}>
+      <div className="text-[10px] uppercase tracking-widest text-faint">{label}</div>
+      <div className={`text-3xl font-display font-bold tabular-nums mt-1 ${toneText[tone]}`}>{value}</div>
     </div>
   )
 }
 
 function MoneyStat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded border border-emerald-200 bg-emerald-50 p-3">
-      <div className="text-xs uppercase tracking-wide text-emerald-700">{label}</div>
-      <div className="text-2xl font-black tabular-nums text-emerald-900">{value}</div>
+    <div className="rounded-2xl border border-neon-mint/30 bg-ink-2/70 p-4 shadow-[0_0_20px_-5px_rgba(75,230,179,.35)]">
+      <div className="text-[10px] uppercase tracking-widest text-neon-mint">{label}</div>
+      <div className="text-2xl font-display font-bold tabular-nums text-paper mt-1">{value}</div>
     </div>
   )
 }

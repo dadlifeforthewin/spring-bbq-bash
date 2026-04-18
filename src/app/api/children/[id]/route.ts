@@ -46,6 +46,8 @@ const patchSchema = z.object({
   facts_reload_permission: z.boolean().optional(),
   facts_max_amount: z.number().int().min(0).max(10).optional(),
   ticket_balance: z.number().int().min(0).optional(),
+  drink_tickets_remaining: z.number().int().min(0).max(20).optional(),
+  jail_tickets_remaining: z.number().int().min(0).max(20).optional(),
   guardians: z.array(z.object({
     id: z.string().uuid().optional(),
     name: z.string().min(1).max(120),

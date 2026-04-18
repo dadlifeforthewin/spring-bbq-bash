@@ -11,7 +11,10 @@ type Row = {
   grade: string | null
   allergies: string | null
   photo_consent_app: boolean
-  ticket_balance: number
+  drink_tickets_remaining: number
+  jail_tickets_remaining: number
+  prize_wheel_used_at: string | null
+  dj_shoutout_used_at: string | null
   checked_in_at: string | null
   checked_out_at: string | null
 }
@@ -81,46 +84,54 @@ export default function ChildrenList() {
         </label>
       </div>
 
-      {error && <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+      {error && <p className="rounded-xl border border-danger/60 bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}
 
-      <div className="overflow-hidden rounded border border-slate-200 bg-white">
+      <div className="overflow-hidden rounded-2xl border border-ink-hair bg-ink-2/70 backdrop-blur-sm">
         <table className="w-full text-sm">
-          <thead className="bg-slate-50 text-left uppercase tracking-wide text-xs text-slate-500">
+          <thead className="bg-ink-3/60 text-left uppercase tracking-widest text-[10px] text-faint">
             <tr>
               <th className="px-3 py-2">Name</th>
               <th className="px-3 py-2">Age/Grade</th>
               <th className="px-3 py-2">Status</th>
-              <th className="px-3 py-2">Balance</th>
+              <th className="px-3 py-2">Perks left</th>
               <th className="px-3 py-2">Consent</th>
               <th className="px-3 py-2">Allergies</th>
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 && (
-              <tr><td colSpan={6} className="px-3 py-4 text-slate-500">No children match.</td></tr>
+              <tr><td colSpan={6} className="px-3 py-4 text-faint">No children match.</td></tr>
             )}
             {rows.map((r) => {
               const statusLabel = r.checked_out_at ? 'out' : r.checked_in_at ? 'in' : 'not arrived'
               return (
-                <tr key={r.id} className="border-t border-slate-100 hover:bg-slate-50">
+                <tr key={r.id} className="border-t border-ink-hair/60 hover:bg-ink-3/40">
                   <td className="px-3 py-2">
-                    <Link href={`/admin/children/${r.id}`} className="font-semibold text-fuchsia-700">
+                    <Link href={`/admin/children/${r.id}`} className="font-semibold text-neon-magenta hover:text-glow-magenta">
                       {r.first_name} {r.last_name}
                     </Link>
                   </td>
-                  <td className="px-3 py-2 text-slate-600">
+                  <td className="px-3 py-2 text-mist">
                     {r.age ?? '—'}{r.grade ? ` · ${r.grade}` : ''}
                   </td>
-                  <td className="px-3 py-2 text-slate-600 capitalize">{statusLabel}</td>
-                  <td className="px-3 py-2 tabular-nums">{r.ticket_balance}</td>
+                  <td className="px-3 py-2 text-mist capitalize">{statusLabel}</td>
+                  <td className="px-3 py-2 tabular-nums text-paper">
+                    <span className="text-neon-cyan">{r.drink_tickets_remaining}</span>
+                    <span className="text-faint mx-1">·</span>
+                    <span className="text-neon-magenta">{r.jail_tickets_remaining}</span>
+                    <span className="text-faint mx-1">·</span>
+                    <span className={r.prize_wheel_used_at ? 'text-faint line-through' : 'text-neon-gold'}>🎡</span>
+                    <span className="text-faint mx-1">·</span>
+                    <span className={r.dj_shoutout_used_at ? 'text-faint line-through' : 'text-neon-uv'}>📻</span>
+                  </td>
                   <td className="px-3 py-2">
                     {r.photo_consent_app ? (
-                      <span className="rounded bg-green-100 px-2 py-0.5 text-xs font-bold text-green-900">YES</span>
+                      <span className="rounded-full border border-neon-mint/60 bg-neon-mint/10 px-2 py-0.5 text-[10px] font-bold text-neon-mint">YES</span>
                     ) : (
-                      <span className="rounded bg-red-100 px-2 py-0.5 text-xs font-bold text-red-900">NO</span>
+                      <span className="rounded-full border border-danger/60 bg-danger/10 px-2 py-0.5 text-[10px] font-bold text-danger">NO</span>
                     )}
                   </td>
-                  <td className="px-3 py-2 text-slate-600">{r.allergies || '—'}</td>
+                  <td className="px-3 py-2 text-mist">{r.allergies || '—'}</td>
                 </tr>
               )
             })}
