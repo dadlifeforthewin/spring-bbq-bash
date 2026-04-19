@@ -28,6 +28,7 @@ export async function registerChild(request: APIRequestContext, overrides?: {
       vision_matching_consent: false,
       photo_signature: { typed_name: 'E2E Parent' },
       ai_consent_signature: { typed_name: 'E2E Parent' },
+      ai_consent_granted: true,
     },
   })
   if (!res.ok()) throw new Error(`register failed: ${res.status()}`)

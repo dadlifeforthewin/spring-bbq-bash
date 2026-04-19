@@ -33,11 +33,13 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: 'match pipeline only runs on roaming_vision photos' }, { status: 400 })
   }
 
-  // Candidate kids: checked in, vision_matching_consent=true, have a face reference
+  // Candidate kids: checked in, vision_matching_consent=true,
+  // ai_consent_granted=true, have a face reference
   const { data: candidates } = await sb
     .from('children')
-    .select('id, first_name, vision_matching_consent, checked_in_at, checked_out_at')
+    .select('id, first_name, vision_matching_consent, ai_consent_granted, checked_in_at, checked_out_at')
     .eq('vision_matching_consent', true)
+    .eq('ai_consent_granted', true)
     .not('checked_in_at', 'is', null)
     .is('checked_out_at', null)
   const activeKids = (candidates ?? []).filter((c) => c.checked_in_at && !c.checked_out_at)

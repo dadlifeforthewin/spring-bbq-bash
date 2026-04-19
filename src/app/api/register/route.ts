@@ -34,6 +34,7 @@ export async function POST(req: NextRequest) {
       photo_consent_app: parsed.data.photo_consent_app,
       photo_consent_promo: parsed.data.photo_consent_promo,
       vision_matching_consent: parsed.data.vision_matching_consent,
+      ai_consent_granted: parsed.data.ai_consent_granted,
       facts_reload_permission: child.facts_reload_permission,
       facts_max_amount: child.facts_max_amount,
       // drink_tickets_remaining (2), jail_tickets_remaining (3) default via schema.
@@ -85,8 +86,11 @@ export async function POST(req: NextRequest) {
         ip_address: ip, user_agent: ua },
     ])
 
-    // Pre-queue ai_stories row so generation pipeline has a target
-    await sb.from('ai_stories').insert({ child_id: created_child.id, status: 'pending' })
+    // Pre-queue ai_stories row so generation pipeline has a target.
+    // Skip if the family opted out of AI processing — no row, no email.
+    if (parsed.data.ai_consent_granted) {
+      await sb.from('ai_stories').insert({ child_id: created_child.id, status: 'pending' })
+    }
 
     created.push({ child_id: created_child.id, qr_code: created_child.qr_code })
   }

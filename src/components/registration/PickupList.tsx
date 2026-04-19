@@ -1,5 +1,5 @@
 'use client'
-import { clsx } from '@/components/glow/clsx'
+import s from './registration.module.css'
 
 type Item = { name: string; relationship?: string }
 
@@ -13,25 +13,27 @@ export default function PickupList({
     onChange(value.map((row, idx) => idx === i ? { ...row, ...patch } : row))
 
   return (
-    <div className="space-y-2">
-      <p className="text-sm text-mist">
+    <div className={s.pickupList}>
+      <p className={s.fieldHint} style={{ margin: 0 }}>
         Besides yourselves, who else can pick up your child? Primary and secondary
         parents are auto-approved — you don&apos;t need to list them.
       </p>
       {value.length === 0 && (
-        <p className="text-xs text-faint">No extra pickup people yet. Add one if grandparents, aunts, or friends might collect your child.</p>
+        <p className={s.fieldHint} style={{ margin: 0 }}>
+          No extra pickup people yet. Add one if grandparents, aunts, or friends might collect your child.
+        </p>
       )}
-      <ul className="space-y-2">
+      <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
         {value.map((row, i) => (
-          <li key={i} className="flex flex-wrap gap-2">
+          <li key={i} className={s.pickupRow}>
             <input
-              className={pickupFieldClass}
+              className={s.input}
               placeholder="Name"
               value={row.name}
               onChange={(e) => update(i, { name: e.target.value })}
             />
             <input
-              className={clsx(pickupFieldClass, 'sm:w-48')}
+              className={s.input}
               placeholder="Relationship (optional)"
               value={row.relationship ?? ''}
               onChange={(e) => update(i, { relationship: e.target.value })}
@@ -40,9 +42,10 @@ export default function PickupList({
               type="button"
               onClick={() => remove(i)}
               aria-label={`remove-${i}`}
-              className="inline-flex h-10 items-center justify-center rounded-full border border-ink-hair bg-ink-2 px-3 text-sm text-faint transition hover:border-danger/60 hover:text-danger"
+              className={s.removeBtn}
+              style={{ justifySelf: 'start', padding: '8px 10px' }}
             >
-              ✕
+              ✕ Remove
             </button>
           </li>
         ))}
@@ -50,13 +53,11 @@ export default function PickupList({
       <button
         type="button"
         onClick={add}
-        className="text-sm font-semibold text-neon-cyan hover:text-glow-cyan transition"
+        className={s.addBtn}
+        style={{ marginTop: 4 }}
       >
         + Add another person
       </button>
     </div>
   )
 }
-
-const pickupFieldClass =
-  'flex-1 min-w-[180px] rounded-xl border border-ink-hair bg-ink-2/70 px-4 py-2.5 text-base text-paper placeholder:text-faint outline-none transition focus:border-neon-cyan/70 focus:ring-4 focus:ring-neon-cyan/20'

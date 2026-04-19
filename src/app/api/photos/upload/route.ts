@@ -56,11 +56,11 @@ export async function POST(req: NextRequest) {
 
   const sb = serverClient()
 
-  let childRows: { id: string; photo_consent_app: boolean; first_name: string; vision_matching_consent: boolean }[] = []
+  let childRows: { id: string; photo_consent_app: boolean; first_name: string; vision_matching_consent: boolean; ai_consent_granted: boolean }[] = []
   if (childIds.length > 0) {
     const { data, error: childErr } = await sb
       .from('children')
-      .select('id, photo_consent_app, first_name, vision_matching_consent')
+      .select('id, photo_consent_app, first_name, vision_matching_consent, ai_consent_granted')
       .in('id', childIds)
     if (childErr) return Response.json({ error: 'db error', details: childErr.message }, { status: 500 })
     if (!data || data.length !== childIds.length) {
@@ -160,7 +160,7 @@ async function runVisionBackground(opts: {
   captureMode: string
   base64: string
   mediaType: 'image/jpeg' | 'image/png'
-  childRows: { id: string; photo_consent_app: boolean; first_name: string; vision_matching_consent: boolean }[]
+  childRows: { id: string; photo_consent_app: boolean; first_name: string; vision_matching_consent: boolean; ai_consent_granted: boolean }[]
 }) {
   if (!process.env.ANTHROPIC_API_KEY) return // no-op in envs without a key
 
@@ -180,6 +180,7 @@ async function runVisionBackground(opts: {
   if (opts.captureMode === 'station_scan' && opts.station === 'jail') {
     for (const child of opts.childRows) {
       if (!child.vision_matching_consent) continue
+      if (!child.ai_consent_granted) continue // root AI gate
       try {
         const features = await describeFace(opts.base64, opts.mediaType, child.first_name)
         if (features) {

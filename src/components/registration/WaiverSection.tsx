@@ -1,6 +1,5 @@
 'use client'
-import { Card, CardEyebrow, CardTitle } from '@/components/glow/Card'
-import { Input, Checkbox } from '@/components/glow/Input'
+import s from './registration.module.css'
 
 const WAIVER_TEXT = `
 I give my permission for my child to take part in the Spring BBQ Bash. If it should become necessary for my child to receive medical treatment for any reason during any of these activities, I authorize school personnel or another appointed advisor to seek and consent to emergency medical attention for my child as needed; and I further agree to be liable for and to pay all costs incurred in connection with such medical attention.
@@ -20,34 +19,46 @@ export default function WaiverSection({
   setAck: (v: boolean) => void
 }) {
   return (
-    <Card tone="default" padded className="space-y-4">
-      <div className="space-y-1">
-        <CardEyebrow>Step 3</CardEyebrow>
-        <CardTitle>Permission &amp; liability waiver</CardTitle>
-      </div>
+    <section className={`${s.card} ${s.cardAccentPurple}`}>
+      <header className={s.cardHead}>
+        <span className={s.cardEyebrow}>Step 3 / 5 · Permission</span>
+        <h2 className={s.cardTitle}>Permission &amp; liability waiver</h2>
+      </header>
 
-      <div
-        data-testid="waiver-text"
-        className="max-h-64 overflow-y-auto whitespace-pre-line rounded-xl border border-ink-hair bg-ink/50 p-4 text-sm leading-relaxed text-mist"
-      >
+      <div data-testid="waiver-text" className={s.disclosure} tabIndex={0}>
         {WAIVER_TEXT}
       </div>
 
-      <Input
-        label="Type your full name to sign"
-        aria-label="Type your full name to sign"
-        placeholder="e.g. Jane Carter"
-        required
-        value={typedName}
-        onChange={(e) => setTypedName(e.target.value)}
-      />
+      <label className={s.field} style={{ marginTop: 16 }}>
+        <span className={s.fieldLabel}>
+          Type your full name to sign <span className={s.fieldRequired} aria-hidden>*</span>
+        </span>
+        <input
+          className={s.input}
+          type="text"
+          aria-label="Type your full name to sign"
+          placeholder="e.g. Jane Carter"
+          required
+          value={typedName}
+          onChange={(e) => setTypedName(e.target.value)}
+        />
+      </label>
 
-      <Checkbox
-        aria-label="I electronically sign this permission slip"
-        checked={ack}
-        onChange={(e) => setAck(e.target.checked)}
-        label="I acknowledge that typing my name above constitutes a legally binding electronic signature on this permission slip."
-      />
-    </Card>
+      <label className={s.ack} style={{ marginTop: 14 }}>
+        <input
+          type="checkbox"
+          className={s.ackInput}
+          aria-label="I electronically sign this permission slip"
+          checked={ack}
+          onChange={(e) => setAck(e.target.checked)}
+        />
+        <span className={s.ackBox}>
+          <svg className={s.ackCheck} viewBox="0 0 12 12" fill="none">
+            <path d="M2 6l3 3 5-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </span>
+        <span>I acknowledge that typing my name above constitutes a legally binding electronic signature on this permission slip.</span>
+      </label>
+    </section>
   )
 }

@@ -23,6 +23,7 @@ test('parent registers one child successfully', async ({ page }) => {
   await page.getByLabel(/photo consent signature/i).fill('Jane Carter')
 
   // AI & data use disclosure
+  await page.getByLabel(/opt in to AI processing/i).check()
   await page.getByLabel('Type your full name to sign this AI disclosure', { exact: true }).fill('Jane Carter')
   await page.getByLabel(/electronically sign this AI/i).check()
 

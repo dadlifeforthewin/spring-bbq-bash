@@ -22,6 +22,20 @@ export async function POST(req: NextRequest) {
 
   const sb = serverClient()
 
+  // Root AI gate: if the family opted out of AI processing, do nothing.
+  // No row created, no Anthropic call, no email. Idempotent + cheap.
+  const { data: child } = await sb
+    .from('children')
+    .select('ai_consent_granted')
+    .eq('id', parsed.data.child_id)
+    .maybeSingle()
+  if (!child) {
+    return Response.json({ error: 'child not found' }, { status: 404 })
+  }
+  if (!child.ai_consent_granted) {
+    return Response.json({ ok: true, skipped: true, reason: 'ai_opted_out' })
+  }
+
   // Ensure an ai_stories row exists (the registration flow creates one with status=pending)
   const { data: existing } = await sb
     .from('ai_stories')
