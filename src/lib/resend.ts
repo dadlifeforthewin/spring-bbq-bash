@@ -13,6 +13,6 @@ export function resend(): Resend {
 
 export function emailFrom(): string {
   const from = process.env.EMAIL_FROM
-  if (!from) throw new Error('EMAIL_FROM is not set (e.g., "LCA Spring BBQ <keepsakes@lca.example.com>")')
+  if (!from) throw new Error('EMAIL_FROM is not set (e.g., "Brian Leach <brian@attntodetail.ai>")')
   return from
 }

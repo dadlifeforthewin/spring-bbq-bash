@@ -4,14 +4,14 @@
 
 **Owner:** Brian Leach (brian@attntodetail.ai)
 **Provider:** Resend (https://resend.com)
-**Sending domain:** `lcasacramento.org` (LCA-owned — DNS changes require coordination with LCA admin)
+**Sending domain:** `attntodetail.ai` (Brian / Attn: To Detail-owned — Brian controls DNS, no external coordination needed)
 
 ---
 
 ## Prerequisites
 
-- LCA admin access to the DNS provider for `lcasacramento.org` (Cloudflare, GoDaddy, Squarespace, etc. — confirm before starting)
-- Brian's Resend account (or a shared LCA account if LCA prefers ownership)
+- DNS access for `attntodetail.ai` at Brian's registrar (whoever hosts the domain's DNS — Cloudflare, Namecheap, Porkbun, etc.)
+- Brian's Resend account (owned by Brian / Attn: To Detail — LCA does not own this integration)
 - Vercel project access for `spring-bbq-bash` (env var management)
 - A working local checkout of `spring-bbq-bash` for the smoke test
 
@@ -33,36 +33,32 @@
 ## Step 2 — Add and verify the sending domain
 
 1. In Resend, go to **Domains** → **Add Domain**.
-2. Enter `lcasacramento.org`. Region: pick the closest (likely `us-east-1`).
+2. Enter `attntodetail.ai`. Region: pick the closest (likely `us-east-1`).
 3. Resend will show DNS records to add. There are typically **3 record sets**:
-   - **SPF** — `TXT` on `@` (or `lcasacramento.org`) — usually merges into existing SPF record.
-   - **DKIM** — `TXT` on `resend._domainkey.lcasacramento.org` (long public key value).
-   - **MX (return-path)** — `MX` on `send.lcasacramento.org` pointing to `feedback-smtp.<region>.amazonses.com` priority 10. This enables bounce/feedback handling.
-4. **Coordinate with the LCA DNS admin.** Send them:
-   - The exact host/value for each record (copy directly from Resend — do not retype DKIM)
-   - Reassurance: SPF will be merged not replaced; DKIM and MX records are net-new on a subdomain
-   - The reason: required to send branded transactional email from `@lcasacramento.org`
+   - **SPF** — `TXT` on `@` (or `attntodetail.ai`) — merges into any existing SPF record if one is already there.
+   - **DKIM** — `TXT` on `resend._domainkey.attntodetail.ai` (long public key value).
+   - **MX (return-path)** — `MX` on `send.attntodetail.ai` pointing to `feedback-smtp.<region>.amazonses.com` priority 10. This enables bounce/feedback handling.
+4. Add the records at Brian's DNS registrar for `attntodetail.ai`. Copy the DKIM value directly from Resend — do not retype it.
 5. After DNS propagates (typically 5–30 minutes; can take up to 24h), click **Verify** in Resend. All three records must show green.
 6. Once verified, lock the API key from Step 1 to this domain (Resend → API Keys → edit → restrict).
 
-**Gotcha:** If LCA already uses Google Workspace / Microsoft 365 for inbound mail, the existing SPF record likely contains `include:_spf.google.com` or similar. The new SPF must merge Resend's include into the same record — never create a second SPF TXT record (RFC 7208 forbids it).
+**Gotcha:** If `attntodetail.ai` already has an SPF record for another sender (e.g. a Google Workspace or Fastmail `include:`), the new SPF must merge Resend's include into the same record — never create a second SPF TXT record (RFC 7208 forbids it). Check existing records before adding.
 
 ---
 
 ## Step 3 — Decide the From and Reply-To addresses
 
 Per `.env.example`:
-- `EMAIL_FROM` — must be on the verified domain. Format: `"LCA Spring BBQ <keepsakes@lcasacramento.org>"`
-- `EMAIL_REPLY_TO` — optional; falls back to `EMAIL_FROM`. Use a monitored mailbox so parents who hit Reply reach a human.
+- `EMAIL_FROM` — must be on the verified domain. Format: `"Brian Leach <brian@attntodetail.ai>"`
+- `EMAIL_REPLY_TO` — optional; falls back to `EMAIL_FROM`. Use a mailbox you actually check so parents who hit Reply reach a human.
 
-**Recommended values:**
-- `EMAIL_FROM` = `LCA Spring BBQ <keepsakes@lcasacramento.org>`
-- `EMAIL_REPLY_TO` = `bash@lcasacramento.org` (or whichever LCA mailbox the event team monitors that weekend)
+**Values for this event:**
+- `EMAIL_FROM` = `Brian Leach <brian@attntodetail.ai>`
+- `EMAIL_REPLY_TO` = (unset — replies go to `brian@attntodetail.ai` via `EMAIL_FROM` fallback)
 
-Confirm `keepsakes@` either:
-- Is a real mailbox at LCA, OR
-- Is set up as an alias forwarding to a real mailbox, OR
-- At minimum, won't bounce inbound mail (parents will reply even when told not to)
+Context: this is a small school event. Parents will recognize "Brian Leach" as the sender — no need for an LCA-branded envelope. Replies route straight to Brian's A2D inbox, which he monitors.
+
+If the event ever scales to a larger school or gets handed to LCA to run themselves, switch to a dedicated `keepsakes@attntodetail.ai` alias (or an LCA-owned mailbox after DNS transfer) so event mail stops mixing with Brian's personal inbox.
 
 ---
 
@@ -73,8 +69,8 @@ In the Vercel dashboard for `spring-bbq-bash`, under **Settings → Environment 
 | Variable | Value | Notes |
 |----------|-------|-------|
 | `RESEND_API_KEY` | `re_...` from Step 1 | Sensitive — encrypted env |
-| `EMAIL_FROM` | `LCA Spring BBQ <keepsakes@lcasacramento.org>` | Must match verified domain |
-| `EMAIL_REPLY_TO` | `bash@lcasacramento.org` | Optional but recommended |
+| `EMAIL_FROM` | `Brian Leach <brian@attntodetail.ai>` | Must match verified domain |
+| `EMAIL_REPLY_TO` | *(leave unset)* | Falls back to `EMAIL_FROM` so replies land in Brian's inbox |
 | `CRON_SECRET` | `openssl rand -hex 32` output | Protects `/api/cron/send-stories` |
 
 Then **redeploy** (Vercel does not pick up env changes until the next deploy). Trigger via `vercel --prod` from the project root, or push an empty commit, or use the Vercel UI redeploy button.
@@ -162,18 +158,14 @@ curl -X POST https://spring-bbq-bash.vercel.app/api/cron/send-stories \
 
 - [ ] Resend account created / accessed
 - [ ] API key generated, stored in 1Password
-- [ ] DNS records sent to LCA admin
-- [ ] DNS records added (SPF merged, DKIM, MX)
+- [ ] DNS records added at `attntodetail.ai` registrar (SPF, DKIM, MX)
 - [ ] Domain verified green in Resend
 - [ ] API key restricted to verified domain
-- [ ] `EMAIL_FROM` mailbox/alias confirmed at LCA
-- [ ] `EMAIL_REPLY_TO` mailbox confirmed monitored
+- [ ] `brian@attntodetail.ai` confirmed receiving (replies will land here)
 - [ ] `RESEND_API_KEY` set on Vercel Production
 - [ ] `EMAIL_FROM` set on Vercel Production
-- [ ] `EMAIL_REPLY_TO` set on Vercel Production
-- [ ] `CRON_SECRET` set on Vercel Production (32-byte hex)
+- [ ] `CRON_SECRET` set on Vercel Production (32-byte hex) — ✅ already set 2026-04-19
 - [ ] Production redeploy triggered
 - [ ] Local smoke test passed (test-send to own inbox)
 - [ ] Production cron dry-run passed
 - [ ] Resend tier confirmed adequate for expected recipient count
-- [ ] Day-of monitoring plan agreed with LCA
