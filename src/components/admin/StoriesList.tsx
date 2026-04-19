@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 
 type Row = {
@@ -19,23 +19,41 @@ type Row = {
 }
 
 const STATUS_FILTERS = ['all', 'pending', 'needs_review', 'auto_approved', 'approved', 'sent', 'skipped'] as const
+const POLL_MS = 10_000
 
 export default function StoriesList() {
   const [rows, setRows] = useState<Row[]>([])
   const [status, setStatus] = useState<(typeof STATUS_FILTERS)[number]>('all')
   const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [lastLoadedAt, setLastLoadedAt] = useState<Date | null>(null)
+  const cancelRef = useRef(false)
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/stories?status=${encodeURIComponent(status)}`)
+      if (!res.ok) { if (!cancelRef.current) setError('Load failed'); return }
+      const body = await res.json()
+      if (!cancelRef.current) { setError(null); setRows(body.stories); setLastLoadedAt(new Date()) }
+    } finally {
+      if (!cancelRef.current) setLoading(false)
+    }
+  }, [status])
 
   useEffect(() => {
-    let cancelled = false
-    const load = async () => {
-      const res = await fetch(`/api/stories?status=${encodeURIComponent(status)}`)
-      if (!res.ok) { if (!cancelled) setError('Load failed'); return }
-      const body = await res.json()
-      if (!cancelled) { setError(null); setRows(body.stories) }
-    }
+    cancelRef.current = false
     load()
-    return () => { cancelled = true }
-  }, [status])
+    return () => { cancelRef.current = true }
+  }, [load])
+
+  const hasPending = rows.some((r) => r.status === 'pending')
+
+  useEffect(() => {
+    if (!hasPending) return
+    const id = setInterval(() => { load() }, POLL_MS)
+    return () => clearInterval(id)
+  }, [hasPending, load])
 
   return (
     <div className="space-y-4">
@@ -44,7 +62,7 @@ export default function StoriesList() {
         <p className="text-slate-500">Review generated keepsake stories before they go out in tomorrow morning&apos;s email.</p>
       </header>
 
-      <div className="flex gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         {STATUS_FILTERS.map((s) => (
           <button key={s} type="button" onClick={() => setStatus(s)}
             className={`rounded px-3 py-1 text-sm font-bold ${
@@ -53,6 +71,21 @@ export default function StoriesList() {
             {s.replace(/_/g, ' ')}
           </button>
         ))}
+        <div className="ml-auto flex items-center gap-3 text-xs text-slate-500">
+          {hasPending && (
+            <span className="inline-flex items-center gap-1.5">
+              <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-amber-500" />
+              auto-refreshing every 10s
+            </span>
+          )}
+          {lastLoadedAt && !hasPending && (
+            <span>updated {lastLoadedAt.toLocaleTimeString()}</span>
+          )}
+          <button type="button" onClick={load} disabled={loading}
+            className="rounded border border-slate-300 bg-white px-3 py-1 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60">
+            {loading ? 'Refreshing…' : 'Refresh'}
+          </button>
+        </div>
       </div>
 
       {error && <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
