@@ -4,13 +4,14 @@
 **Live:** https://spring-bbq-bash.vercel.app · **Event:** Saturday, April 25, 2026
 **Plan:** `docs/plans/2026-04-16-kid-profile-rebuild-plan.md` · **Spec:** `docs/specs/2026-04-16-kid-profile-rebuild-design.md`
 
-## Go-live status (2026-04-18)
+## Go-live status (2026-04-18 evening)
 
-Phases 1–7 of the plan are shipped. A full visual rebuild (D1–D9 glow pass) was layered on top and is also live. The site represents Attn: To Detail's first public-facing project — donated to LCA for the event. Craft bar: everything the parents see needs to feel like it came from a real studio.
+Phases 1–7 of the plan are shipped. A full visual rebuild (D1–D9 glow pass) was layered on top and is also live. **Today's session** added the real LCA waiver text + a new AI & data use disclosure step + Photo/Video Release legal modal + reseeded the AI reference story + wrote four pre-event runbooks. The site represents Attn: To Detail's first public-facing project — donated to LCA for the event. Craft bar: everything the parents see needs to feel like it came from a real studio.
 
 **What's live right now:**
 - Parent flow at `/register` with aurora-glow hero, "Spring BBQ Bash · Glow Party Edition" wordmark, glow-lit LCA cross, and a mysterious keepsake teaser (no reveal of what the email contains).
-- `/register/confirm` with "See you Saturday under the blacklight" hero and the event's 3 preloaded perks displayed as neon chips.
+- 5-step permission slip: parent → children → **LCA paper-slip waiver text (verbatim)** → photo permissions (with expandable full LCA Photo/Video Release legal text) → **AI & data use disclosure (Step 5)** with independent acknowledgment + signature.
+- `/register/confirm` with "See you Saturday under the blacklight" hero and the event's 3 preloaded perks displayed as neon chips. ⚠️ **Decorative only — see P0 in critical path.**
 - Volunteer portal at `/station` with emoji station picker and a unified `/station/activity` endpoint for drinks, jail, prize wheel, DJ, and free-visit logging.
 - Admin at `/admin` with dark-mode dashboard, children list showing per-kid perks, story moderation, photo queue, settings.
 - Keepsake email template (`src/emails/StoryEmail.tsx`) — dark hero, Unbounded wordmark, per-child block with photo grid + stats pill + A2D signature footer. Not yet wired to a real inbox (`RESEND_API_KEY` empty).
@@ -21,20 +22,31 @@ Phases 1–7 of the plan are shipped. A full visual rebuild (D1–D9 glow pass) 
 
 ## Before the event (Saturday, April 25) — critical path
 
-Ordered by urgency. The first three are non-negotiable; skip any of them and the event has a real problem.
+Ordered by urgency. **#1 is the new P0 (discovered 2026-04-18 during runbook audit).** The first four are non-negotiable; skip any of them and the event has a real problem.
 
-1. **Real LCA waiver text.** `src/components/registration/WaiverSection.tsx` carries placeholder copy marked `TODO(plan Phase 2)`. Legal liability if this ships as-is. Source: LCA's existing paper permission slip.
-2. **Email delivery live.** Set `RESEND_API_KEY` + `EMAIL_FROM` in Vercel env (and `.env.local`). Complete Resend domain DNS (SPF / DKIM / DMARC). Without this, the keepsake email can't send the morning after. `CRON_SECRET` is already set; the Vercel cron fires at `0 16 * * *` UTC (9 AM Pacific) automatically.
-3. **Full manual dry-run on a real phone.** Test family → `/register` → check-in with jail mugshot → visit 5+ stations (including drinks, jail, prize wheel, DJ) → check out → confirm story generates via `/admin/stories` → confirm keepsake email renders in a real burner inbox via the test-send button in `/admin/settings`.
-4. **Volunteer device setup.** Each station gets a tablet/phone, logged into `/station`, station slug picked (stored in `localStorage`). Print a one-page volunteer cheat-sheet showing each station's UI.
+1. **🚨 P0 — `/register/confirm` shows no QR codes and no email is sent.** `/api/register` currently `console.log`s the receipt payload; `/register/confirm` ignores the API's `created` array + `edit_token`. **Effect:** parents register today, walk into Saturday with zero record of which wristband belongs to which kid. Two paths: (a) quick patch — render QRs on the confirm page from the API response, ~30 min, ships value tonight; (b) full Resend-backed receipt email, ~2hr, blocked on Resend setup. Recommend doing (a) immediately and (b) after Resend is verified.
+2. **Email delivery live.** Set `RESEND_API_KEY` + `EMAIL_FROM` in Vercel env (and `.env.local`). Complete Resend domain DNS (SPF / DKIM / DMARC). Without this, the keepsake email can't send the morning after. `CRON_SECRET` is already set; the Vercel cron fires at `0 16 * * *` UTC (9 AM Pacific) automatically. **Step-by-step:** `docs/runbooks/resend-setup.md`.
+3. **Full manual dry-run on a real phone.** Test family → `/register` → check-in with jail mugshot → visit 5+ stations → check out → confirm story generates via `/admin/stories` → confirm keepsake email renders in a real burner inbox via the test-send button in `/admin/settings`. **Step-by-step (19 steps, ~30 min):** `docs/runbooks/event-dry-run.md`. Run by Tuesday April 21.
+4. **Volunteer device setup.** Each station gets a tablet/phone, logged into `/station`, station slug picked (stored in `localStorage`). Print one cheat-sheet per volunteer. **Print-ready:** `docs/runbooks/volunteer-cheatsheet.md`.
 5. **Wristband printing.** Blank QR wristbands pre-printed in batches of ~20 for walk-up registrations (see spec §2 walk-up flow). Confirm the QR decoder reads them at event-lighting.
+
+**✅ DONE 2026-04-18 (was critical-path #1):** Real LCA permission slip waiver text now lives in `WaiverSection.tsx` (verbatim from LCA paper). New `AISection.tsx` adds the AI & data use disclosure as Step 5. `PhotoConsentSection.tsx` exposes the full LCA Photo/Video Release legal text via an expandable `<details>`. Migration 0007 adds `'ai_consent'` to the signature_type CHECK; API writes 3 signature rows per registration.
 
 ## Nice-to-have before the event
 
-6. Replace the text event header in the keepsake email with LCA's actual logo as an image (`email_logo_url` in `/admin/settings`). LCA crest file available at `lcalincoln.com`.
-7. Re-seed `events.reference_story_text` with a story written for the actual LCA event (not the Maya/Carter reference from spec §5.3). Improves auto-check quality.
+6. **Replace the text event header in the keepsake email with LCA's actual logo as an image** (`email_logo_url` in `/admin/settings`). Wiring is verified end-to-end (DB column + settings UI + API + email template all work). Brian sources the crest + pastes the URL. **Step-by-step:** `docs/runbooks/lca-logo-setup.md`.
+7. ✅ **DONE 2026-04-18.** `events.reference_story_text` reseeded with a fictional Olivia Bennett story across 7 real seeded stations (~205 words). Migration 0008 applied. Auto-check rules verified (word count, opener mentions child, ≥2 stations in opener+closer, no banned phrases, no timestamps).
 8. Applitools baseline capture for the parent flow + email (enables regression detection post-event).
 9. Swap the teaser-email copy to final voice once the reveal is confirmed okay. Current copy is the "surprise" direction Brian approved.
+
+## Pre-event audit findings (2026-04-18)
+
+Surfaced during the runbook write-up by an agent reading the live code against this STATUS.md. P0 is already promoted to critical-path #1 above. Other findings:
+
+- **Stories list (`/admin/stories`) doesn't auto-refresh.** `useEffect` only fires on `[status]` change. After checkout the AI story takes 30–60s to render and the page won't reflect it without a manual reload — risk of an admin assuming generation broke on event night. Fix: 10s poll while any rows are `pending`, or a visible "Refresh" button in the toolbar. Estimate: 15 min.
+- **Reload only adds drink tickets.** By design (`ReloadStation` subtitle copy is explicit), but volunteers will hear "I want more jail passes / DJ shoutouts" — the cheat-sheet covers this with a "tell them no, refer to admin for comp" line, but worth being loud about during volunteer briefing.
+- **Vision matching may produce more `pending_review` than `auto`** for sibling/lookalike kids — Claude vision returns descriptive features, not biometric embeddings. Plan: ~15 minutes Sunday morning admin time to clear `/admin/photos/queue` before the 9 AM Pacific cron fires the keepsake emails.
+- **Stale doc cleanup:** `Deviations #8` below originally said `jail → /station/photo (when built)` — current code routes `jail → /station/activity` and `/station/spend` is itself a redirect to `/station/activity`. Updated below.
 
 ## Post-event / longer-term
 
@@ -137,7 +149,7 @@ Ordered by urgency. The first three are non-negotiable; skip any of them and the
 5. **E2E selectors (Task 2.8)** — aria-labels tuned to match plan's Playwright regexes (see commit 297b67b).
 6. **Edit page** — `export const dynamic = 'force-dynamic'` + try/catch around `verifyToken` + `serverClient` so a stale token or HMR hiccup shows the "expired link" state instead of the Next.js error overlay.
 7. **Phase 3 volunteer auth** — new file `src/lib/volunteer-auth.ts` using `magic-link` helpers with scope `volunteer` (8h). Old `src/lib/auth.ts` (`ADMIN_PASSWORD`/`sbbq_auth`) is unchanged; new endpoints all use the volunteer cookie.
-8. **StationPicker routing** — `check_in` → `/station/check-in`, `check_out` → `/station/check-out`, `jail` → `/station/photo` (when built), everything else → `/station/spend`.
+8. **StationPicker routing (updated 2026-04-18)** — `check_in` → `/station/check-in`, `check_out` → `/station/check-out`, `photo` → `/station/photo`, `roaming` → `/station/roaming`, everything else (drinks, jail, prize_wheel, dj_shoutout, free stations) → `/station/activity`. Note: `/station/spend` exists as a redirect to `/station/activity` for any old links.
 9. **Playwright parallelism** — `workers: 1` locally in `playwright.config.ts`; remove if HMR races ever disappear.
 10. **Check-out story kickoff** — plan calls for POST `/api/stories/generate` from `/api/checkout`; left as `// TODO(plan Phase 5)`.
 
@@ -168,7 +180,10 @@ Ordered by urgency. The first three are non-negotiable; skip any of them and the
 ## How to resume
 
 1. Read this file.
-2. **To finish Phase 3 properly:** set `VOLUNTEER_PASSWORD` in `.env.local`, run `npm run test:e2e`, then decide whether to build the photo station (3.5) before moving on.
-3. **To jump to Phase 4 (Admin Screens):** open the plan, search `### Task 4.1`.
-4. Run `git status` from `/Users/brianleach/projects/spring_bbq/spring-bbq-bash` to confirm clean state before starting.
-5. Per-task pattern: failing test → implement → tests pass → typecheck → commit + push → update this file.
+2. **6 days to event.** First click "Critical path" above. P0 #1 (registration confirm page has no QR codes) is the active shipping blocker; everything else has a runbook in `docs/runbooks/` to walk through.
+3. **For the P0 fix:** read `src/app/register/confirm/page.tsx` + `src/app/api/register/route.ts`. The API already returns `{ created, edit_token }`; the confirm page just needs to consume it. Quickest path: render one QR per kid + a "Print this page" button, plus the edit link. Then layer in the Resend-backed receipt email once Resend is verified.
+4. **For email setup:** `docs/runbooks/resend-setup.md`.
+5. **For the dry-run:** `docs/runbooks/event-dry-run.md` (run by Tuesday April 21).
+6. **For volunteer briefing:** print `docs/runbooks/volunteer-cheatsheet.md` one per station.
+7. Run `git status` from `/Users/brianleach/projects/spring_bbq/spring-bbq-bash` to confirm clean state before starting.
+8. Per-task pattern: failing test → implement → tests pass → typecheck → commit + push → update this file.
