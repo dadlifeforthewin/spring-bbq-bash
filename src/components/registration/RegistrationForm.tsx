@@ -5,6 +5,7 @@ import ParentSection, { ParentValue } from './ParentSection'
 import ChildBlock, { ChildInput, emptyChild } from './ChildBlock'
 import WaiverSection from './WaiverSection'
 import PhotoConsentSection, { PhotoConsent } from './PhotoConsentSection'
+import AISection from './AISection'
 import { Aurora } from '@/components/glow/Aurora'
 import { Button } from '@/components/glow/Button'
 import { GlowCross } from '@/components/glow/GlowCross'
@@ -24,6 +25,8 @@ export default function RegistrationForm({ qrOverride }: { qrOverride?: string }
     vision_matching_consent: false,
     photo_signature_name: '',
   })
+  const [aiName, setAiName] = useState('')
+  const [aiAck, setAiAck] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -47,6 +50,7 @@ export default function RegistrationForm({ qrOverride }: { qrOverride?: string }
         photo_consent_promo: photoConsent.photo_consent_promo,
         vision_matching_consent: photoConsent.vision_matching_consent,
         photo_signature: { typed_name: photoConsent.photo_signature_name },
+        ai_consent_signature: { typed_name: aiName },
         ...(qrOverride ? { qr_code: qrOverride } : {}),
       }
       const res = await fetch('/api/register', {
@@ -148,6 +152,12 @@ export default function RegistrationForm({ qrOverride }: { qrOverride?: string }
             setAck={setWaiverAck}
           />
           <PhotoConsentSection value={photoConsent} onChange={setPhotoConsent} />
+          <AISection
+            typedName={aiName}
+            setTypedName={setAiName}
+            ack={aiAck}
+            setAck={setAiAck}
+          />
 
           <Card tone="glow-gold" padded className="flex items-start gap-3">
             <div className="text-2xl animate-sparkle" aria-hidden>✨</div>
@@ -176,6 +186,7 @@ export default function RegistrationForm({ qrOverride }: { qrOverride?: string }
               size="xl"
               fullWidth
               loading={submitting}
+              disabled={!waiverAck || !aiAck}
             >
               {submitting ? 'Submitting…' : 'Submit permission slip'}
             </Button>

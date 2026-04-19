@@ -80,6 +80,9 @@ export async function POST(req: NextRequest) {
       { child_id: created_child.id, signature_type: 'photo_consent',
         typed_name: parsed.data.photo_signature.typed_name,
         ip_address: ip, user_agent: ua },
+      { child_id: created_child.id, signature_type: 'ai_consent',
+        typed_name: parsed.data.ai_consent_signature.typed_name,
+        ip_address: ip, user_agent: ua },
     ])
 
     // Pre-queue ai_stories row so generation pipeline has a target

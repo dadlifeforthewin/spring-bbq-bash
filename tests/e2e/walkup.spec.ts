@@ -22,11 +22,15 @@ test('walk-up registration binds to the pre-printed QR code', async ({ page, req
   await page.getByLabel(/last name/i).fill('Walker')
   await page.getByLabel(/^age$/i).fill('6')
 
-  await page.getByLabel(/type your full name to sign/i).fill('Sam Walker')
-  await page.getByLabel(/electronically sign/i).check()
+  await page.getByLabel('Type your full name to sign', { exact: true }).fill('Sam Walker')
+  await page.getByLabel(/electronically sign this permission slip/i).check()
 
   await page.getByLabel(/include my child in photo memories/i).check()
   await page.getByLabel(/photo consent signature/i).fill('Sam Walker')
+
+  // AI & data use disclosure
+  await page.getByLabel('Type your full name to sign this AI disclosure', { exact: true }).fill('Sam Walker')
+  await page.getByLabel(/electronically sign this AI/i).check()
 
   await page.getByRole('button', { name: /submit permission slip/i }).click()
   await expect(page).toHaveURL(/\/register\/confirm/)
@@ -47,6 +51,7 @@ test('walk-up registration binds to the pre-printed QR code', async ({ page, req
       photo_consent_promo: false,
       vision_matching_consent: false,
       photo_signature: { typed_name: 'Sam Walker' },
+      ai_consent_signature: { typed_name: 'Sam Walker' },
     },
   })
   expect(apiRes.ok()).toBeTruthy()

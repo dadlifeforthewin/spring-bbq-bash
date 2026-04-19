@@ -30,6 +30,7 @@ test('cron send-stories groups approved stories per family and writes email_send
       waiver_signature: { typed_name: 'Family A' },
       photo_consent_app: true, photo_consent_promo: false, vision_matching_consent: false,
       photo_signature: { typed_name: 'Family A' },
+      ai_consent_signature: { typed_name: 'Family A' },
     },
   })
   expect(regRes1.ok()).toBeTruthy()
@@ -49,6 +50,7 @@ test('cron send-stories groups approved stories per family and writes email_send
       waiver_signature: { typed_name: 'Family A' },
       photo_consent_app: true, photo_consent_promo: false, vision_matching_consent: false,
       photo_signature: { typed_name: 'Family A' },
+      ai_consent_signature: { typed_name: 'Family A' },
     },
   })
   expect(regRes2.ok()).toBeTruthy()
@@ -70,6 +72,7 @@ test('cron send-stories groups approved stories per family and writes email_send
       waiver_signature: { typed_name: 'Family B' },
       photo_consent_app: true, photo_consent_promo: false, vision_matching_consent: false,
       photo_signature: { typed_name: 'Family B' },
+      ai_consent_signature: { typed_name: 'Family B' },
     },
   })
   expect(regRes3.ok()).toBeTruthy()

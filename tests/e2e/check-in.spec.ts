@@ -21,6 +21,7 @@ test('volunteer checks in a child via QR', async ({ page, request }) => {
       photo_consent_promo: false,
       vision_matching_consent: false,
       photo_signature: { typed_name: 'Check-in Parent' },
+      ai_consent_signature: { typed_name: 'Check-in Parent' },
     },
   })
   expect(regRes.ok()).toBeTruthy()

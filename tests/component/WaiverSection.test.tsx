@@ -23,4 +23,12 @@ describe('WaiverSection', () => {
     render(<WaiverSection typedName="" setTypedName={() => {}} ack={false} setAck={() => {}} />)
     expect(screen.getByTestId('waiver-text')).toBeInTheDocument()
   })
+
+  it('renders the LCA permission slip language', () => {
+    render(<WaiverSection typedName="" setTypedName={() => {}} ack={false} setAck={() => {}} />)
+    const block = screen.getByTestId('waiver-text')
+    expect(block.textContent).toContain('Lincoln Christian Academy')
+    expect(block.textContent).toContain('I hereby release')
+    expect(block.textContent).toContain('emergency medical attention')
+  })
 })

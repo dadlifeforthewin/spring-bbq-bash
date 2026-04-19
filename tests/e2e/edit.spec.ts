@@ -24,6 +24,7 @@ test('parent edits pickup list via magic link', async ({ page, request }) => {
       photo_consent_promo: false,
       vision_matching_consent: true,
       photo_signature: { typed_name: 'Jane Carter' },
+      ai_consent_signature: { typed_name: 'Jane Carter' },
     },
   })
   expect(regRes.ok()).toBeTruthy()

@@ -36,6 +36,7 @@ export const registrationSchema = z.object({
   photo_consent_promo: z.boolean(),
   vision_matching_consent: z.boolean(),
   photo_signature: signatureInputSchema,
+  ai_consent_signature: signatureInputSchema,
 })
 
 export type RegistrationInput = z.infer<typeof registrationSchema>

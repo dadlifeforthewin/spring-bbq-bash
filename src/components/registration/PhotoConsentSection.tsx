@@ -48,22 +48,34 @@ export default function PhotoConsentSection({
           />
         </label>
 
-        <label className="block rounded-xl border border-ink-hair bg-ink-2/60 p-4 cursor-pointer hover:border-neon-uv/40 transition">
-          <Checkbox
-            checked={value.photo_consent_promo}
-            onChange={(e) => set('photo_consent_promo', e.target.checked)}
-            aria-label="Include my child's photos for LCA promotional or social media use"
-            label={
-              <span className="space-y-1">
-                <span className="block font-semibold text-paper">Allow promotional &amp; social use</span>
-                <span className="block text-xs text-mist leading-relaxed">
-                  I also give permission for photos or videos of my child to be
-                  used for LCA promotional or social media purposes.
+        <div className="rounded-xl border border-ink-hair bg-ink-2/60 p-4 hover:border-neon-uv/40 transition">
+          <label className="block cursor-pointer">
+            <Checkbox
+              checked={value.photo_consent_promo}
+              onChange={(e) => set('photo_consent_promo', e.target.checked)}
+              aria-label="Include my child's photos for LCA promotional or social media use"
+              label={
+                <span className="space-y-1">
+                  <span className="block font-semibold text-paper">Allow promotional &amp; social use</span>
+                  <span className="block text-xs text-mist leading-relaxed">
+                    I also give permission for photos or videos of my child to be
+                    used for LCA promotional or social media purposes.
+                  </span>
                 </span>
-              </span>
-            }
-          />
-        </label>
+              }
+            />
+          </label>
+          <details className="mt-2">
+            <summary className="text-xs text-neon-cyan/80 underline cursor-pointer">
+              Read full Photo/Video Release
+            </summary>
+            <div className="text-xs text-mist leading-relaxed pl-2 mt-2 whitespace-pre-line">
+              {`I grant permission for photos or videos of my child taken during the Glow Party Bash to be used for promotional or social media purposes.
+
+I agree to hold LCA, its employees, agents, successors, licensees, and assignees harmless against any liability, loss, or damage resulting from the use of my child's likeness, and I hereby release and discharge any claims whatsoever in connection with such use of my child's likeness.`}
+            </div>
+          </details>
+        </div>
 
         <label className="block rounded-xl border border-neon-uv/30 bg-gradient-to-br from-ink-3/70 to-ink-2/40 p-4 cursor-pointer hover:border-neon-uv/60 transition shadow-glow-uv/30">
           <Checkbox
