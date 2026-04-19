@@ -250,6 +250,22 @@ function chunk<T>(arr: T[], size: number): T[][] {
   return out
 }
 
+// Render 'YYYY-MM-DD' from the Postgres date column as a readable line
+// like 'Saturday, April 25, 2026'. Anything non-ISO (e.g. free-text an admin
+// typed into Settings) passes through unchanged so we don't mangle it.
+function formatEventDate(value: string): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
+  if (!match) return value
+  const [, y, m, d] = match
+  const date = new Date(Number(y), Number(m) - 1, Number(d))
+  return date.toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  })
+}
+
 export default function StoryEmail({
   event_name,
   event_date,
@@ -308,7 +324,7 @@ export default function StoryEmail({
                 {event_name}
               </Heading>
               <Text style={styles.wordmarkSub}>Glow Party Edition</Text>
-              <Text style={styles.dateline}>{event_date}</Text>
+              <Text style={styles.dateline}>{formatEventDate(event_date)}</Text>
             </Section>
 
             <Text style={styles.greeting}>Hi {primary_parent_name} —</Text>
