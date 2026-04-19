@@ -8,6 +8,30 @@
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
+/* Glow Party design system v2 — added 2026-04-18.
+   Tokens match docs/design/Glow Party.html. Used by the landing page (page.module.css)
+   and will be reused by the Parent Registration restyle next. */
+:root {
+  --bg: #0b0118;
+  --bg-elev: #160529;
+  --ink: #f5f3ff;
+  --ink-dim: rgba(245, 243, 255, 0.6);
+  --line: rgba(255, 255, 255, 0.10);
+  --card: rgba(255, 255, 255, 0.05);
+
+  --glow-pink: #ff3ea5;
+  --glow-purple: #8b5cf6;
+  --glow-cyan: #22d3ee;
+  --glow-yellow: #fde047;
+
+  --neon-1: var(--glow-pink);
+  --neon-2: var(--glow-cyan);
+  --neon-3: var(--glow-yellow);
+  --neon-4: var(--glow-purple);
+
+  --grid-line: rgba(139, 92, 246, 0.10);
+}
+
 html {
   background: #0B0A1F;
 }

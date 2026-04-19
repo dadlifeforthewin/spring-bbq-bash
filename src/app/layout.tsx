@@ -1,6 +1,6 @@
 import './globals.css'
 import type { Metadata, Viewport } from 'next'
-import { Unbounded, Inter } from 'next/font/google'
+import { Unbounded, Inter, Bungee, Monoton, JetBrains_Mono } from 'next/font/google'
 
 const unbounded = Unbounded({
   subsets: ['latin'],
@@ -12,6 +12,27 @@ const unbounded = Unbounded({
 const inter = Inter({
   subsets: ['latin'],
   variable: '--font-sans',
+  display: 'swap',
+})
+
+const bungee = Bungee({
+  subsets: ['latin'],
+  weight: ['400'],
+  variable: '--font-bungee',
+  display: 'swap',
+})
+
+const monoton = Monoton({
+  subsets: ['latin'],
+  weight: ['400'],
+  variable: '--font-monoton',
+  display: 'swap',
+})
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ['latin'],
+  weight: ['400', '600'],
+  variable: '--font-mono',
   display: 'swap',
 })
 
@@ -28,7 +49,10 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${unbounded.variable} ${inter.variable}`}>
+    <html
+      lang="en"
+      className={`${unbounded.variable} ${inter.variable} ${bungee.variable} ${monoton.variable} ${jetbrainsMono.variable}`}
+    >
       <body className="antialiased">{children}</body>
     </html>
   )

@@ -1,74 +1,276 @@
+'use client'
+
 import Link from 'next/link'
-import { Aurora } from '@/components/glow/Aurora'
-import { GlowCross } from '@/components/glow/GlowCross'
-import { Heading, Eyebrow } from '@/components/glow/Heading'
-import { Button } from '@/components/glow/Button'
-import { Chip } from '@/components/glow/Chip'
-import { Card, CardEyebrow } from '@/components/glow/Card'
+import { useEffect, useState } from 'react'
+import styles from './page.module.css'
+
+// 5pm Pacific Daylight Time on Saturday, April 25, 2026 (DST → UTC-7).
+const TARGET_MS = new Date('2026-04-25T17:00:00-07:00').getTime()
+
+function pad(n: number) {
+  return String(n).padStart(2, '0')
+}
+
+function useCountdown(target: number) {
+  const [now, setNow] = useState<number | null>(null)
+
+  useEffect(() => {
+    setNow(Date.now())
+    const id = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(id)
+  }, [])
+
+  if (now === null) {
+    return { d: '00', h: '00', m: '00', s: '00' }
+  }
+  let diff = Math.max(0, target - now)
+  const d = Math.floor(diff / 86400000)
+  diff -= d * 86400000
+  const h = Math.floor(diff / 3600000)
+  diff -= h * 3600000
+  const m = Math.floor(diff / 60000)
+  diff -= m * 60000
+  const s = Math.floor(diff / 1000)
+  return { d: pad(d), h: pad(h), m: pad(m), s: pad(s) }
+}
 
 export default function Home() {
+  const { d, h, m, s } = useCountdown(TARGET_MS)
+
   return (
-    <div className="relative min-h-screen">
-      <Aurora className="fixed inset-0 z-0" />
+    <div className={styles.page}>
+      {/* Backdrop: radial atmosphere wash + perspective grid floor + noise */}
+      <div className={styles.backdrop} aria-hidden="true">
+        <div className={styles.floor} />
+        <div className={styles.noise} />
+      </div>
 
-      <main className="relative z-10 mx-auto max-w-2xl px-6 pt-16 pb-20 space-y-10 text-center">
-        <div className="flex justify-center">
-          <GlowCross size={80} tone="cyan" />
-        </div>
-
-        <div className="space-y-4">
-          <Eyebrow tone="magenta">Lincoln Christian Academy · Est. 1995 · 30 Years</Eyebrow>
-          <Heading level={1} tone="wordmark" size="2xl">Spring BBQ Bash</Heading>
-          <p className="font-display text-neon-gold text-glow-gold text-lg tracking-wide">
-            Glow Party Edition
-          </p>
-          <p className="text-mist text-sm">
-            Saturday, April 25, 2026 · 5:00–8:00 PM
-          </p>
-        </div>
-
-        <div className="flex flex-wrap justify-center gap-2">
-          <Chip tone="magenta" glow>2 drinks</Chip>
-          <Chip tone="cyan" glow>3 jail / pass</Chip>
-          <Chip tone="gold" glow>1 prize spin</Chip>
-          <Chip tone="uv" glow>1 DJ shoutout</Chip>
-        </div>
-
-        <Card tone="default" padded className="text-left space-y-4">
-          <CardEyebrow className="text-neon-cyan">Parents</CardEyebrow>
-          <p className="text-paper text-sm leading-relaxed">
-            After you&apos;ve bought your ticket, finish the permission slip so
-            your kid&apos;s wristband is ready when they arrive.
-          </p>
-          <Link href="/register">
-            <Button tone="magenta" size="lg" fullWidth>
-              Fill out permission slip →
-            </Button>
-          </Link>
-        </Card>
-
-        <Card tone="default" padded className="text-left space-y-4">
-          <CardEyebrow className="text-neon-gold">Volunteers &amp; organizers</CardEyebrow>
-          <div className="grid grid-cols-2 gap-3">
-            <Link href="/station">
-              <Button tone="cyan" size="md" fullWidth>Volunteer portal</Button>
-            </Link>
-            <Link href="/admin">
-              <Button tone="gold" size="md" fullWidth>Admin</Button>
-            </Link>
+      <main className={styles.shell}>
+        {/* Topbar */}
+        <header className={styles.topbar}>
+          <div className={styles.crest}>
+            <div className={styles.crestSeal}>LCA</div>
+            <div className={styles.crestText}>
+              <b>Lincoln Christian Academy</b>
+              <span>EST. 1995 · 30 YEARS · PTO</span>
+            </div>
           </div>
-        </Card>
+          <div className={styles.ticker} aria-hidden="true">
+            <span className={styles.tickerPill}>SPRING &apos;26</span>
+            <span>WRISTBANDS ON / LIGHTS OUT AT 5:00 SHARP</span>
+            <span className={styles.live}>
+              <span className={styles.liveDot} />
+              LIVE
+            </span>
+          </div>
+        </header>
 
-        <footer className="pt-8 space-y-1">
-          <p className="text-xs text-faint">
+        {/* HERO */}
+        <section className={styles.hero}>
+          <div className={styles.heroKicker}>
+            <span className={styles.bar} aria-hidden="true" />
+            Under the pavilion · All grades welcome
+          </div>
+
+          <div className={styles.signWrap}>
+            <span className={`${styles.bolt} ${styles.boltTL}`} aria-hidden="true" />
+            <span className={`${styles.bolt} ${styles.boltTR}`} aria-hidden="true" />
+            <span className={`${styles.bolt} ${styles.boltBL}`} aria-hidden="true" />
+            <span className={`${styles.bolt} ${styles.boltBR}`} aria-hidden="true" />
+
+            <div className={styles.tagline}>
+              <span className={styles.taglineStar} aria-hidden="true">✦</span>
+              <span>Sat · April 25 · 5–8 PM</span>
+              <span className={styles.taglineStar} aria-hidden="true">✦</span>
+              <span>Wear white to glow</span>
+              <span className={styles.taglineStar} aria-hidden="true">✦</span>
+            </div>
+
+            <h1 className={styles.neonTitle}>
+              <span className={`${styles.line} ${styles.lineCyan}`}>SPRING BBQ</span>
+              <span className={`${styles.line} ${styles.linePink}`}>
+                BASH <span className={styles.amp}>&amp;</span> GLOW
+              </span>
+            </h1>
+
+            <div className={styles.edition}>
+              <span className={styles.editionSticks} aria-hidden="true">
+                <i />
+                <i />
+                <i />
+              </span>
+              <b>GLOW PARTY EDITION</b>
+              <span className={styles.editionVol}>· Vol. 30</span>
+            </div>
+          </div>
+
+          {/* Stat strip */}
+          <div className={styles.statStrip}>
+            <div className={`${styles.stat} ${styles.statDate}`}>
+              <div className={styles.statLbl}>Doors open in</div>
+              <div className={`${styles.statVal} ${styles.countdown}`}>
+                <span className={styles.countdownSeg}>
+                  <b>{d}</b>
+                  <span>DAYS</span>
+                </span>
+                <span className={styles.countdownColon}>:</span>
+                <span className={styles.countdownSeg}>
+                  <b>{h}</b>
+                  <span>HRS</span>
+                </span>
+                <span className={styles.countdownColon}>:</span>
+                <span className={styles.countdownSeg}>
+                  <b>{m}</b>
+                  <span>MIN</span>
+                </span>
+                <span className={styles.countdownColon}>:</span>
+                <span className={styles.countdownSeg}>
+                  <b>{s}</b>
+                  <span>SEC</span>
+                </span>
+              </div>
+            </div>
+            <div className={`${styles.stat} ${styles.statTime}`}>
+              <div className={styles.statLbl}>When</div>
+              <div className={styles.statVal}>5–8 PM</div>
+              <div className={styles.statSub}>Sat, Apr 25, 2026</div>
+            </div>
+            <div className={`${styles.stat} ${styles.statWhere}`}>
+              <div className={styles.statLbl}>Where</div>
+              <div className={styles.statVal}>The Lot</div>
+              <div className={styles.statSub}>LCA Main Campus · Pavilion</div>
+            </div>
+            <div className={styles.stat}>
+              <div className={styles.statLbl}>Dress code</div>
+              <div className={styles.statVal}>WEAR WHITE</div>
+              <div className={styles.statSub}>Reflective / light-color clothes glow best</div>
+            </div>
+          </div>
+        </section>
+
+        {/* WRISTBAND PERKS */}
+        <section>
+          <div className={styles.sectionLabel}>
+            <span className={styles.sectionNum}>01</span>
+            <span>What your kid&apos;s wristband gets them</span>
+            <span className={styles.sectionRule} aria-hidden="true" />
+          </div>
+
+          <div className={styles.wristband}>
+            <div className={styles.wbHead}>
+              <h2>
+                Every wristband = <em>one full night</em> of fun.
+              </h2>
+              <p>
+                Staff scan the wristband at each station. When a perk is used, it&apos;s crossed off — no
+                cash, no cards, no lost tickets.
+              </p>
+            </div>
+
+            <div className={styles.perks}>
+              <div className={`${styles.perk} ${styles.perk1}`}>
+                <div className={styles.perkCount}>2</div>
+                <svg
+                  className={styles.perkIcon}
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  aria-hidden="true"
+                >
+                  <path d="M7 10h10l-1 9a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2L7 10Z" />
+                  <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+                </svg>
+                <h3>DRINKS</h3>
+                <p>Lemonade, juice, or a glow-soda from the drink tent.</p>
+              </div>
+              <div className={`${styles.perk} ${styles.perk2}`}>
+                <div className={styles.perkCount}>3</div>
+                <svg
+                  className={styles.perkIcon}
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  aria-hidden="true"
+                >
+                  <rect x="4" y="5" width="16" height="14" rx="1" />
+                  <path d="M8 5v14M12 5v14M16 5v14" />
+                </svg>
+                <h3>JAIL / PASS</h3>
+                <p>Get sent to glow-jail? Trade one pass to break free. Use all three if you&apos;re extra mischievous.</p>
+              </div>
+              <div className={`${styles.perk} ${styles.perk3}`}>
+                <div className={styles.perkCount}>1</div>
+                <svg
+                  className={styles.perkIcon}
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  aria-hidden="true"
+                >
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="M12 3v9l6 3" />
+                </svg>
+                <h3>PRIZE SPIN</h3>
+                <p>One spin on the big wheel. Candy, glow sticks, plush, gift cards — every slot wins.</p>
+              </div>
+              <div className={`${styles.perk} ${styles.perk4}`}>
+                <div className={styles.perkCount}>1</div>
+                <svg
+                  className={styles.perkIcon}
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  aria-hidden="true"
+                >
+                  <path d="M12 2v12" />
+                  <circle cx="10" cy="17" r="3" />
+                  <path d="M13 14l6-3V4l-6 3" />
+                </svg>
+                <h3>DJ SHOUTOUT</h3>
+                <p>Drop your name in the booth and hear it over the speakers during your favorite jam.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* CTA */}
+        <section>
+          <div className={styles.sectionLabel}>
+            <span className={styles.sectionNum}>02</span>
+            <span>Before the party · For parents</span>
+            <span className={styles.sectionRule} aria-hidden="true" />
+          </div>
+
+          <div className={styles.ctaRow}>
+            <article className={`${styles.ctaCard} ${styles.ctaCardPrimary}`}>
+              <div className={styles.ctaEyebrow}>Step 2 · Parents · ~2 minutes</div>
+              <h3>Finish the permission slip so your kid&apos;s wristband is ready at the gate.</h3>
+              <p>
+                Already bought a ticket? Great. Just fill this out and we&apos;ll have the wristband
+                printed, perks pre-loaded, and waiting for you at check-in — no line, no paperwork at
+                the door.
+              </p>
+              <Link className={styles.bigBtn} href="/register">
+                Fill out permission slip
+                <span className={styles.arrow} aria-hidden="true">→</span>
+              </Link>
+            </article>
+          </div>
+        </section>
+
+        <footer className={styles.footer}>
+          <div>
             Designed &amp; built by{' '}
-            <a href="https://attntodetail.ai" className="text-neon-cyan hover:text-glow-cyan transition">
+            <a href="https://attntodetail.ai" target="_blank" rel="noreferrer">
               Attn: To Detail
-            </a>
-          </p>
-          <p className="text-[10px] text-faint/70">
-            Donated to LCA in celebration of 30 years.
-          </p>
+            </a>{' '}
+            · Donated to LCA for 30 years.
+          </div>
+          <div>© 2026 · LCA PTO</div>
         </footer>
       </main>
     </div>
