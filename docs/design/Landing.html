@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Spring BBQ Bash · Glow Party Edition — LCA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Monoton&family=Bungee&family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0b0118; --bg-elev: #160529;
+    --ink: #f5f3ff; --ink-dim: rgba(245,243,255,0.62); --ink-faint: rgba(245,243,255,0.38);
+    --line: rgba(255,255,255,0.10);
+    --neon-1: #ff3ea5; --neon-2: #22d3ee; --neon-3: #fde047; --neon-4: #8b5cf6; --neon-5: #4be6b3;
+    --grid-line: rgba(139,92,246,0.10);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+
+  .backdrop{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+  .backdrop::before{content:"";position:absolute;inset:-10%;background:
+    radial-gradient(ellipse 60% 40% at 20% 10%,color-mix(in oklab,var(--neon-1) 22%,transparent),transparent 60%),
+    radial-gradient(ellipse 50% 35% at 85% 20%,color-mix(in oklab,var(--neon-2) 18%,transparent),transparent 65%),
+    radial-gradient(ellipse 70% 40% at 50% 95%,color-mix(in oklab,var(--neon-3) 14%,transparent),transparent 70%);
+    filter:blur(40px);animation:drift 22s ease-in-out infinite alternate}
+  .backdrop .floor{position:absolute;left:50%;bottom:-20vh;width:240vw;height:80vh;
+    transform:translateX(-50%) perspective(600px) rotateX(62deg);
+    background:linear-gradient(to right,var(--grid-line) 1px,transparent 1px) 0 0/64px 64px,
+               linear-gradient(to bottom,var(--grid-line) 1px,transparent 1px) 0 0/64px 64px;
+    mask-image:linear-gradient(to top,black 10%,transparent 90%);
+    -webkit-mask-image:linear-gradient(to top,black 10%,transparent 90%);
+    animation:gridScroll 4.5s linear infinite}
+  .backdrop .noise{position:absolute;inset:0;opacity:.06;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1   0 0 0 0 1   0 0 0 0 1   0 0 0 0.9 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");mix-blend-mode:overlay}
+  @keyframes drift{0%{transform:translate(-2%,-1%) scale(1)}100%{transform:translate(2%,2%) scale(1.05)}}
+  @keyframes gridScroll{from{background-position:0 0,0 0}to{background-position:0 64px,64px 0}}
+
+  .shell{position:relative;z-index:1;max-width:1180px;margin:0 auto;padding:28px 28px 80px}
+
+  .topbar{display:flex;align-items:center;justify-content:space-between;gap:20px;padding-bottom:18px;border-bottom:1px dashed var(--line);flex-wrap:wrap}
+  .crest{display:flex;align-items:center;gap:10px}
+  .crest-seal{width:38px;height:38px;border-radius:50%;border:1.5px solid var(--ink);display:grid;place-items:center;font-family:"Bungee",sans-serif;font-size:13px;color:var(--ink);letter-spacing:-0.02em}
+  .crest-text{line-height:1.15}
+  .crest-text b{display:block;font-family:"Space Grotesk",sans-serif;font-weight:700;font-size:13px;letter-spacing:.01em}
+  .crest-text span{font-family:"JetBrains Mono",monospace;font-size:10.5px;color:var(--ink-dim);letter-spacing:.06em}
+  .ticker{display:flex;align-items:center;gap:10px;font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--ink-dim)}
+  .ticker .pill{padding:5px 10px;border:1px solid var(--line);border-radius:999px;color:var(--ink)}
+  .ticker .dot{width:10px;height:10px;border-radius:50%;background:var(--neon-3);box-shadow:0 0 8px var(--neon-3),0 0 18px var(--neon-3);animation:blink 2.2s ease-in-out infinite}
+  @keyframes blink{0%,70%,100%{opacity:1}75%,85%{opacity:.2}}
+
+  .hero{position:relative;padding:60px 0 40px}
+  .hero-kicker{display:inline-flex;align-items:center;gap:10px;font-family:"JetBrains Mono",monospace;font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:var(--neon-2);text-shadow:0 0 8px color-mix(in oklab,var(--neon-2) 60%,transparent)}
+  .hero-kicker .bar{width:36px;height:1px;background:var(--neon-2);box-shadow:0 0 6px var(--neon-2)}
+
+  .sign-wrap{position:relative;margin-top:18px;padding:36px 28px 30px;border:1.5px solid color-mix(in oklab,var(--neon-1) 40%,transparent);border-radius:18px;
+    background:linear-gradient(180deg,color-mix(in oklab,var(--neon-1) 6%,transparent),transparent 60%),
+               radial-gradient(ellipse at 50% 120%,color-mix(in oklab,var(--neon-3) 18%,transparent),transparent 70%),
+               var(--bg-elev);
+    box-shadow:0 0 0 1px color-mix(in oklab,var(--neon-1) 20%,transparent) inset,0 40px 120px -30px color-mix(in oklab,var(--neon-1) 60%,transparent),0 0 60px -10px color-mix(in oklab,var(--neon-2) 50%,transparent);
+    overflow:hidden}
+  .bolt{position:absolute;width:10px;height:10px;border-radius:50%;background:var(--ink-dim);box-shadow:inset 0 0 0 2px var(--bg),0 0 0 1px rgba(255,255,255,.2)}
+  .bolt.tl{top:12px;left:12px}.bolt.tr{top:12px;right:12px}.bolt.bl{bottom:12px;left:12px}.bolt.br{bottom:12px;right:12px}
+  .sign-wrap::after{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(to bottom,transparent 0 3px,rgba(255,255,255,.025) 3px 4px);mix-blend-mode:overlay}
+
+  .tagline{display:flex;flex-wrap:wrap;align-items:baseline;gap:14px;font-family:"JetBrains Mono",monospace;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:10px}
+  .tagline .star{color:var(--neon-3);text-shadow:0 0 10px var(--neon-3);font-size:14px}
+
+  .neon-title{font-family:"Monoton","Bungee",sans-serif;font-weight:400;font-size:clamp(52px,10.5vw,158px);line-height:1;letter-spacing:.01em;margin:4px 0;color:#fff}
+  .neon-title .line{display:block}
+  .neon-title .l1{color:#fff;letter-spacing:.03em;text-shadow:0 0 4px #fff,0 0 10px var(--neon-2),0 0 22px var(--neon-2),0 0 44px color-mix(in oklab,var(--neon-2) 80%,transparent),0 0 80px color-mix(in oklab,var(--neon-2) 60%,transparent)}
+  .neon-title .l2{color:#fff;margin-top:.08em;text-shadow:0 0 4px #fff,0 0 10px var(--neon-1),0 0 22px var(--neon-1),0 0 44px color-mix(in oklab,var(--neon-1) 80%,transparent),0 0 80px color-mix(in oklab,var(--neon-1) 60%,transparent);animation:flicker 5.5s infinite}
+  .neon-title .amp{display:inline-block;color:var(--neon-3);text-shadow:0 0 8px var(--neon-3),0 0 24px var(--neon-3);font-family:"Bungee",sans-serif;font-size:.7em;transform:translateY(-.1em) rotate(-6deg);margin:0 .1em}
+  @keyframes flicker{0%,92%,100%{opacity:1}93%{opacity:.3}94%{opacity:1}95%{opacity:.5}96%{opacity:1}}
+
+  .edition{display:inline-flex;align-items:center;gap:14px;margin-top:18px;padding:10px 18px;border:1px solid color-mix(in oklab,var(--neon-3) 55%,transparent);border-radius:999px;background:color-mix(in oklab,var(--neon-3) 6%,transparent);box-shadow:0 0 24px -6px var(--neon-3)}
+  .edition .sticks{display:inline-flex;gap:4px}
+  .edition .sticks i{width:3px;height:16px;border-radius:2px;display:block;box-shadow:0 0 6px currentColor}
+  .edition .sticks i:nth-child(1){background:var(--neon-1);color:var(--neon-1)}
+  .edition .sticks i:nth-child(2){background:var(--neon-2);color:var(--neon-2)}
+  .edition .sticks i:nth-child(3){background:var(--neon-3);color:var(--neon-3)}
+  .edition b{font-family:"Bungee",sans-serif;font-weight:400;letter-spacing:.08em;font-size:13px;color:var(--neon-3);text-shadow:0 0 8px color-mix(in oklab,var(--neon-3) 70%,transparent)}
+  .edition span{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--ink-dim);letter-spacing:.1em}
+
+  .stat-strip{margin-top:22px;display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+  .stat{padding:18px 20px;background:var(--bg-elev)}
+  .stat .lbl{font-family:"JetBrains Mono",monospace;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-dim)}
+  .stat .val{margin-top:6px;font-family:"Bungee",sans-serif;font-size:22px;letter-spacing:.01em}
+  .stat .sub{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--ink-dim);margin-top:2px}
+  .stat.date .val{color:var(--neon-2);text-shadow:0 0 10px color-mix(in oklab,var(--neon-2) 60%,transparent)}
+  .stat.time .val{color:var(--neon-1);text-shadow:0 0 10px color-mix(in oklab,var(--neon-1) 60%,transparent)}
+  .stat.where .val{color:var(--neon-3);text-shadow:0 0 10px color-mix(in oklab,var(--neon-3) 60%,transparent)}
+  .countdown{display:flex;gap:6px;align-items:baseline;font-family:"Bungee",sans-serif;font-size:22px}
+  .countdown .seg{display:inline-flex;flex-direction:column;align-items:center}
+  .countdown .seg b{color:#fff;text-shadow:0 0 10px var(--neon-2)}
+  .countdown .seg span{font-family:"JetBrains Mono",monospace;font-weight:400;font-size:9px;letter-spacing:.2em;color:var(--ink-dim);text-shadow:none}
+  .countdown .colon{color:var(--ink-dim)}
+
+  .section-label{display:flex;align-items:center;gap:14px;margin:56px 0 18px;font-family:"JetBrains Mono",monospace;font-size:11.5px;letter-spacing:.24em;text-transform:uppercase;color:var(--ink-dim)}
+  .section-label .num{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;border:1px solid var(--line);color:var(--neon-3);text-shadow:0 0 6px var(--neon-3)}
+  .section-label .rule{flex:1;height:1px;background:var(--line)}
+
+  .wristband{position:relative;border-radius:14px;padding:28px 28px 22px;
+    background:linear-gradient(100deg,color-mix(in oklab,var(--neon-1) 12%,transparent) 0%,transparent 55%),
+               linear-gradient(280deg,color-mix(in oklab,var(--neon-2) 10%,transparent) 0%,transparent 55%),var(--bg-elev);
+    border:1px solid var(--line);overflow:hidden}
+  .wristband::before{content:"";position:absolute;left:24px;right:24px;top:0;height:8px;background-image:radial-gradient(circle at 4px 4px,var(--bg) 3px,transparent 3.5px);background-size:14px 8px}
+  .wb-head{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px;margin-bottom:18px}
+  .wb-head h2{font-family:"Bungee",sans-serif;font-weight:400;font-size:28px;margin:0;letter-spacing:.01em}
+  .wb-head h2 em{font-style:normal;color:var(--neon-3);text-shadow:0 0 10px color-mix(in oklab,var(--neon-3) 70%,transparent)}
+  .wb-head p{margin:0;max-width:48ch;color:var(--ink-dim);font-size:14px}
+
+  .perks{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+  .perk{position:relative;padding:18px 18px 16px;border-radius:10px;background:var(--bg);border:1px solid var(--line);overflow:hidden;transition:transform .25s ease,border-color .25s ease}
+  .perk:hover{transform:translateY(-2px);border-color:color-mix(in oklab,var(--c) 50%,var(--line))}
+  .perk .count{font-family:"Monoton",sans-serif;font-size:72px;line-height:.85;color:var(--c);text-shadow:0 0 6px var(--c),0 0 20px color-mix(in oklab,var(--c) 70%,transparent),0 0 46px color-mix(in oklab,var(--c) 50%,transparent)}
+  .perk h3{font-family:"Bungee",sans-serif;font-weight:400;font-size:15px;letter-spacing:.02em;margin:14px 0 4px;color:var(--ink)}
+  .perk p{margin:0;font-size:12.5px;line-height:1.4;color:var(--ink-dim)}
+  .perk:nth-child(1){--c:var(--neon-2)}.perk:nth-child(2){--c:var(--neon-1)}.perk:nth-child(3){--c:var(--neon-3)}.perk:nth-child(4){--c:var(--neon-4)}
+
+  /* Surprise-email teaser */
+  .surprise{margin-top:18px;padding:28px 28px 26px;border-radius:14px;border:1px solid color-mix(in oklab,var(--neon-4) 45%,transparent);background:radial-gradient(circle at 0% 100%,color-mix(in oklab,var(--neon-4) 22%,transparent),transparent 55%),var(--bg-elev);box-shadow:0 0 0 1px color-mix(in oklab,var(--neon-4) 15%,transparent) inset,0 30px 80px -40px color-mix(in oklab,var(--neon-4) 80%,transparent);position:relative;overflow:hidden;display:grid;grid-template-columns:1.2fr 1fr;gap:24px;align-items:center}
+  .surprise .eyebrow{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--neon-4);text-shadow:0 0 8px color-mix(in oklab,var(--neon-4) 60%,transparent)}
+  .surprise h3{font-family:"Bungee",sans-serif;font-weight:400;font-size:26px;margin:10px 0 8px;line-height:1.1}
+  .surprise h3 em{font-style:normal;color:var(--neon-3);text-shadow:0 0 10px color-mix(in oklab,var(--neon-3) 70%,transparent)}
+  .surprise p{margin:0;color:var(--ink-dim);font-size:13.5px;line-height:1.55;max-width:46ch}
+  .envelope{aspect-ratio:4/3;border-radius:10px;background:linear-gradient(135deg,#1a0933,#0b0118);border:1px solid color-mix(in oklab,var(--neon-4) 40%,transparent);position:relative;overflow:hidden;display:grid;place-items:center}
+  .envelope .seal{width:44px;height:44px;border-radius:50%;background:radial-gradient(circle,#fff 0%,var(--neon-4) 60%,transparent 80%);box-shadow:0 0 24px var(--neon-4),0 0 60px color-mix(in oklab,var(--neon-4) 60%,transparent);animation:pulse 2.6s ease-in-out infinite}
+  .envelope::before,.envelope::after{content:"";position:absolute;left:0;right:0;height:50%;border:1px solid color-mix(in oklab,var(--neon-4) 30%,transparent)}
+  .envelope::before{top:0;border-bottom:none;clip-path:polygon(0 0,100% 0,50% 100%)}
+  .envelope::after{bottom:0;top:50%;border-top:none}
+  .envelope .meta{position:absolute;top:10px;left:12px;font-family:"JetBrains Mono",monospace;font-size:9px;letter-spacing:.18em;color:var(--neon-4);text-shadow:0 0 6px var(--neon-4);text-transform:uppercase;z-index:2}
+  .envelope .meta2{position:absolute;bottom:10px;right:12px;font-family:"JetBrains Mono",monospace;font-size:9px;letter-spacing:.18em;color:var(--ink-faint);text-transform:uppercase;z-index:2}
+  @keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.1);opacity:.85}}
+
+  /* CTA card */
+  .cta-row{display:grid;grid-template-columns:1.35fr 1fr;gap:18px;margin-top:18px}
+  .cta-row.single{grid-template-columns:1fr}
+  .cta-card{position:relative;padding:30px 28px 28px;border-radius:14px;background:var(--bg-elev);border:1px solid var(--line);overflow:hidden}
+  .cta-card.primary{border-color:color-mix(in oklab,var(--neon-1) 45%,transparent);background:radial-gradient(circle at 100% 0%,color-mix(in oklab,var(--neon-1) 25%,transparent),transparent 55%),var(--bg-elev);box-shadow:0 0 0 1px color-mix(in oklab,var(--neon-1) 15%,transparent) inset,0 30px 80px -40px color-mix(in oklab,var(--neon-1) 80%,transparent)}
+  .cta-card .eyebrow{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-dim)}
+  .cta-card.primary .eyebrow{color:var(--neon-1)}
+  .cta-card h3{font-family:"Bungee",sans-serif;font-weight:400;font-size:28px;margin:10px 0;line-height:1.05}
+  .cta-card p{margin:0 0 20px;max-width:48ch;color:var(--ink-dim);font-size:14px;line-height:1.55}
+  .cta-card ol{margin:0 0 22px;padding-left:0;list-style:none;counter-reset:step;display:grid;gap:8px}
+  .cta-card ol li{counter-increment:step;padding-left:34px;position:relative;font-size:13.5px;color:var(--ink);line-height:1.5}
+  .cta-card ol li::before{content:counter(step,decimal-leading-zero);position:absolute;left:0;top:0;font-family:"Monoton",sans-serif;font-size:20px;color:var(--neon-2);text-shadow:0 0 8px color-mix(in oklab,var(--neon-2) 60%,transparent)}
+  .big-btn{display:inline-flex;align-items:center;gap:12px;padding:14px 22px;text-decoration:none;border-radius:999px;font-family:"Bungee",sans-serif;font-size:14px;letter-spacing:.04em;background:linear-gradient(90deg,var(--neon-1),var(--neon-2));color:#0a0717;border:none;box-shadow:0 0 0 1px #fff inset,0 0 24px color-mix(in oklab,var(--neon-1) 55%,transparent),0 0 60px color-mix(in oklab,var(--neon-2) 35%,transparent);transition:transform .2s ease,box-shadow .2s ease;cursor:pointer}
+  .big-btn:hover{transform:translateY(-2px);box-shadow:0 0 0 1px #fff inset,0 0 32px color-mix(in oklab,var(--neon-1) 80%,transparent),0 0 80px color-mix(in oklab,var(--neon-2) 60%,transparent)}
+  .ghost-btn{display:inline-flex;align-items:center;gap:10px;padding:12px 18px;text-decoration:none;border-radius:999px;font-family:"JetBrains Mono",monospace;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink);border:1px solid color-mix(in oklab,var(--neon-2) 40%,transparent);background:transparent;transition:background .2s ease,border-color .2s ease}
+  .ghost-btn:hover{background:color-mix(in oklab,var(--neon-2) 10%,transparent);border-color:var(--neon-2)}
+  .arrow{display:inline-block;transition:transform .2s ease}
+  .cta-card a:hover .arrow{transform:translateX(4px)}
+
+  /* Night-of flow strip */
+  .flow{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-top:14px}
+  .flow .step{padding:18px 18px 16px;background:var(--bg-elev);position:relative}
+  .flow .step .n{font-family:"Monoton",sans-serif;font-size:36px;line-height:1;color:var(--c);text-shadow:0 0 6px var(--c),0 0 18px color-mix(in oklab,var(--c) 60%,transparent)}
+  .flow .step h4{font-family:"Bungee",sans-serif;font-weight:400;font-size:14px;margin:10px 0 4px;letter-spacing:.01em}
+  .flow .step p{margin:0;font-size:12px;color:var(--ink-dim);line-height:1.45}
+  .flow .step:nth-child(1){--c:var(--neon-2)}
+  .flow .step:nth-child(2){--c:var(--neon-1)}
+  .flow .step:nth-child(3){--c:var(--neon-3)}
+  .flow .step:nth-child(4){--c:var(--neon-4)}
+
+  /* FAQ */
+  .faq{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+  .faq-item{padding:18px 20px;border:1px solid var(--line);border-radius:12px;background:var(--bg-elev)}
+  .faq-item h4{font-family:"Bungee",sans-serif;font-weight:400;font-size:14px;margin:0 0 6px;letter-spacing:.01em}
+  .faq-item p{margin:0;font-size:13px;color:var(--ink-dim);line-height:1.5}
+
+  .footer{margin-top:64px;padding-top:22px;border-top:1px dashed var(--line);display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--ink-dim);letter-spacing:.08em}
+  .footer a{color:var(--ink);text-decoration:none;border-bottom:1px dotted var(--neon-3)}
+  .footer a:hover{color:var(--neon-3);text-shadow:0 0 8px var(--neon-3)}
+  .a2d-mark{display:inline-flex;align-items:center;gap:8px;padding:4px 10px;border-radius:999px;border:1px solid var(--line);font-size:10.5px;letter-spacing:.12em}
+  .a2d-mark i{width:6px;height:6px;border-radius:50%;background:var(--neon-5);box-shadow:0 0 6px var(--neon-5)}
+
+  @media (max-width:900px){.stat-strip{grid-template-columns:1fr 1fr}.perks,.flow,.faq{grid-template-columns:1fr 1fr}.surprise{grid-template-columns:1fr}.topbar .ticker{display:none}}
+  @media (max-width:520px){.shell{padding:18px 16px 60px}.perks,.flow,.faq{grid-template-columns:1fr}.sign-wrap{padding:28px 20px 22px}}
+</style>
+</head>
+<body>
+
+<div class="backdrop"><div class="floor"></div><div class="noise"></div></div>
+
+<main class="shell">
+  <header class="topbar">
+    <div class="crest">
+      <div class="crest-seal">LCA</div>
+      <div class="crest-text">
+        <b>Lincoln Christian Academy</b>
+        <span>EST. 1995 · SPRING '26</span>
+      </div>
+    </div>
+    <div class="ticker">
+      <span class="pill">RSVP OPEN</span>
+      <span>WRISTBANDS ON / LIGHTS OUT AT 5:00 SHARP</span>
+      <span style="display:inline-flex;align-items:center;gap:8px;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-dim)"><span class="dot"></span>LIVE</span>
+    </div>
+  </header>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-kicker"><span class="bar"></span>Courtyard check-in · All grades welcome</div>
+    <div class="sign-wrap">
+      <span class="bolt tl"></span><span class="bolt tr"></span><span class="bolt bl"></span><span class="bolt br"></span>
+      <div class="tagline">
+        <span class="star">✦</span><span>Sat · April 25 · 5–8 PM</span>
+        <span class="star">✦</span><span>Comfy clothes · light colors glow</span>
+        <span class="star">✦</span>
+      </div>
+      <h1 class="neon-title">
+        <span class="line l1">SPRING BBQ</span>
+        <span class="line l2">BASH <span class="amp">&amp;</span> GLOW</span>
+      </h1>
+      <div class="edition">
+        <span class="sticks"><i></i><i></i><i></i></span>
+        <b>GLOW PARTY EDITION</b>
+        <span>· 1ST EVER KIDS' NIGHT</span>
+      </div>
+    </div>
+    <div class="stat-strip">
+      <div class="stat date">
+        <div class="lbl">Doors open in</div>
+        <div class="val countdown" id="countdown">
+          <span class="seg"><b id="cd-d">00</b><span>DAYS</span></span>
+          <span class="colon">:</span>
+          <span class="seg"><b id="cd-h">00</b><span>HRS</span></span>
+          <span class="colon">:</span>
+          <span class="seg"><b id="cd-m">00</b><span>MIN</span></span>
+          <span class="colon">:</span>
+          <span class="seg"><b id="cd-s">00</b><span>SEC</span></span>
+        </div>
+      </div>
+      <div class="stat time"><div class="lbl">When</div><div class="val">5–8 PM</div><div class="sub">Sat, Apr 25, 2026</div></div>
+      <div class="stat where"><div class="lbl">Check in</div><div class="val">Courtyard</div><div class="sub">By the water fountains · LCA Main Campus</div></div>
+      <div class="stat"><div class="lbl">Dress code</div><div class="val">COMFY + LIGHT</div><div class="sub">Comfy clothes, light colors glow best under UV</div></div>
+    </div>
+  </section>
+
+  <!-- WRISTBAND / PERKS -->
+  <section>
+    <div class="section-label"><span class="num">01</span><span>What your kid's wristband gets them</span><span class="rule"></span></div>
+    <div class="wristband">
+      <div class="wb-head">
+        <h2>Every wristband = <em>one full night</em> of fun.</h2>
+        <p>Staff scan the wristband at each station. When a perk is used, it's crossed off — no cash, no cards, no lost tickets.</p>
+      </div>
+      <div class="perks">
+        <div class="perk"><div class="count">2</div><h3>PREMIUM DRINKS</h3><p>Two of the good stuff — glow-sodas, hand-mixed mocktails, or floats from the drink tent. Basic lemonade &amp; water are free all night.</p></div>
+        <div class="perk"><div class="count">3</div><h3>JAIL / PASS</h3><p>Sent to glow-jail? Trade one pass to break free. Use all three if you're extra mischievous.</p></div>
+        <div class="perk"><div class="count">1</div><h3>PRIZE SPIN</h3><p>One spin on the big wheel — candy, glow sticks, plush, gift cards. Every slot wins.</p></div>
+        <div class="perk"><div class="count">1</div><h3>DJ SHOUTOUT</h3><p>Drop your name in the booth; hear it over the speakers during your favorite jam.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- NIGHT-OF FLOW -->
+  <section>
+    <div class="section-label"><span class="num">02</span><span>How the night runs</span><span class="rule"></span></div>
+    <div class="flow">
+      <div class="step"><div class="n">01</div><h4>Check in</h4><p>Wristband on, quick mugshot. Kid's perks pre-loaded.</p></div>
+      <div class="step"><div class="n">02</div><h4>Roam + play</h4><p>Cornhole, face paint, pizza, arts &amp; crafts — free all night. Spend perks at jail, drinks, wheel, DJ.</p></div>
+      <div class="step"><div class="n">03</div><h4>Photos all night</h4><p>Roaming photographer captures candids all night. Auto-tagged to each kid.</p></div>
+      <div class="step"><div class="n">04</div><h4>Check out</h4><p>Scan wristband, name the pickup adult, head home.</p></div>
+    </div>
+  </section>
+
+  <!-- SURPRISE EMAIL TEASER -->
+  <section>
+    <div class="section-label"><span class="num">03</span><span>And one more thing...</span><span class="rule"></span></div>
+    <div class="surprise">
+      <div>
+        <div class="eyebrow">Sunday morning · 9:00 AM</div>
+        <h3>Something lands in your inbox <em>the morning after.</em></h3>
+        <p>A little something lands in your inbox the morning after the party. We're not giving it away — but it's the whole reason we built this. Opt in to photos + AI on the permission slip and you're on the list.</p>
+      </div>
+      <div class="envelope">
+        <span class="meta">SUN · 9:00 AM</span>
+        <div class="seal"></div>
+        <span class="meta2">FROM · LCA PTO</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section>
+    <div class="section-label"><span class="num">04</span><span>Before the party · For parents</span><span class="rule"></span></div>
+    <div class="cta-row single">
+      <article class="cta-card primary">
+        <div class="eyebrow">Step 2 · ~2 minutes</div>
+        <h3>Finish the permission slip so your kid's wristband is ready at the gate.</h3>
+        <ol>
+          <li>Parent + emergency contact info</li>
+          <li>Add each kid (name, grade, allergies)</li>
+          <li>LCA waiver · photo permissions · AI-email opt-in</li>
+        </ol>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+          <a class="big-btn" href="#">Fill out permission slip <span class="arrow">→</span></a>
+          <a class="ghost-btn" href="#">Already started? Resume</a>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section>
+    <div class="section-label"><span class="num">05</span><span>Parent questions, answered</span><span class="rule"></span></div>
+    <div class="faq">
+      <div class="faq-item"><h4>Do I have to stay?</h4><p>Nope. As long as your child is 2 or older and has a ticket, drop them off and go have fun with the other adults.</p></div>
+      <div class="faq-item"><h4>Can I buy extra drinks?</h4><p>Each child already gets 2 premium drinks + their own water bottle — more than enough. Basic lemonade + water are free all night, too.</p></div>
+      <div class="faq-item"><h4>What if my kid has allergies?</h4><p>Tell us on the form. Every wristband scan shows allergies to the volunteer before they hand over food.</p></div>
+      <div class="faq-item"><h4>What about photos of my kid?</h4><p>You control it. Three toggles on the form: the PTO album, the day-after surprise, or neither.</p></div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div>Built &amp; donated by <a href="https://attntodetail.ai">Attn: To Detail</a> · <span class="a2d-mark"><i></i>A2D · EST. 2026</span></div>
+    <div>© 2026 · LCA PTO · 30 YEARS OF THE BASH</div>
+  </footer>
+</main>
+
+<script>
+(function(){
+  var target=new Date("2026-04-25T17:00:00-05:00").getTime();
+  function pad(n){return String(n).padStart(2,"0");}
+  function tick(){
+    var diff=Math.max(0,target-Date.now());
+    var d=Math.floor(diff/86400000);diff-=d*86400000;
+    var h=Math.floor(diff/3600000);diff-=h*3600000;
+    var m=Math.floor(diff/60000);diff-=m*60000;
+    var s=Math.floor(diff/1000);
+    document.getElementById("cd-d").textContent=pad(d);
+    document.getElementById("cd-h").textContent=pad(h);
+    document.getElementById("cd-m").textContent=pad(m);
+    document.getElementById("cd-s").textContent=pad(s);
+  }
+  tick();setInterval(tick,1000);
+})();
+</script>
+</body>
+</html>

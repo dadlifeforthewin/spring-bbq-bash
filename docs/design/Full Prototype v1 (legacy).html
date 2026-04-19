@@ -1,0 +1,920 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Spring BBQ Bash · Full Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Monoton&family=Bungee&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0b0118; --bg-elev:#160529; --ink:#f5f3ff;
+    --ink-dim:rgba(245,243,255,0.6); --ink-faint:rgba(245,243,255,0.4);
+    --line:rgba(255,255,255,0.10); --card:rgba(255,255,255,0.05);
+    --glow-pink:#ff3ea5; --glow-purple:#8b5cf6;
+    --glow-cyan:#22d3ee; --glow-yellow:#fde047;
+    --red:#ef4444; --green:#22c55e;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:#06010e;color:var(--ink);
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    -webkit-font-smoothing:antialiased; color-scheme:dark;}
+
+  /* ========= Gallery Shell ========= */
+  .shell{max-width:1400px;margin:0 auto;padding:30px 24px 80px;}
+  .shell-head{display:flex;justify-content:space-between;align-items:flex-end;gap:18px;flex-wrap:wrap;
+    padding-bottom:20px;border-bottom:1px dashed var(--line);margin-bottom:28px;}
+  .shell-head h1{margin:0;font-family:"Bungee",sans-serif;font-weight:400;font-size:28px;letter-spacing:0.01em;
+    background:linear-gradient(90deg,#ff3ea5,#fde047,#22d3ee,#8b5cf6);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    text-shadow:0 0 30px rgba(139,92,246,0.4);}
+  .shell-head p{margin:6px 0 0;color:var(--ink-dim);font-size:13px;max-width:68ch}
+  .shell-head .meta{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--ink-faint);
+    letter-spacing:0.12em;text-transform:uppercase}
+
+  .tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:22px}
+  .tabs button{background:var(--card);border:1px solid var(--line);color:var(--ink);
+    padding:8px 14px;border-radius:999px;cursor:pointer;font:inherit;font-size:12px;
+    letter-spacing:0.06em;transition:all .15s ease}
+  .tabs button:hover{border-color:var(--glow-cyan)}
+  .tabs button.active{background:linear-gradient(90deg,var(--glow-pink),var(--glow-purple));
+    border-color:transparent;color:#fff;
+    box-shadow:0 0 18px -4px var(--glow-pink),0 0 32px -10px var(--glow-purple)}
+
+  .gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(390px,1fr));gap:26px}
+  .gallery.single{grid-template-columns:minmax(0,420px);justify-content:center}
+
+  .frame-card{display:flex;flex-direction:column;align-items:center;gap:12px}
+  .frame-label{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:0.18em;
+    text-transform:uppercase;color:var(--ink-dim);display:flex;align-items:center;gap:10px}
+  .frame-label b{color:var(--glow-yellow);font-weight:600;text-shadow:0 0 6px rgba(253,224,71,.6)}
+  .frame-label .route{color:var(--ink-faint);font-weight:400}
+
+  /* Phone frame */
+  .phone{width:390px;height:720px;border-radius:44px;padding:10px;
+    background:linear-gradient(145deg,#2a1245,#0b0118);
+    box-shadow:0 30px 80px -20px rgba(0,0,0,.7),0 0 0 1px rgba(255,255,255,.08);
+    position:relative;overflow:hidden}
+  .phone::before{content:"";position:absolute;top:18px;left:50%;transform:translateX(-50%);
+    width:110px;height:24px;background:#000;border-radius:14px;z-index:30}
+  .phone-screen{width:100%;height:100%;border-radius:34px;background:var(--bg);
+    overflow-y:auto;overflow-x:hidden;position:relative}
+  .phone-screen::-webkit-scrollbar{width:0}
+  /* Wide frame for admin/desktop */
+  .phone.wide{width:100%;max-width:900px;height:720px;border-radius:22px;padding:0}
+  .phone.wide::before{display:none}
+  .phone.wide .phone-screen{border-radius:22px}
+
+  /* ========= Shared atmosphere (subtle on utility screens) ========= */
+  .atmosphere{position:absolute;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+  .atmosphere::before{content:"";position:absolute;inset:-20%;
+    background:
+      radial-gradient(ellipse 50% 30% at 20% 5%,rgba(255,62,165,0.28),transparent 60%),
+      radial-gradient(ellipse 50% 40% at 90% 15%,rgba(139,92,246,0.22),transparent 65%),
+      radial-gradient(ellipse 70% 40% at 50% 95%,rgba(34,211,238,0.12),transparent 70%);
+    filter:blur(30px)}
+  .atmosphere.soft::before{opacity:0.5}
+  .atmosphere.very-soft::before{opacity:0.25}
+  .atmosphere .grid-floor{position:absolute;left:50%;bottom:-30%;width:240%;height:60%;
+    transform:translateX(-50%) perspective(520px) rotateX(62deg);
+    background:
+      linear-gradient(to right,rgba(139,92,246,.12) 1px,transparent 1px) 0 0/52px 52px,
+      linear-gradient(to bottom,rgba(139,92,246,.12) 1px,transparent 1px) 0 0/52px 52px;
+    mask-image:linear-gradient(to top,black 10%,transparent 90%)}
+
+  .screen{position:relative;z-index:1;padding:18px 16px 40px}
+  .screen.narrow{padding:18px 16px 40px}
+  .screen.wide{padding:24px 28px 40px}
+
+  /* ========= Typography / primitives ========= */
+  .glow-title{font-family:"Bungee",sans-serif;font-weight:400;letter-spacing:.01em;
+    background:linear-gradient(90deg,#ff3ea5,#fde047,#22d3ee,#8b5cf6);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    text-shadow:0 0 30px rgba(139,92,246,0.4)}
+  .mono{font-family:"JetBrains Mono",monospace;letter-spacing:0.02em}
+  .kicker{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:0.22em;
+    text-transform:uppercase;color:var(--ink-dim)}
+  .dim{color:var(--ink-dim)}
+  .faint{color:var(--ink-faint)}
+
+  .card{border-radius:16px;background:var(--card);border:1px solid var(--line);padding:14px}
+  .card-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}
+  .card h3{margin:0;font-family:"Bungee",sans-serif;font-weight:400;font-size:14px;letter-spacing:.02em}
+  .card h4{margin:0 0 6px;font-size:12px;color:var(--ink-dim);
+    font-family:"JetBrains Mono",monospace;letter-spacing:.14em;text-transform:uppercase}
+
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;
+    padding:12px 18px;border-radius:14px;font:inherit;font-weight:600;font-size:14px;
+    border:none;cursor:pointer;text-decoration:none;transition:transform .15s ease}
+  .btn:active{transform:scale(.96)}
+  .btn-primary{background:linear-gradient(90deg,var(--glow-pink),var(--glow-purple));color:#fff;
+    box-shadow:0 0 0 1px rgba(255,255,255,.15) inset,0 0 20px -6px var(--glow-pink),
+               0 0 40px -10px var(--glow-purple)}
+  .btn-secondary{background:var(--glow-purple);color:#fff}
+  .btn-outline{background:transparent;border:1.5px solid var(--glow-cyan);color:var(--glow-cyan);
+    box-shadow:0 0 16px -8px var(--glow-cyan)}
+  .btn-danger{background:var(--red);color:#fff}
+  .btn-ghost{background:rgba(255,255,255,.08);color:#fff;border:1px solid var(--line)}
+  .btn-block{width:100%}
+
+  input[type=text],input[type=number],input[type=tel],input[type=password],select{
+    width:100%;background:rgba(255,255,255,.05);border:1px solid var(--line);
+    color:var(--ink);padding:11px 14px;border-radius:12px;font:inherit;font-size:14px;
+    outline:none;transition:border-color .15s ease}
+  input:focus,select:focus{border-color:var(--glow-cyan);
+    box-shadow:0 0 0 3px rgba(34,211,238,0.15)}
+  label{display:block;font-size:12px;color:var(--ink-dim);margin-bottom:6px;
+    letter-spacing:.08em;text-transform:uppercase;font-family:"JetBrains Mono",monospace}
+
+  .pill{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;
+    font-family:"JetBrains Mono",monospace;font-size:10.5px;letter-spacing:.12em;
+    text-transform:uppercase;font-weight:600}
+  .pill-vip{background:var(--glow-pink);color:#fff;box-shadow:0 0 14px -4px var(--glow-pink)}
+  .pill-gen{background:rgba(34,211,238,.25);color:var(--glow-cyan);
+    box-shadow:inset 0 0 0 1px rgba(34,211,238,.4)}
+  .pill-check{background:rgba(34,197,94,.18);color:#4ade80;
+    box-shadow:inset 0 0 0 1px rgba(34,197,94,.35)}
+  .pill-out{background:rgba(253,224,71,.18);color:var(--glow-yellow);
+    box-shadow:inset 0 0 0 1px rgba(253,224,71,.35)}
+
+  .toast{padding:10px 14px;border-radius:12px;font-weight:600;font-size:13px}
+  .toast-ok{background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.35);color:#86efac}
+  .toast-err{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.35);color:#fca5a5}
+
+  .divider{height:1px;background:var(--line);margin:14px 0}
+
+  /* ========= LANDING (mini, inside frame) ========= */
+  .L-hero{padding:34px 6px 22px;text-align:center;position:relative}
+  .L-kicker{display:inline-flex;align-items:center;gap:10px;color:var(--glow-cyan);
+    font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.24em;
+    text-shadow:0 0 10px var(--glow-cyan);margin-bottom:12px}
+  .L-kicker i{width:20px;height:1px;background:var(--glow-cyan);display:block;
+    box-shadow:0 0 6px var(--glow-cyan)}
+  .L-title{font-family:"Monoton",sans-serif;font-size:58px;line-height:.85;letter-spacing:.01em}
+  .L-title .l1{display:block;color:#fff;
+    text-shadow:0 0 4px #fff,0 0 12px var(--glow-cyan),0 0 28px var(--glow-cyan)}
+  .L-title .l2{display:block;color:#fff;
+    text-shadow:0 0 4px #fff,0 0 12px var(--glow-pink),0 0 28px var(--glow-pink);
+    animation:flicker 5.5s infinite}
+  .L-title .amp{display:inline-block;color:var(--glow-yellow);font-family:"Bungee",sans-serif;
+    font-size:.6em;transform:translateY(-.1em) rotate(-6deg);margin:0 .05em;
+    text-shadow:0 0 8px var(--glow-yellow),0 0 20px var(--glow-yellow)}
+  @keyframes flicker{0%,92%,100%{opacity:1}93%{opacity:.3}94%{opacity:1}95%{opacity:.5}96%{opacity:1}}
+
+  .L-edition{display:inline-flex;gap:10px;align-items:center;margin-top:14px;
+    padding:7px 14px;border:1px solid rgba(253,224,71,.55);border-radius:999px;
+    background:rgba(253,224,71,.08);box-shadow:0 0 20px -6px var(--glow-yellow)}
+  .L-edition .sticks{display:inline-flex;gap:3px}
+  .L-edition .sticks i{width:3px;height:13px;border-radius:2px;display:block;
+    box-shadow:0 0 6px currentColor}
+  .L-edition .sticks i:nth-child(1){background:var(--glow-pink);color:var(--glow-pink)}
+  .L-edition .sticks i:nth-child(2){background:var(--glow-cyan);color:var(--glow-cyan)}
+  .L-edition .sticks i:nth-child(3){background:var(--glow-yellow);color:var(--glow-yellow)}
+  .L-edition b{font-family:"Bungee",sans-serif;font-weight:400;font-size:10px;letter-spacing:.1em;
+    color:var(--glow-yellow);text-shadow:0 0 8px var(--glow-yellow)}
+
+  .L-countdown{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:18px 4px 0}
+  .L-seg{background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:10px;
+    padding:8px 4px;text-align:center}
+  .L-seg b{display:block;font-family:"Bungee",sans-serif;font-size:20px;color:#fff;
+    text-shadow:0 0 12px var(--glow-cyan)}
+  .L-seg span{font-family:"JetBrains Mono",monospace;font-size:8.5px;color:var(--ink-dim);
+    letter-spacing:.2em}
+
+  .L-info{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+  .L-info .card{padding:10px 12px}
+  .L-info .lbl{font-family:"JetBrains Mono",monospace;font-size:9px;color:var(--ink-dim);
+    letter-spacing:.16em;text-transform:uppercase;margin-bottom:3px}
+  .L-info .val{font-family:"Bungee",sans-serif;font-size:14px}
+  .L-info .sub{font-size:10.5px;color:var(--ink-dim);margin-top:2px;font-family:"JetBrains Mono",monospace}
+  .L-info .card:nth-child(1) .val{color:var(--glow-pink);text-shadow:0 0 8px var(--glow-pink)}
+  .L-info .card:nth-child(2) .val{color:var(--glow-yellow);text-shadow:0 0 8px var(--glow-yellow)}
+
+  .L-perks{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}
+  .L-perks .perk{background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:10px 12px;position:relative;overflow:hidden}
+  .L-perks .perk .count{font-family:"Monoton",sans-serif;font-size:40px;line-height:.85;
+    color:var(--c);text-shadow:0 0 6px var(--c),0 0 20px var(--c)}
+  .L-perks .perk h4{font-family:"Bungee",sans-serif;font-size:11px;color:#fff;margin:6px 0 2px;
+    letter-spacing:.04em;text-transform:none}
+  .L-perks .perk p{margin:0;font-size:10.5px;color:var(--ink-dim);line-height:1.3}
+  .L-perks .perk:nth-child(1){--c:var(--glow-cyan)}
+  .L-perks .perk:nth-child(2){--c:var(--glow-pink)}
+  .L-perks .perk:nth-child(3){--c:var(--glow-yellow)}
+  .L-perks .perk:nth-child(4){--c:var(--glow-purple)}
+
+  .L-cta{margin-top:16px;padding:16px;border-radius:18px;
+    background:radial-gradient(circle at 100% 0%,rgba(255,62,165,.25),transparent 60%),var(--card);
+    border:1px solid rgba(255,62,165,.5);
+    box-shadow:0 0 0 1px rgba(255,62,165,.12) inset,0 14px 40px -20px var(--glow-pink)}
+  .L-cta .eye{font-family:"JetBrains Mono",monospace;font-size:9.5px;letter-spacing:.2em;
+    text-transform:uppercase;color:var(--glow-pink)}
+  .L-cta h3{font-family:"Bungee",sans-serif;font-weight:400;font-size:16px;margin:8px 0 6px;
+    line-height:1.15}
+  .L-cta p{margin:0 0 12px;font-size:12px;color:var(--ink-dim);line-height:1.45}
+
+  .L-foot{margin-top:20px;padding-top:12px;border-top:1px dashed var(--line);
+    font-family:"JetBrains Mono",monospace;font-size:9.5px;color:var(--ink-faint);
+    letter-spacing:.08em;text-align:center}
+  .L-foot a{color:var(--ink-dim);text-decoration:none;border-bottom:1px dotted var(--glow-yellow)}
+
+  /* ========= SHARED PAGE HEAD (utility pages) ========= */
+  .page-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;
+    padding-bottom:12px;margin-bottom:14px;border-bottom:1px dashed var(--line)}
+  .page-head .crumb{font-family:"JetBrains Mono",monospace;font-size:10px;
+    letter-spacing:.16em;text-transform:uppercase;color:var(--ink-faint)}
+  .page-head h1{margin:4px 0 0;font-family:"Bungee",sans-serif;font-weight:400;
+    font-size:22px;letter-spacing:.01em}
+  .page-head .home{font-size:11px;color:var(--ink-dim);text-decoration:none;
+    padding:6px 10px;border-radius:999px;border:1px solid var(--line);
+    font-family:"JetBrains Mono",monospace;letter-spacing:.12em}
+
+  /* ========= TICKET (parent) ========= */
+  .T-hero{text-align:center;padding:18px 10px 10px}
+  .T-hero h1{font-family:"Bungee",sans-serif;font-weight:400;font-size:22px;margin:0}
+  .T-hero p{margin:4px 0 0;color:var(--ink-dim);font-size:11px}
+  .T-card{margin-top:10px;padding:22px 18px 20px;text-align:center;border-radius:20px;
+    background:
+      radial-gradient(ellipse at 50% 0%,rgba(255,62,165,.22),transparent 60%),
+      var(--card);
+    border:1px solid var(--line);position:relative;overflow:hidden}
+  .T-card::before{content:"";position:absolute;left:16px;right:16px;top:0;height:6px;
+    background-image:radial-gradient(circle at 4px 3px,var(--bg) 2.5px,transparent 3px);
+    background-size:12px 6px}
+  .T-code{font-family:"Bungee",sans-serif;font-size:34px;letter-spacing:.03em;margin-top:10px;
+    background:linear-gradient(90deg,#ff3ea5,#fde047,#22d3ee,#8b5cf6);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    text-shadow:0 0 24px rgba(139,92,246,.35)}
+  .T-balance{font-family:"Bungee",sans-serif;font-size:48px;line-height:1;margin:16px 0 2px;color:#fff;
+    text-shadow:0 0 20px rgba(34,211,238,.4)}
+  .T-txlist{display:flex;flex-direction:column;gap:6px;margin-top:12px}
+  .T-tx{display:flex;justify-content:space-between;padding:10px 12px;background:var(--card);
+    border:1px solid var(--line);border-radius:12px;font-size:12.5px}
+  .T-tx .when{font-family:"JetBrains Mono",monospace;font-size:10px;color:var(--ink-faint)}
+
+  /* ========= CHECK-IN / VOLUNTEER SCAN ========= */
+  .scanner{position:relative;height:180px;border-radius:16px;overflow:hidden;
+    background:
+      linear-gradient(135deg,#1a0833,#0b0118);
+    border:1px solid rgba(34,211,238,.35);
+    box-shadow:inset 0 0 40px -8px rgba(34,211,238,.3),0 0 24px -10px var(--glow-cyan)}
+  .scanner .corners{position:absolute;inset:20px;pointer-events:none}
+  .scanner .corners span{position:absolute;width:28px;height:28px;border:2px solid var(--glow-cyan);
+    box-shadow:0 0 10px var(--glow-cyan)}
+  .scanner .corners span:nth-child(1){top:0;left:0;border-right:0;border-bottom:0}
+  .scanner .corners span:nth-child(2){top:0;right:0;border-left:0;border-bottom:0}
+  .scanner .corners span:nth-child(3){bottom:0;left:0;border-right:0;border-top:0}
+  .scanner .corners span:nth-child(4){bottom:0;right:0;border-left:0;border-top:0}
+  .scanner .beam{position:absolute;left:8%;right:8%;top:0;height:2px;
+    background:linear-gradient(90deg,transparent,var(--glow-cyan),transparent);
+    box-shadow:0 0 16px var(--glow-cyan);animation:beam 2.4s ease-in-out infinite}
+  @keyframes beam{0%{transform:translateY(30px)}50%{transform:translateY(140px)}100%{transform:translateY(30px)}}
+  .scanner .hint{position:absolute;bottom:10px;left:0;right:0;text-align:center;
+    font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.2em;
+    color:var(--ink-dim);text-transform:uppercase}
+
+  .manual{display:flex;gap:6px;margin-top:10px}
+  .manual input{flex:1}
+
+  /* ========= ZONE (volunteer spend grid) ========= */
+  .Z-head{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px 14px;
+    display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+  .Z-head .who{font-size:11px;color:var(--ink-dim);font-family:"JetBrains Mono",monospace}
+  .Z-head .code{font-family:"Bungee",sans-serif;font-size:20px;letter-spacing:.02em}
+  .Z-head .bal{font-family:"Bungee",sans-serif;font-size:22px;color:var(--glow-cyan);
+    text-shadow:0 0 10px var(--glow-cyan)}
+
+  .Z-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .Z-item{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);
+    border-radius:14px;padding:12px;cursor:pointer;text-align:left;transition:all .15s;
+    color:#fff;font:inherit}
+  .Z-item:hover{transform:translateY(-1px);border-color:var(--glow-cyan);
+    box-shadow:0 0 20px -8px var(--glow-cyan)}
+  .Z-item .nm{font-weight:700;font-size:13px}
+  .Z-item .pr{font-size:11px;color:var(--ink-dim);margin-top:4px;
+    font-family:"JetBrains Mono",monospace}
+  .Z-item.perk{border-color:rgba(255,62,165,.4);
+    background:linear-gradient(135deg,rgba(255,62,165,.12),rgba(255,255,255,.04))}
+  .Z-item.perk .pr{color:var(--glow-pink)}
+  .Z-item.used{opacity:.35;cursor:not-allowed}
+
+  .Z-call{margin-top:14px;padding:12px;background:var(--card);border:1px solid var(--line);
+    border-radius:16px}
+
+  /* ========= ADMIN DASHBOARD ========= */
+  .A-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+  .A-stat{padding:14px;border-radius:16px;background:var(--card);border:1px solid var(--line);
+    position:relative;overflow:hidden}
+  .A-stat .lbl{font-family:"JetBrains Mono",monospace;font-size:10px;color:var(--ink-dim);
+    letter-spacing:.14em;text-transform:uppercase}
+  .A-stat .val{font-family:"Bungee",sans-serif;font-size:28px;line-height:1;margin-top:6px}
+  .A-stat .sub{font-size:10.5px;color:var(--ink-faint);margin-top:3px;
+    font-family:"JetBrains Mono",monospace}
+  .A-stat.p1 .val{color:var(--glow-pink);text-shadow:0 0 10px var(--glow-pink)}
+  .A-stat.p2 .val{color:var(--glow-cyan);text-shadow:0 0 10px var(--glow-cyan)}
+  .A-stat.p3 .val{color:var(--glow-yellow);text-shadow:0 0 10px var(--glow-yellow)}
+  .A-stat.p4 .val{color:var(--glow-purple);text-shadow:0 0 10px var(--glow-purple)}
+
+  .A-nav{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0 16px}
+  .A-row{display:flex;justify-content:space-between;padding:8px 2px;
+    border-bottom:1px dashed rgba(255,255,255,.06);font-size:12.5px}
+  .A-row:last-child{border-bottom:0}
+  .A-row .zone{text-transform:capitalize;color:var(--ink-dim)}
+
+  /* ========= ADMIN TICKETS TABLE ========= */
+  .tix-form{display:grid;grid-template-columns:1fr 1.2fr 1fr;gap:8px}
+  .tix-row{display:flex;align-items:center;justify-content:space-between;
+    padding:10px 2px;border-bottom:1px dashed rgba(255,255,255,.06);font-size:12.5px}
+  .tix-row .code{font-family:"JetBrains Mono",monospace;font-weight:600;color:#fff;
+    text-decoration:underline;text-decoration-color:var(--glow-cyan);text-underline-offset:3px}
+  .tix-row .sub{font-size:10.5px;color:var(--ink-faint);margin-top:2px}
+  .tix-row button{background:none;border:0;color:var(--red);font:inherit;font-size:11px;
+    cursor:pointer}
+
+  /* ========= ADMIN CATALOG ========= */
+  .cat-row{display:flex;gap:6px;align-items:center;padding:6px 0;
+    border-bottom:1px dashed rgba(255,255,255,.06)}
+  .cat-row input[type=text]{flex:1}
+  .cat-row input[type=number]{width:80px}
+
+  /* ========= LOGIN GATE ========= */
+  .gate{max-width:320px;margin:80px auto 0;padding:22px;border-radius:20px;
+    background:radial-gradient(ellipse at top,rgba(139,92,246,.2),transparent 60%),var(--card);
+    border:1px solid var(--line);
+    box-shadow:0 0 0 1px rgba(139,92,246,.15) inset,0 30px 80px -30px var(--glow-purple)}
+  .gate h1{margin:0 0 16px;font-family:"Bungee",sans-serif;font-weight:400;font-size:22px;
+    background:linear-gradient(90deg,#ff3ea5,#fde047,#22d3ee,#8b5cf6);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    text-shadow:0 0 24px rgba(139,92,246,.4)}
+
+  /* ========= WRISTBAND PRINT VIEW ========= */
+  .wb-print-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+  .wb-card{padding:10px;border-radius:12px;background:#fff;color:#000;text-align:center;
+    border:1px solid var(--line)}
+  .wb-card .code{font-family:"Bungee",sans-serif;font-size:16px}
+  .wb-card .tier{font-size:9px;letter-spacing:.2em;text-transform:uppercase;margin-top:2px;
+    font-family:"JetBrains Mono",monospace}
+  .wb-card.vip{background:linear-gradient(135deg,#ff3ea5,#8b5cf6);color:#fff}
+  .wb-card .qr{width:60px;height:60px;background:#000;margin:6px auto 4px;border-radius:4px;
+    background-image:linear-gradient(45deg,#fff 25%,transparent 25%),
+                     linear-gradient(-45deg,#fff 25%,transparent 25%);
+    background-size:8px 8px;background-color:#000}
+  .wb-card.vip .qr{background-color:#1a0833}
+
+  /* ========= PERMISSION SLIP / REGISTER ========= */
+  .reg-section h3{font-family:"Bungee",sans-serif;font-weight:400;font-size:14px;margin:18px 0 8px}
+  .reg-grid{display:grid;gap:10px}
+  .reg-checkbox{display:flex;gap:10px;align-items:flex-start;padding:10px;border-radius:12px;
+    background:var(--card);border:1px solid var(--line);cursor:pointer}
+  .reg-checkbox input{margin-top:2px;accent-color:var(--glow-pink)}
+  .reg-checkbox span{font-size:12.5px;line-height:1.45}
+
+  @media (max-width:640px){
+    .gallery{grid-template-columns:1fr}
+    .phone{width:100%;max-width:390px}
+  }
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <header class="shell-head">
+    <div>
+      <div class="meta">Spring BBQ Bash · Glow Party Edition</div>
+      <h1>Full app prototype</h1>
+      <p>Every customer-facing and staff screen restyled in the glow aesthetic — using the repo's exact tokens (#0b0118 bg, glow.pink/purple/cyan/yellow palette, rounded-2xl cards) so porting back to the Next.js app is straightforward.</p>
+    </div>
+    <div class="meta">Apr 25, 2026 · LCA</div>
+  </header>
+
+  <nav class="tabs" id="tabs">
+    <button data-view="all" class="active">All screens</button>
+    <button data-view="landing">Landing /</button>
+    <button data-view="register">Permission slip</button>
+    <button data-view="ticket">Ticket /ticket/[code]</button>
+    <button data-view="gate">Volunteer gate</button>
+    <button data-view="checkin">Check-in</button>
+    <button data-view="zone">Zone volunteer</button>
+    <button data-view="admin">Admin</button>
+    <button data-view="admin-tickets">Admin · Tickets</button>
+    <button data-view="admin-catalog">Admin · Catalog</button>
+    <button data-view="admin-wb">Admin · Wristbands</button>
+  </nav>
+
+  <div id="gallery" class="gallery">
+
+    <!-- ============ LANDING ============ -->
+    <div class="frame-card" data-view="landing">
+      <div class="frame-label"><b>01</b> <span>Landing</span> <span class="route">/</span></div>
+      <div class="phone"><div class="phone-screen">
+        <div class="atmosphere"><div class="grid-floor"></div></div>
+        <div class="screen narrow">
+          <div class="L-hero">
+            <div class="L-kicker"><i></i>SAT APR 25 · 5–8 PM<i></i></div>
+            <div class="L-title">
+              <span class="l1">SPRING BBQ</span>
+              <span class="l2">BASH <span class="amp">&amp;</span> GLOW</span>
+            </div>
+            <div class="L-edition">
+              <span class="sticks"><i></i><i></i><i></i></span>
+              <b>GLOW PARTY EDITION · VOL. 30</b>
+            </div>
+          </div>
+
+          <div class="L-countdown" id="cdMini">
+            <div class="L-seg"><b id="cd-d">--</b><span>DAYS</span></div>
+            <div class="L-seg"><b id="cd-h">--</b><span>HRS</span></div>
+            <div class="L-seg"><b id="cd-m">--</b><span>MIN</span></div>
+            <div class="L-seg"><b id="cd-s">--</b><span>SEC</span></div>
+          </div>
+
+          <div class="L-info">
+            <div class="card">
+              <div class="lbl">Where</div>
+              <div class="val">LCA Pavilion</div>
+              <div class="sub">Main campus lot</div>
+            </div>
+            <div class="card">
+              <div class="lbl">Dress code</div>
+              <div class="val">WEAR WHITE</div>
+              <div class="sub">Lights out at 5 sharp</div>
+            </div>
+          </div>
+
+          <div class="kicker" style="margin:22px 0 10px;display:flex;align-items:center;gap:10px">
+            <span style="color:var(--glow-yellow);text-shadow:0 0 6px var(--glow-yellow)">01</span>
+            <span>Wristband perks</span>
+            <span style="flex:1;height:1px;background:var(--line)"></span>
+          </div>
+
+          <div class="L-perks">
+            <div class="perk"><div class="count">2</div><h4>DRINKS</h4>
+              <p>Juice, lemonade, or glow-soda.</p></div>
+            <div class="perk"><div class="count">3</div><h4>JAIL / PASS</h4>
+              <p>Trade to break out of glow-jail.</p></div>
+            <div class="perk"><div class="count">1</div><h4>PRIZE SPIN</h4>
+              <p>Every slot wins.</p></div>
+            <div class="perk"><div class="count">1</div><h4>DJ SHOUTOUT</h4>
+              <p>Hear your name on the PA.</p></div>
+          </div>
+
+          <div class="L-cta">
+            <div class="eye">Parents · ~2 minutes</div>
+            <h3>Finish the permission slip so the wristband is ready at the gate.</h3>
+            <p>Already bought a ticket? Just fill this out — we'll have it printed and waiting, no line at the door.</p>
+            <a class="btn btn-primary btn-block" href="#">Fill out permission slip →</a>
+          </div>
+
+          <div class="L-foot">
+            Designed by <a href="#">Attn: To Detail</a> · Donated to LCA for 30 years
+          </div>
+        </div>
+      </div></div></div>
+
+    <!-- ============ PERMISSION SLIP (REGISTER) ============ -->
+    <div class="frame-card" data-view="register">
+      <div class="frame-label"><b>02</b> <span>Permission slip</span> <span class="route">/register</span></div>
+      <div class="phone"><div class="phone-screen">
+        <div class="atmosphere very-soft"></div>
+        <div class="screen narrow">
+          <div class="page-head">
+            <div>
+              <div class="crumb">← Home</div>
+              <h1 class="glow-title">Permission slip</h1>
+            </div>
+          </div>
+
+          <p class="dim" style="font-size:12.5px;margin-top:-6px">Takes about 2 minutes. Your kid's wristband will be printed and waiting at check-in.</p>
+
+          <div class="reg-section">
+            <h3>1 · Ticket code</h3>
+            <input type="text" value="SBBQ-018" style="font-family:'JetBrains Mono',monospace;letter-spacing:.1em">
+            <p class="faint mono" style="font-size:10.5px;margin-top:4px">From your purchase email.</p>
+          </div>
+
+          <div class="reg-section">
+            <h3>2 · About your kid</h3>
+            <div class="reg-grid">
+              <div><label>Child's full name</label><input type="text" value="Ellie Chen"></div>
+              <div style="display:grid;grid-template-columns:1fr 1.2fr;gap:8px">
+                <div><label>Age</label><input type="number" value="9"></div>
+                <div><label>Grade</label>
+                  <select><option>3rd grade</option><option>4th</option></select>
+                </div>
+              </div>
+              <div><label>Allergies / medical</label><input type="text" placeholder="e.g. peanuts, asthma"></div>
+            </div>
+          </div>
+
+          <div class="reg-section">
+            <h3>3 · Parent contact</h3>
+            <div class="reg-grid">
+              <div><label>Parent name</label><input type="text" value="Daniel Chen"></div>
+              <div><label>Phone (backup)</label><input type="tel" value="(555) 812-4491"></div>
+            </div>
+          </div>
+
+          <div class="reg-section">
+            <h3>4 · Consent</h3>
+            <div class="reg-grid">
+              <label class="reg-checkbox"><input type="checkbox" checked><span>I give permission for my child to attend the Spring BBQ Bash on April 25, 2026, from 5–8 PM.</span></label>
+              <label class="reg-checkbox"><input type="checkbox" checked><span>Photos taken at the event may be used on the school website &amp; yearbook.</span></label>
+              <label class="reg-checkbox"><input type="checkbox"><span>I'll install the free <strong>ntfy</strong> app at check-in so staff can alert me directly if needed.</span></label>
+            </div>
+          </div>
+
+          <button class="btn btn-primary btn-block" style="margin-top:16px">Sign &amp; submit</button>
+          <p class="faint mono" style="font-size:10px;margin-top:10px;text-align:center">Questions? Text the PTO at (555) 000-1234.</p>
+        </div>
+      </div></div></div>
+
+    <!-- ============ TICKET (parent) ============ -->
+    <div class="frame-card" data-view="ticket">
+      <div class="frame-label"><b>03</b> <span>Parent ticket</span> <span class="route">/ticket/[code]</span></div>
+      <div class="phone"><div class="phone-screen">
+        <div class="atmosphere soft"></div>
+        <div class="screen narrow">
+          <div class="T-hero">
+            <h1 class="glow-title">Spring BBQ Bash</h1>
+            <p>Lincoln Christian Academy · April 25, 2026</p>
+          </div>
+          <div class="T-card">
+            <div class="kicker" style="margin-top:6px">TICKET</div>
+            <div class="T-code">SBBQ-018</div>
+            <div style="color:rgba(255,255,255,.85);margin-top:4px;font-size:13px">Ellie Chen</div>
+            <span class="pill pill-vip" style="margin-top:8px">VIP</span>
+            <div class="T-balance">$18.50</div>
+            <div class="faint mono" style="font-size:11px">REMAINING GAME $</div>
+          </div>
+
+          <h4 class="kicker" style="margin:18px 0 8px">Recent activity</h4>
+          <div class="T-txlist">
+            <div class="T-tx"><div><div>Ring Toss</div><div class="when">5:47 PM</div></div><div>-$2.00</div></div>
+            <div class="T-tx"><div><div>Glow-Soda (Blue)</div><div class="when">5:42 PM</div></div><div style="color:var(--glow-cyan)">perk</div></div>
+            <div class="T-tx"><div><div>Mini Pizza Slice</div><div class="when">5:31 PM</div></div><div>-$3.50</div></div>
+            <div class="T-tx"><div><div>Starter Glow Stick</div><div class="when">5:18 PM</div></div><div style="color:var(--glow-cyan)">perk</div></div>
+            <div class="T-tx"><div><div>Checked in · Foyer</div><div class="when">5:03 PM</div></div><div class="faint">—</div></div>
+          </div>
+
+          <div class="card" style="margin-top:16px;border-color:rgba(255,62,165,.5);background:rgba(255,62,165,.08)">
+            <h4 style="color:var(--glow-pink)">📣 Alerts</h4>
+            <p style="margin:0;font-size:12px;color:var(--ink-dim);line-height:1.5">Subscribed to <b class="mono" style="color:#fff">sbbq-018-ellie</b>. Keep your phone on you — we'll ping you if Ellie needs you.</p>
+          </div>
+        </div>
+      </div></div></div>
+
+    <!-- ============ VOLUNTEER GATE ============ -->
+    <div class="frame-card" data-view="gate">
+      <div class="frame-label"><b>04</b> <span>Volunteer sign-in</span> <span class="route">(gate)</span></div>
+      <div class="phone"><div class="phone-screen">
+        <div class="atmosphere"></div>
+        <div class="screen narrow">
+          <div class="gate">
+            <h1>Volunteer sign-in</h1>
+            <label>Shared password</label>
+            <input type="password" value="••••••••" autocomplete="off">
+            <button class="btn btn-primary btn-block" style="margin-top:14px">Sign in</button>
+            <p class="faint mono" style="font-size:10px;margin-top:12px;text-align:center">Ask your team lead for tonight's code.</p>
+          </div>
+        </div>
+      </div></div></div>
+
+    <!-- ============ CHECK-IN ============ -->
+    <div class="frame-card" data-view="checkin">
+      <div class="frame-label"><b>05</b> <span>Check-in station</span> <span class="route">/checkin</span></div>
+      <div class="phone"><div class="phone-screen">
+        <div class="atmosphere very-soft"></div>
+        <div class="screen narrow">
+          <div class="page-head">
+            <div>
+              <div class="crumb">Station · FOYER</div>
+              <h1 class="glow-title">Check-in</h1>
+            </div>
+            <a class="home" href="#">HOME</a>
+          </div>
+
+          <div class="scanner">
+            <span class="beam"></span>
+            <div class="corners"><span></span><span></span><span></span><span></span></div>
+            <div class="hint">POINT AT QR ON WRISTBAND</div>
+          </div>
+
+          <div style="margin-top:14px">
+            <label>Or enter code manually</label>
+            <div class="manual">
+              <input type="text" placeholder="SBBQ-001">
+              <button class="btn btn-secondary">Go</button>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="card" style="border-color:rgba(34,211,238,.4)">
+            <div class="card-head">
+              <div>
+                <div class="kicker" style="margin:0">TICKET</div>
+                <div style="font-family:'Bungee',sans-serif;font-size:22px;margin-top:2px">SBBQ-018</div>
+              </div>
+              <span class="pill pill-vip">VIP</span>
+            </div>
+            <div class="dim" style="font-size:12px">Balance <b style="color:#fff">$25.00</b> · <span style="color:var(--glow-yellow)">Not checked in</span></div>
+
+            <div class="divider"></div>
+
+            <div class="reg-grid">
+              <div><label>Child name</label><input type="text" value="Ellie Chen"></div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                <div><label>Age</label><input type="number" value="9"></div>
+                <div><label>Parent phone</label><input type="tel" value="(555) 812-4491"></div>
+              </div>
+            </div>
+
+            <label class="reg-checkbox" style="margin-top:10px">
+              <input type="checkbox" checked>
+              <span>Parent installed ntfy app &amp; subscribed to alerts</span>
+            </label>
+
+            <button class="btn btn-primary btn-block" style="margin-top:12px">Check In</button>
+            <button class="btn btn-ghost btn-block" style="margin-top:8px">Cancel</button>
+          </div>
+        </div>
+      </div></div></div>
+
+    <!-- ============ ZONE VOLUNTEER ============ -->
+    <div class="frame-card" data-view="zone">
+      <div class="frame-label"><b>06</b> <span>Zone volunteer</span> <span class="route">/zone/main</span></div>
+      <div class="phone"><div class="phone-screen">
+        <div class="atmosphere very-soft"></div>
+        <div class="screen narrow">
+          <div class="page-head">
+            <div>
+              <div class="crumb">← Home</div>
+              <h1 class="glow-title">Main Church Area</h1>
+              <p class="faint mono" style="font-size:10px;margin:2px 0 0">ZONE 2 · GAMES &amp; DJ</p>
+            </div>
+          </div>
+
+          <div class="Z-head">
+            <div>
+              <div class="who">Ellie Chen</div>
+              <div class="code">SBBQ-018</div>
+            </div>
+            <div style="text-align:right">
+              <div class="faint mono" style="font-size:9px;letter-spacing:.18em">BALANCE</div>
+              <div class="bal">$18.50</div>
+            </div>
+          </div>
+
+          <div class="toast toast-ok" style="margin-bottom:10px">✓ Ring Toss</div>
+
+          <div class="Z-grid">
+            <button class="Z-item"><div class="nm">Ring Toss</div><div class="pr">$2.00</div></button>
+            <button class="Z-item"><div class="nm">Plinko</div><div class="pr">$2.00</div></button>
+            <button class="Z-item"><div class="nm">Bean Bag Toss</div><div class="pr">$2.00</div></button>
+            <button class="Z-item"><div class="nm">Nerf Shoot</div><div class="pr">$3.00</div></button>
+            <button class="Z-item perk"><div class="nm">DJ Shoutout (VIP)</div><div class="pr">VIP perk · tap to redeem</div></button>
+            <button class="Z-item perk"><div class="nm">Spin the Wheel (VIP)</div><div class="pr">VIP perk · tap to redeem</div></button>
+            <button class="Z-item perk used"><div class="nm">Free Dress Pass (VIP)</div><div class="pr">already used</div></button>
+            <button class="Z-item"><div class="nm">Photo Booth</div><div class="pr">$1.00</div></button>
+          </div>
+
+          <div class="Z-call">
+            <label>Call parent</label>
+            <input type="text" placeholder="Please come to Main Church Area.">
+            <button class="btn btn-danger btn-block" style="margin-top:8px">📣 Call Parent Now</button>
+          </div>
+        </div>
+      </div></div></div>
+
+    <!-- ============ ADMIN DASHBOARD ============ -->
+    <div class="frame-card" data-view="admin">
+      <div class="frame-label"><b>07</b> <span>Admin dashboard</span> <span class="route">/admin</span></div>
+      <div class="phone"><div class="phone-screen">
+        <div class="atmosphere very-soft"></div>
+        <div class="screen narrow">
+          <div class="page-head">
+            <div>
+              <div class="crumb">Spring BBQ Bash</div>
+              <h1 class="glow-title">Admin</h1>
+            </div>
+            <a class="home" href="#">HOME</a>
+          </div>
+
+          <nav class="A-nav">
+            <a class="btn btn-outline" href="#">Tickets</a>
+            <a class="btn btn-outline" href="#">Catalog</a>
+            <a class="btn btn-outline" href="#">Wristbands</a>
+          </nav>
+
+          <div class="A-grid">
+            <div class="A-stat p1">
+              <div class="lbl">Tickets sold</div>
+              <div class="val">142</div>
+              <div class="sub">38 VIP · 104 GEN</div>
+            </div>
+            <div class="A-stat p2">
+              <div class="lbl">Checked in now</div>
+              <div class="val">87</div>
+              <div class="sub">+6 last 5 min</div>
+            </div>
+            <div class="A-stat p3">
+              <div class="lbl">Gross revenue</div>
+              <div class="val">$6,280</div>
+              <div class="sub">Tickets + game credit</div>
+            </div>
+            <div class="A-stat p4">
+              <div class="lbl">Unspent balance</div>
+              <div class="val">$1,147</div>
+              <div class="sub">Across 142 bands</div>
+            </div>
+          </div>
+
+          <div class="card" style="margin-top:14px">
+            <h4>Spend by zone</h4>
+            <div class="A-row"><span class="zone">foyer</span><b>$142</b></div>
+            <div class="A-row"><span class="zone">main</span><b>$1,820</b></div>
+            <div class="A-row"><span class="zone">quiet</span><b>$312</b></div>
+            <div class="A-row"><span class="zone">cafeteria</span><b>$2,080</b></div>
+          </div>
+
+          <div class="card" style="margin-top:10px">
+            <h4>Recent activity</h4>
+            <div class="A-row"><span class="zone">main · Ring Toss</span><b>-$2.00</b></div>
+            <div class="A-row"><span class="zone">cafeteria · Mini Pizza</span><b>-$3.50</b></div>
+            <div class="A-row"><span class="zone">main · DJ Shoutout</span><b style="color:var(--glow-pink)">perk</b></div>
+            <div class="A-row"><span class="zone">foyer · Check-in</span><b class="faint">—</b></div>
+            <div class="A-row"><span class="zone">cafeteria · Funnel Cake</span><b>-$4.00</b></div>
+          </div>
+        </div>
+      </div></div></div>
+
+    <!-- ============ ADMIN TICKETS ============ -->
+    <div class="frame-card" data-view="admin-tickets">
+      <div class="frame-label"><b>08</b> <span>Admin · Tickets</span> <span class="route">/admin/tickets</span></div>
+      <div class="phone"><div class="phone-screen">
+        <div class="atmosphere very-soft"></div>
+        <div class="screen narrow">
+          <div class="page-head">
+            <div>
+              <div class="crumb">← Admin</div>
+              <h1 class="glow-title">Tickets</h1>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3>Generate tickets</h3>
+            <div class="tix-form" style="margin-top:10px">
+              <div><label>Count</label><input type="number" value="10"></div>
+              <div><label>Tier</label><select><option>General $40</option><option>VIP $50</option></select></div>
+              <div><label>Game $</label><input type="number" value="20"></div>
+            </div>
+            <button class="btn btn-primary btn-block" style="margin-top:12px">Generate 10 tickets</button>
+          </div>
+
+          <div class="card" style="margin-top:12px">
+            <h3>All tickets (142)</h3>
+            <div class="tix-row"><div><span class="code">SBBQ-018</span> <span class="pill pill-vip" style="margin-left:6px">VIP</span> <span class="pill pill-check" style="margin-left:4px">● IN</span><div class="sub">Ellie Chen · $18.50</div></div><button>delete</button></div>
+            <div class="tix-row"><div><span class="code">SBBQ-019</span> <span class="pill pill-gen" style="margin-left:6px">GEN</span> <span class="pill pill-check" style="margin-left:4px">● IN</span><div class="sub">Marcus Kim · $6.00</div></div><button>delete</button></div>
+            <div class="tix-row"><div><span class="code">SBBQ-020</span> <span class="pill pill-gen" style="margin-left:6px">GEN</span><div class="sub">— · $20.00</div></div><button>delete</button></div>
+            <div class="tix-row"><div><span class="code">SBBQ-021</span> <span class="pill pill-vip" style="margin-left:6px">VIP</span> <span class="pill pill-check" style="margin-left:4px">● IN</span><div class="sub">Sofia Rivera · $22.00</div></div><button>delete</button></div>
+            <div class="tix-row"><div><span class="code">SBBQ-022</span> <span class="pill pill-gen" style="margin-left:6px">GEN</span><div class="sub">— · $20.00</div></div><button>delete</button></div>
+          </div>
+        </div>
+      </div></div></div>
+
+    <!-- ============ ADMIN CATALOG ============ -->
+    <div class="frame-card" data-view="admin-catalog">
+      <div class="frame-label"><b>09</b> <span>Admin · Catalog</span> <span class="route">/admin/catalog</span></div>
+      <div class="phone"><div class="phone-screen">
+        <div class="atmosphere very-soft"></div>
+        <div class="screen narrow">
+          <div class="page-head">
+            <div>
+              <div class="crumb">← Admin</div>
+              <h1 class="glow-title">Catalog</h1>
+              <p class="faint mono" style="font-size:10px;margin:2px 0 0">GAMES · FOOD · PERKS · PRIZES</p>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3>Add item</h3>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
+              <select><option>Zone 2 · Main Church</option></select>
+              <select><option>Game</option><option>Food</option><option>Perk</option></select>
+              <input type="text" placeholder="Name (e.g. Ring Toss)" style="grid-column:1/-1">
+              <input type="number" placeholder="$">
+              <button class="btn btn-primary">Add</button>
+            </div>
+          </div>
+
+          <div class="card" style="margin-top:12px">
+            <h3>Zone 2 · Main Church</h3>
+            <div class="cat-row"><input type="text" value="Ring Toss"><input type="number" value="2"><button style="background:none;border:0;color:var(--red);cursor:pointer">×</button></div>
+            <div class="cat-row"><input type="text" value="Plinko"><input type="number" value="2"><button style="background:none;border:0;color:var(--red);cursor:pointer">×</button></div>
+            <div class="cat-row"><input type="text" value="Bean Bag Toss"><input type="number" value="2"><button style="background:none;border:0;color:var(--red);cursor:pointer">×</button></div>
+            <div class="cat-row"><input type="text" value="Nerf Shoot"><input type="number" value="3"><button style="background:none;border:0;color:var(--red);cursor:pointer">×</button></div>
+          </div>
+
+          <div class="card" style="margin-top:10px">
+            <h3>Zone 4 · Cafeteria</h3>
+            <div class="cat-row"><input type="text" value="Mini Pizza Slice"><input type="number" value="3.5"><button style="background:none;border:0;color:var(--red);cursor:pointer">×</button></div>
+            <div class="cat-row"><input type="text" value="Funnel Cake"><input type="number" value="4"><button style="background:none;border:0;color:var(--red);cursor:pointer">×</button></div>
+            <div class="cat-row"><input type="text" value="Glow Soda"><input type="number" value="2"><button style="background:none;border:0;color:var(--red);cursor:pointer">×</button></div>
+          </div>
+        </div>
+      </div></div></div>
+
+    <!-- ============ ADMIN WRISTBANDS ============ -->
+    <div class="frame-card" data-view="admin-wb">
+      <div class="frame-label"><b>10</b> <span>Admin · Wristbands</span> <span class="route">/admin/wristbands</span></div>
+      <div class="phone"><div class="phone-screen">
+        <div class="atmosphere very-soft"></div>
+        <div class="screen narrow">
+          <div class="page-head">
+            <div>
+              <div class="crumb">← Admin</div>
+              <h1 class="glow-title">Wristbands</h1>
+              <p class="faint mono" style="font-size:10px;margin:2px 0 0">PRINT · 4 PER PAGE</p>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3>Print queue</h3>
+            <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+              <span class="pill pill-gen">FILTER: ALL</span>
+              <span class="pill pill-vip">VIP ONLY</span>
+              <span class="pill" style="background:rgba(255,255,255,.08);color:#fff">NOT YET PRINTED</span>
+            </div>
+            <button class="btn btn-primary btn-block" style="margin-top:12px">🖨 Print 12 bands</button>
+          </div>
+
+          <h4 class="kicker" style="margin:16px 0 6px">PREVIEW</h4>
+          <div class="wb-print-grid">
+            <div class="wb-card vip">
+              <div class="tier">VIP</div>
+              <div class="qr"></div>
+              <div class="code">SBBQ-018</div>
+              <div class="tier" style="opacity:.8">ELLIE CHEN</div>
+            </div>
+            <div class="wb-card">
+              <div class="tier">GENERAL</div>
+              <div class="qr"></div>
+              <div class="code">SBBQ-019</div>
+              <div class="tier" style="opacity:.6">MARCUS KIM</div>
+            </div>
+            <div class="wb-card vip">
+              <div class="tier">VIP</div>
+              <div class="qr"></div>
+              <div class="code">SBBQ-021</div>
+              <div class="tier" style="opacity:.8">SOFIA RIVERA</div>
+            </div>
+            <div class="wb-card">
+              <div class="tier">GENERAL</div>
+              <div class="qr"></div>
+              <div class="code">SBBQ-022</div>
+              <div class="tier" style="opacity:.6">—</div>
+            </div>
+          </div>
+        </div>
+      </div></div></div>
+
+  </div>
+</div>
+
+<script>
+  // ===== Countdown =====
+  (function(){
+    const t = new Date("2026-04-25T17:00:00-05:00").getTime();
+    function tick(){
+      let d = Math.max(0, t - Date.now());
+      const day = Math.floor(d/86400000); d -= day*86400000;
+      const hr = Math.floor(d/3600000); d -= hr*3600000;
+      const mn = Math.floor(d/60000); d -= mn*60000;
+      const sc = Math.floor(d/1000);
+      const p = n => String(n).padStart(2,'0');
+      const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v};
+      set('cd-d',p(day));set('cd-h',p(hr));set('cd-m',p(mn));set('cd-s',p(sc));
+    }
+    tick(); setInterval(tick,1000);
+  })();
+
+  // ===== Tabs =====
+  const tabs = document.querySelectorAll('#tabs button');
+  const cards = document.querySelectorAll('.frame-card');
+  const gallery = document.getElementById('gallery');
+  tabs.forEach(b => b.addEventListener('click', () => {
+    tabs.forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    const v = b.dataset.view;
+    if (v === 'all') {
+      gallery.classList.remove('single');
+      cards.forEach(c => c.style.display = '');
+    } else {
+      gallery.classList.add('single');
+      cards.forEach(c => c.style.display = c.dataset.view === v ? '' : 'none');
+    }
+  }));
+</script>
+</body>
+</html>

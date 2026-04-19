@@ -1,0 +1,2399 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Spring BBQ Bash — Full Prototype</title>
+<link href="https://fonts.googleapis.com/css2?family=Monoton&family=Bungee&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+/* ==========================================================
+   Spring BBQ Bash — Full Prototype
+   Glow Party design system (mirrors Glow Party.html)
+   - Monoton (display numerals) + Bungee (display/UI) + JetBrains Mono (meta)
+   - --glow-pink / --glow-cyan / --glow-yellow / --glow-purple
+   - #0b0118 / #160529 grounds
+   - Neon-sign panels (corner bolts + scanlines + inset glow)
+   - Perspective grid-floor backdrop
+   ========================================================== */
+
+:root {
+  color-scheme: dark;
+
+  --font-display: 'Bungee', 'Impact', system-ui, sans-serif;
+  --font-numeral: 'Monoton', 'Bungee', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', monospace;
+  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  /* Grounds */
+  --bg: #0b0118;
+  --bg-elev: #160529;
+  --bg-elev-2: #1d0a34;
+  --ink: #f5f3ff;
+  --ink-dim: rgba(245, 243, 255, 0.62);
+  --ink-faint: rgba(245, 243, 255, 0.38);
+  --line: rgba(255, 255, 255, 0.10);
+  --line-strong: rgba(255, 255, 255, 0.18);
+  --card: rgba(255, 255, 255, 0.04);
+  --card-2: rgba(255, 255, 255, 0.06);
+
+  /* glow.* palette (from repo tailwind + Glow Party.html) */
+  --glow-pink: #ff3ea5;
+  --glow-purple: #8b5cf6;
+  --glow-cyan: #22d3ee;
+  --glow-yellow: #fde047;
+  --glow-mint: #4be6b3;
+
+  /* Aliases */
+  --neon-1: var(--glow-pink);
+  --neon-2: var(--glow-cyan);
+  --neon-3: var(--glow-yellow);
+  --neon-4: var(--glow-purple);
+  --neon-5: var(--glow-mint);
+
+  --grid-line: rgba(139, 92, 246, 0.10);
+
+  /* Semantic */
+  --danger: #ff5b7a;
+  --warn: #ffb057;
+  --ok: var(--glow-mint);
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+html { background: var(--bg); }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* ==========================================================
+   Page backdrop — perspective grid-floor + radial wash + noise
+   Attaches to <body> so every screen in the gallery sits on it.
+   ========================================================== */
+.page-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+.page-backdrop::before {
+  content: "";
+  position: absolute;
+  inset: -10%;
+  background:
+    radial-gradient(ellipse 60% 40% at 20% 10%, color-mix(in oklab, var(--neon-1) 22%, transparent), transparent 60%),
+    radial-gradient(ellipse 50% 35% at 85% 20%, color-mix(in oklab, var(--neon-2) 18%, transparent), transparent 65%),
+    radial-gradient(ellipse 70% 40% at 50% 95%, color-mix(in oklab, var(--neon-3) 14%, transparent), transparent 70%);
+  filter: blur(40px);
+  animation: drift 22s ease-in-out infinite alternate;
+}
+.page-backdrop .floor {
+  position: absolute;
+  left: 50%;
+  bottom: -20vh;
+  width: 240vw;
+  height: 80vh;
+  transform: translateX(-50%) perspective(600px) rotateX(62deg);
+  background:
+    linear-gradient(to right, var(--grid-line) 1px, transparent 1px) 0 0 / 64px 64px,
+    linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px) 0 0 / 64px 64px;
+  -webkit-mask-image: linear-gradient(to top, black 10%, transparent 90%);
+          mask-image: linear-gradient(to top, black 10%, transparent 90%);
+  animation: gridScroll 4.5s linear infinite;
+}
+.page-backdrop .noise {
+  position: absolute;
+  inset: 0;
+  opacity: 0.06;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1   0 0 0 0 1   0 0 0 0 1   0 0 0 0.9 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  mix-blend-mode: overlay;
+}
+@keyframes drift {
+  0%   { transform: translate(-2%, -1%) scale(1); }
+  100% { transform: translate(2%, 2%) scale(1.05); }
+}
+@keyframes gridScroll {
+  from { background-position: 0 0, 0 0; }
+  to   { background-position: 0 64px, 64px 0; }
+}
+
+/* ==========================================================
+   Gallery shell (the page wrapper that holds every frame)
+   ========================================================== */
+.shell {
+  position: relative;
+  z-index: 1;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 32px 24px 100px;
+}
+.shell-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 18px;
+  flex-wrap: wrap;
+  padding-bottom: 22px;
+  margin-bottom: 28px;
+  border-bottom: 1px dashed var(--line);
+}
+.shell-head .meta {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+.shell-head h1 {
+  margin: 10px 0 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 34px;
+  letter-spacing: 0.01em;
+  color: var(--ink);
+  text-shadow:
+    0 0 8px color-mix(in oklab, var(--neon-1) 60%, transparent),
+    0 0 24px color-mix(in oklab, var(--neon-2) 40%, transparent);
+}
+.shell-head p {
+  margin: 10px 0 0;
+  color: var(--ink-dim);
+  font-size: 13px;
+  max-width: 72ch;
+  line-height: 1.55;
+}
+.shell-head .meta-right {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: .14em;
+  color: var(--ink-dim);
+  text-align: right;
+  text-transform: uppercase;
+}
+
+/* Tab row */
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 22px;
+}
+.tabs button {
+  background: var(--bg-elev);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  padding: 8px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  transition: all .15s ease;
+}
+.tabs button:hover {
+  border-color: color-mix(in oklab, var(--neon-2) 50%, var(--line));
+  color: var(--neon-2);
+}
+.tabs button.active {
+  font-family: var(--font-display);
+  font-size: 11px;
+  background: linear-gradient(90deg, var(--neon-1), var(--neon-2));
+  border-color: transparent;
+  color: #0a0717;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, .4) inset,
+    0 0 22px color-mix(in oklab, var(--neon-1) 55%, transparent),
+    0 0 44px color-mix(in oklab, var(--neon-2) 30%, transparent);
+}
+
+/* Section headers inside the gallery */
+.section-heading {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 24px 0 20px;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  letter-spacing: .24em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+.section-heading .num {
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  color: var(--c, var(--neon-3));
+  text-shadow: 0 0 6px var(--c, var(--neon-3));
+  font-family: var(--font-display);
+  font-size: 12px;
+}
+.section-heading .rule {
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+.section-heading .title {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 400;
+  letter-spacing: .02em;
+  color: var(--ink);
+  text-transform: none;
+}
+.section-heading .title em {
+  font-style: normal;
+  color: var(--c, var(--neon-3));
+  text-shadow: 0 0 10px color-mix(in oklab, var(--c, var(--neon-3)) 70%, transparent);
+}
+.section-heading.c-pink   { --c: var(--neon-1); }
+.section-heading.c-cyan   { --c: var(--neon-2); }
+.section-heading.c-yellow { --c: var(--neon-3); }
+.section-heading.c-purple { --c: var(--neon-4); }
+
+.section-note {
+  margin: 0 0 18px;
+  font-size: 13px;
+  color: var(--ink-dim);
+  max-width: 68ch;
+  line-height: 1.5;
+}
+
+.gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+  gap: 30px;
+}
+.gallery.wide {
+  grid-template-columns: repeat(auto-fill, minmax(580px, 1fr));
+}
+
+.frame-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+.frame-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+.frame-label b {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: .02em;
+  color: var(--neon-3);
+  text-shadow: 0 0 8px color-mix(in oklab, var(--neon-3) 70%, transparent);
+  font-size: 12px;
+}
+.frame-label .route { color: var(--ink-faint); font-size: 10px; }
+
+/* ==========================================================
+   Phone frame (volunteer / parent screens)
+   ========================================================== */
+.phone {
+  width: 400px;
+  height: 790px;
+  border-radius: 46px;
+  padding: 10px;
+  background: linear-gradient(145deg, #3a1c58, #0b0118);
+  box-shadow: 0 30px 80px -20px rgba(0, 0, 0, .8), 0 0 0 1px rgba(255, 255, 255, .08);
+  position: relative;
+  overflow: hidden;
+}
+.phone::before {
+  content: "";
+  position: absolute;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 112px;
+  height: 26px;
+  background: #000;
+  border-radius: 14px;
+  z-index: 30;
+}
+.phone-screen {
+  width: 100%;
+  height: 100%;
+  border-radius: 36px;
+  background: var(--bg);
+  overflow-y: auto;
+  overflow-x: hidden;
+  position: relative;
+}
+.phone-screen::-webkit-scrollbar { width: 0; }
+
+/* ==========================================================
+   Laptop frame (admin)
+   ========================================================== */
+.laptop {
+  width: 100%;
+  max-width: 900px;
+  height: 640px;
+  border-radius: 18px;
+  background: var(--bg-elev);
+  border: 1px solid var(--line);
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 30px 80px -20px rgba(0, 0, 0, .75);
+}
+.laptop-chrome {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  background: #06010d;
+  border-bottom: 1px solid var(--line);
+}
+.laptop-chrome .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+.laptop-chrome .url {
+  margin-left: 14px;
+  flex: 1;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-dim);
+  letter-spacing: .06em;
+}
+.laptop-screen {
+  height: calc(100% - 38px);
+  overflow-y: auto;
+  position: relative;
+  background: var(--bg);
+}
+
+/* ==========================================================
+   In-frame backdrop (aurora/grid inside each phone/laptop)
+   Softened version of the page backdrop.
+   ========================================================== */
+.frame-bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+.frame-bg::before {
+  content: "";
+  position: absolute;
+  inset: -20%;
+  background:
+    radial-gradient(ellipse 60% 40% at 30% 0%,   color-mix(in oklab, var(--neon-4) 32%, transparent), transparent 65%),
+    radial-gradient(ellipse 50% 35% at 80% 100%, color-mix(in oklab, var(--neon-1) 22%, transparent), transparent 65%),
+    radial-gradient(ellipse 45% 35% at 10% 95%,  color-mix(in oklab, var(--neon-2) 20%, transparent), transparent 65%);
+  filter: blur(24px);
+}
+.frame-bg .floor {
+  position: absolute;
+  left: 50%;
+  bottom: -35%;
+  width: 300%;
+  height: 70%;
+  transform: translateX(-50%) perspective(500px) rotateX(62deg);
+  background:
+    linear-gradient(to right, var(--grid-line) 1px, transparent 1px) 0 0 / 48px 48px,
+    linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px) 0 0 / 48px 48px;
+  -webkit-mask-image: linear-gradient(to top, black 10%, transparent 80%);
+          mask-image: linear-gradient(to top, black 10%, transparent 80%);
+  animation: gridScroll 5s linear infinite;
+  opacity: .9;
+}
+.frame-bg.soft::before      { opacity: .7; }
+.frame-bg.very-soft::before { opacity: .45; }
+
+/* Screen content wrapper */
+.screen {
+  position: relative;
+  z-index: 1;
+  padding: 52px 18px 40px;
+}
+.screen.flush { padding: 18px 18px 40px; }
+.screen.wide  { padding: 22px 26px 40px; }
+
+/* ==========================================================
+   Neon-sign panel — corner bolts + scanlines + inset glow.
+   Used as a heavy hero/wristband card.
+   ========================================================== */
+.sign {
+  position: relative;
+  padding: 26px 22px 22px;
+  border: 1.5px solid color-mix(in oklab, var(--neon-1) 40%, transparent);
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, color-mix(in oklab, var(--neon-1) 6%, transparent), transparent 60%),
+    radial-gradient(ellipse at 50% 120%, color-mix(in oklab, var(--neon-3) 14%, transparent), transparent 70%),
+    var(--bg-elev);
+  box-shadow:
+    0 0 0 1px color-mix(in oklab, var(--neon-1) 20%, transparent) inset,
+    0 30px 80px -30px color-mix(in oklab, var(--neon-1) 60%, transparent),
+    0 0 50px -10px color-mix(in oklab, var(--neon-2) 45%, transparent);
+  overflow: hidden;
+}
+.sign.c-cyan   { border-color: color-mix(in oklab, var(--neon-2) 40%, transparent); box-shadow: 0 0 0 1px color-mix(in oklab, var(--neon-2) 20%, transparent) inset, 0 30px 80px -30px color-mix(in oklab, var(--neon-2) 60%, transparent); }
+.sign.c-purple { border-color: color-mix(in oklab, var(--neon-4) 40%, transparent); box-shadow: 0 0 0 1px color-mix(in oklab, var(--neon-4) 20%, transparent) inset, 0 30px 80px -30px color-mix(in oklab, var(--neon-4) 60%, transparent); }
+.sign.c-yellow { border-color: color-mix(in oklab, var(--neon-3) 40%, transparent); box-shadow: 0 0 0 1px color-mix(in oklab, var(--neon-3) 20%, transparent) inset, 0 30px 80px -30px color-mix(in oklab, var(--neon-3) 60%, transparent); }
+.sign.c-mint   { border-color: color-mix(in oklab, var(--neon-5) 40%, transparent); box-shadow: 0 0 0 1px color-mix(in oklab, var(--neon-5) 20%, transparent) inset, 0 30px 80px -30px color-mix(in oklab, var(--neon-5) 60%, transparent); }
+
+.sign::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(to bottom, transparent 0 3px, rgba(255, 255, 255, .025) 3px 4px);
+  mix-blend-mode: overlay;
+}
+
+.sign .bolt {
+  position: absolute;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--ink-dim);
+  box-shadow: inset 0 0 0 2px var(--bg), 0 0 0 1px rgba(255, 255, 255, .2);
+}
+.sign .bolt.tl { top: 10px; left: 10px; }
+.sign .bolt.tr { top: 10px; right: 10px; }
+.sign .bolt.bl { bottom: 10px; left: 10px; }
+.sign .bolt.br { bottom: 10px; right: 10px; }
+
+/* ==========================================================
+   Cards (non-sign — general panels)
+   ========================================================== */
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 16px;
+  position: relative;
+}
+.card.pad-lg { padding: 20px; }
+
+.card.c-pink   { border-color: color-mix(in oklab, var(--neon-1) 40%, transparent); box-shadow: 0 0 30px -10px color-mix(in oklab, var(--neon-1) 50%, transparent); }
+.card.c-cyan   { border-color: color-mix(in oklab, var(--neon-2) 40%, transparent); box-shadow: 0 0 30px -10px color-mix(in oklab, var(--neon-2) 50%, transparent); }
+.card.c-yellow { border-color: color-mix(in oklab, var(--neon-3) 40%, transparent); box-shadow: 0 0 30px -10px color-mix(in oklab, var(--neon-3) 50%, transparent); }
+.card.c-purple { border-color: color-mix(in oklab, var(--neon-4) 40%, transparent); box-shadow: 0 0 30px -10px color-mix(in oklab, var(--neon-4) 50%, transparent); }
+.card.c-mint   { border-color: color-mix(in oklab, var(--neon-5) 40%, transparent); box-shadow: 0 0 30px -10px color-mix(in oklab, var(--neon-5) 50%, transparent); }
+
+.card-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: .22em;
+  text-transform: uppercase;
+  font-weight: 600;
+  margin-bottom: 6px;
+  display: block;
+}
+
+/* ==========================================================
+   Typography primitives
+   ========================================================== */
+.font-display {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: .01em;
+}
+.font-numeral {
+  font-family: var(--font-numeral);
+  font-weight: 400;
+  letter-spacing: 0;
+}
+.mono { font-family: var(--font-mono); }
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: .22em;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.text-ink   { color: var(--ink); }
+.text-dim   { color: var(--ink-dim); }
+.text-faint { color: var(--ink-faint); }
+
+.glow-pink   { color: var(--neon-1); text-shadow: 0 0 10px color-mix(in oklab, var(--neon-1) 60%, transparent); }
+.glow-cyan   { color: var(--neon-2); text-shadow: 0 0 10px color-mix(in oklab, var(--neon-2) 60%, transparent); }
+.glow-yellow { color: var(--neon-3); text-shadow: 0 0 10px color-mix(in oklab, var(--neon-3) 60%, transparent); }
+.glow-purple { color: var(--neon-4); text-shadow: 0 0 10px color-mix(in oklab, var(--neon-4) 60%, transparent); }
+.glow-mint   { color: var(--neon-5); text-shadow: 0 0 10px color-mix(in oklab, var(--neon-5) 60%, transparent); }
+
+/* Neon-sign wordmark: cyan/pink glow stack from Glow Party */
+.neon-wordmark {
+  font-family: var(--font-numeral);
+  font-size: 40px;
+  line-height: 0.9;
+  color: #fff;
+  letter-spacing: 0;
+}
+.neon-wordmark .l1 {
+  display: block;
+  text-shadow:
+    0 0 4px #fff,
+    0 0 10px var(--neon-2),
+    0 0 22px var(--neon-2),
+    0 0 40px color-mix(in oklab, var(--neon-2) 70%, transparent);
+}
+.neon-wordmark .l2 {
+  display: block;
+  text-shadow:
+    0 0 4px #fff,
+    0 0 10px var(--neon-1),
+    0 0 22px var(--neon-1),
+    0 0 40px color-mix(in oklab, var(--neon-1) 70%, transparent);
+  animation: flicker 5.5s infinite;
+}
+.neon-wordmark .amp {
+  display: inline-block;
+  color: var(--neon-3);
+  text-shadow: 0 0 8px var(--neon-3), 0 0 22px var(--neon-3);
+  font-family: var(--font-display);
+  font-size: 0.7em;
+  transform: translateY(-0.08em) rotate(-6deg);
+  margin: 0 .1em;
+}
+@keyframes flicker {
+  0%, 92%, 100% { opacity: 1; }
+  93% { opacity: 0.3; }
+  94% { opacity: 1; }
+  95% { opacity: 0.5; }
+  96% { opacity: 1; }
+}
+
+/* ==========================================================
+   Buttons — gradient "big-btn" + ghost/outline
+   ========================================================== */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 18px;
+  border-radius: 999px;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 13px;
+  letter-spacing: .04em;
+  border: 1px solid transparent;
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
+  white-space: nowrap;
+  line-height: 1;
+}
+.btn:active { transform: scale(.97); }
+.btn-block { width: 100%; }
+.btn-xl { padding: 16px 24px; font-size: 15px; }
+.btn-lg { padding: 14px 22px; font-size: 14px; }
+.btn-sm {
+  padding: 8px 12px;
+  font-size: 10.5px;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .12em;
+  border-radius: 999px;
+}
+
+/* The big pink→cyan gradient button — the signature CTA */
+.btn-big {
+  background: linear-gradient(90deg, var(--neon-1), var(--neon-2));
+  color: #0a0717;
+  border: none;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, .4) inset,
+    0 0 24px color-mix(in oklab, var(--neon-1) 55%, transparent),
+    0 0 58px color-mix(in oklab, var(--neon-2) 35%, transparent);
+}
+.btn-big:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, .5) inset,
+    0 0 32px color-mix(in oklab, var(--neon-1) 80%, transparent),
+    0 0 78px color-mix(in oklab, var(--neon-2) 55%, transparent);
+}
+/* Solid neon buttons — used for metered redeems etc */
+.btn-pink   { background: var(--neon-1); color: #fff;     box-shadow: 0 0 0 1px rgba(255,255,255,.35) inset, 0 0 22px color-mix(in oklab, var(--neon-1) 55%, transparent); }
+.btn-cyan   { background: var(--neon-2); color: #0a0717;  box-shadow: 0 0 0 1px rgba(255,255,255,.5) inset, 0 0 22px color-mix(in oklab, var(--neon-2) 55%, transparent); }
+.btn-yellow { background: var(--neon-3); color: #1a1504;  box-shadow: 0 0 0 1px rgba(255,255,255,.5) inset, 0 0 22px color-mix(in oklab, var(--neon-3) 55%, transparent); }
+.btn-purple { background: var(--neon-4); color: #fff;     box-shadow: 0 0 0 1px rgba(255,255,255,.35) inset, 0 0 22px color-mix(in oklab, var(--neon-4) 55%, transparent); }
+.btn-mint   { background: var(--neon-5); color: #0a1a14;  box-shadow: 0 0 0 1px rgba(255,255,255,.5) inset, 0 0 22px color-mix(in oklab, var(--neon-5) 55%, transparent); }
+.btn-danger { background: var(--danger); color: #fff; }
+
+.btn-ghost {
+  background: transparent;
+  border: 1px solid var(--line-strong);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .14em;
+  padding: 10px 16px;
+}
+.btn-ghost:hover {
+  border-color: color-mix(in oklab, var(--neon-2) 60%, transparent);
+  color: var(--neon-2);
+  background: color-mix(in oklab, var(--neon-2) 8%, transparent);
+}
+.btn-outline {
+  background: transparent;
+  border: 1px solid color-mix(in oklab, var(--neon-2) 50%, transparent);
+  color: var(--neon-2);
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .14em;
+  padding: 10px 14px;
+}
+.btn[disabled], .btn:disabled { opacity: .4; cursor: not-allowed; box-shadow: none; }
+
+/* ==========================================================
+   Form controls
+   ========================================================== */
+input[type=text], input[type=number], input[type=tel], input[type=email],
+input[type=password], input[type=search], input[type=date], input[type=datetime-local],
+select, textarea {
+  width: 100%;
+  background: rgba(22, 5, 41, .6);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  padding: 12px 14px;
+  border-radius: 10px;
+  font: inherit;
+  font-size: 14px;
+  outline: none;
+  font-family: var(--font-sans);
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+input:focus, select:focus, textarea:focus {
+  border-color: var(--neon-2);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--neon-2) 22%, transparent);
+}
+textarea { resize: vertical; min-height: 68px; font-family: var(--font-sans); }
+
+label {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-dim);
+  margin-bottom: 6px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+/* ==========================================================
+   Chips — colored pills that glow subtly
+   ========================================================== */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  font-weight: 700;
+  border: 1px solid currentColor;
+}
+.chip b { font-family: var(--font-display); font-weight: 400; font-size: 12px; letter-spacing: 0; }
+.chip-pink   { color: var(--neon-1); background: color-mix(in oklab, var(--neon-1) 8%, transparent); box-shadow: 0 0 14px -4px var(--neon-1); }
+.chip-cyan   { color: var(--neon-2); background: color-mix(in oklab, var(--neon-2) 8%, transparent); box-shadow: 0 0 14px -4px var(--neon-2); }
+.chip-yellow { color: var(--neon-3); background: color-mix(in oklab, var(--neon-3) 8%, transparent); box-shadow: 0 0 14px -4px var(--neon-3); }
+.chip-purple { color: var(--neon-4); background: color-mix(in oklab, var(--neon-4) 8%, transparent); box-shadow: 0 0 14px -4px var(--neon-4); }
+.chip-mint   { color: var(--neon-5); background: color-mix(in oklab, var(--neon-5) 8%, transparent); box-shadow: 0 0 14px -4px var(--neon-5); }
+.chip-quiet  { color: var(--ink-faint); background: rgba(255,255,255,.04); border-color: var(--line); }
+.chip-danger { color: var(--danger); background: color-mix(in oklab, var(--danger) 12%, transparent); }
+
+/* ==========================================================
+   Banners
+   ========================================================== */
+.banner {
+  padding: 10px 13px;
+  border-radius: 10px;
+  font-size: 13px;
+  border: 1px solid;
+  line-height: 1.45;
+}
+.banner-ok   { color: var(--neon-5); background: color-mix(in oklab, var(--neon-5) 10%, transparent); border-color: color-mix(in oklab, var(--neon-5) 50%, transparent); box-shadow: 0 0 22px -6px var(--neon-5); }
+.banner-warn { color: var(--warn);   background: color-mix(in oklab, var(--warn)   10%, transparent); border-color: color-mix(in oklab, var(--warn)   50%, transparent); }
+.banner-err  { color: var(--danger); background: color-mix(in oklab, var(--danger) 10%, transparent); border-color: color-mix(in oklab, var(--danger) 50%, transparent); }
+
+/* ==========================================================
+   Latin-cross GlowCross — retinted to --glow-* palette
+   Keeps the halo / rays / bead / sparkle structure but uses
+   neon-1..4 tone vars so it matches Glow Party exactly.
+   ========================================================== */
+.glow-cross {
+  position: relative;
+  display: inline-block;
+  --c: var(--neon-2);
+  --c-rgb: 34, 211, 238; /* cyan */
+}
+.glow-cross.pink   { --c: var(--neon-1); --c-rgb: 255, 62, 165; }
+.glow-cross.cyan   { --c: var(--neon-2); --c-rgb: 34, 211, 238; }
+.glow-cross.yellow { --c: var(--neon-3); --c-rgb: 253, 224, 71; }
+.glow-cross.purple { --c: var(--neon-4); --c-rgb: 139, 92, 246; }
+.glow-cross.mint   { --c: var(--neon-5); --c-rgb: 75, 230, 179; }
+
+.glow-cross .halo {
+  position: absolute;
+  inset: -45%;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(var(--c-rgb), .55) 0%, rgba(var(--c-rgb), .22) 25%, transparent 62%);
+  filter: blur(10px);
+  animation: gc-breathe 3.8s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes gc-breathe {
+  0%, 100% { opacity: .7; transform: scale(.94); }
+  50%      { opacity: 1;  transform: scale(1.08); }
+}
+.glow-cross .rays {
+  position: absolute;
+  inset: -25%;
+  border-radius: 50%;
+  background:
+    conic-gradient(from 0deg,
+      rgba(var(--c-rgb), 0)   0deg,  rgba(var(--c-rgb), .25) 12deg,
+      rgba(var(--c-rgb), 0)  24deg,  rgba(var(--c-rgb), 0)  60deg,
+      rgba(var(--c-rgb), .28) 72deg, rgba(var(--c-rgb), 0)  84deg,
+      rgba(var(--c-rgb), 0) 140deg,  rgba(var(--c-rgb), .22) 152deg,
+      rgba(var(--c-rgb), 0) 164deg,  rgba(var(--c-rgb), 0) 220deg,
+      rgba(var(--c-rgb), .26) 232deg,rgba(var(--c-rgb), 0) 244deg,
+      rgba(var(--c-rgb), 0) 300deg,  rgba(var(--c-rgb), .24) 312deg,
+      rgba(var(--c-rgb), 0) 324deg,  rgba(var(--c-rgb), 0) 360deg);
+  filter: blur(4px);
+  opacity: .9;
+  animation: gc-spin 40s linear infinite;
+  pointer-events: none;
+  -webkit-mask-image: radial-gradient(circle, black 20%, transparent 70%);
+          mask-image: radial-gradient(circle, black 20%, transparent 70%);
+}
+@keyframes gc-spin { to { transform: rotate(360deg); } }
+
+.glow-cross .bar {
+  position: absolute;
+  background: linear-gradient(180deg, #fff 0%, var(--c) 45%, var(--c) 55%, #fff 100%);
+  background-size: 100% 220%;
+  border-radius: 3px;
+  box-shadow:
+    0 0 10px 1px var(--c),
+    0 0 24px 5px rgba(var(--c-rgb), .55),
+    0 0 46px 12px rgba(var(--c-rgb), .3);
+  animation: gc-shimmer 3.2s ease-in-out infinite;
+}
+.glow-cross .bar.v { left: 50%; top: 0; bottom: 0; width: 14%; transform: translateX(-50%); }
+.glow-cross .bar.h {
+  top: 30%; left: 14%; right: 14%; height: 14%;
+  background: linear-gradient(90deg, #fff 0%, var(--c) 45%, var(--c) 55%, #fff 100%);
+  background-size: 220% 100%;
+}
+@keyframes gc-shimmer {
+  0%, 100% { background-position: 0% 0%;     filter: brightness(1); }
+  50%      { background-position: 100% 100%; filter: brightness(1.3); }
+}
+.glow-cross .bead {
+  position: absolute;
+  top: 37%; left: 50%;
+  width: 20%; height: 20%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 0%, var(--c) 45%, transparent 78%);
+  box-shadow: 0 0 16px 4px var(--c), 0 0 34px 10px rgba(var(--c-rgb), .55);
+  animation: gc-pulse 2.4s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes gc-pulse {
+  0%, 100% { transform: translate(-50%, -50%) scale(1);    opacity: 1; }
+  50%      { transform: translate(-50%, -50%) scale(1.22); opacity: .88; }
+}
+.glow-cross .spark {
+  position: absolute;
+  width: 3px; height: 3px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 6px 1px var(--c);
+  animation: gc-twinkle 3s ease-in-out infinite;
+  opacity: 0;
+  pointer-events: none;
+}
+.glow-cross .spark.s1 { top: -8%;  left: 20%;  animation-delay: 0s; }
+.glow-cross .spark.s2 { top: 14%;  right: -6%; animation-delay: .6s;  width: 4px; height: 4px; }
+.glow-cross .spark.s3 { bottom: 8%;  right: 20%; animation-delay: 1.2s; }
+.glow-cross .spark.s4 { bottom: -4%; left: 40%;  animation-delay: 1.8s; width: 4px; height: 4px; }
+.glow-cross .spark.s5 { top: 44%;  left: -6%;  animation-delay: 2.2s; }
+.glow-cross .spark.s6 { top: 10%;  left: 8%;   animation-delay: 2.6s; }
+@keyframes gc-twinkle {
+  0%, 100% { opacity: 0; transform: scale(.4); }
+  40%, 60% { opacity: 1; transform: scale(1.2); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .glow-cross .halo, .glow-cross .rays, .glow-cross .bar,
+  .glow-cross .bead, .glow-cross .spark { animation: none !important; }
+}
+
+/* ==========================================================
+   Scanner viewfinder (check-in, photo, roaming)
+   ========================================================== */
+.scanner {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  border-radius: 16px;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 50% 50%, color-mix(in oklab, var(--neon-4) 25%, transparent), transparent 70%),
+    linear-gradient(135deg, #1a0933, #0b0118);
+  border: 1px solid color-mix(in oklab, var(--neon-2) 40%, transparent);
+  box-shadow: inset 0 0 40px -8px color-mix(in oklab, var(--neon-2) 35%, transparent);
+}
+.scanner .corners { position: absolute; inset: 18px; pointer-events: none; }
+.scanner .corners span {
+  position: absolute; width: 26px; height: 26px;
+  border: 2px solid var(--neon-2);
+  box-shadow: 0 0 8px var(--neon-2);
+}
+.scanner .corners span:nth-child(1) { top: 0; left: 0; border-right: 0; border-bottom: 0; }
+.scanner .corners span:nth-child(2) { top: 0; right: 0; border-left: 0; border-bottom: 0; }
+.scanner .corners span:nth-child(3) { bottom: 0; left: 0; border-right: 0; border-top: 0; }
+.scanner .corners span:nth-child(4) { bottom: 0; right: 0; border-left: 0; border-top: 0; }
+.scanner .beam {
+  position: absolute; left: 8%; right: 8%; top: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--neon-2), transparent);
+  box-shadow: 0 0 14px var(--neon-2);
+  animation: beam 2.4s ease-in-out infinite;
+}
+@keyframes beam {
+  0%,100% { transform: translateY(28px); }
+  50%     { transform: translateY(75%); }
+}
+.scanner .hint {
+  position: absolute; inset: auto 0 12px 0;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: .22em;
+  color: var(--ink-dim);
+  text-transform: uppercase;
+}
+
+/* ==========================================================
+   Stat tiles — big Monoton numerals on neon-tinted cards
+   ========================================================== */
+.stat {
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: var(--bg-elev);
+  border: 1px solid var(--line);
+  position: relative;
+  overflow: hidden;
+}
+.stat .lbl {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  font-weight: 600;
+}
+.stat .val {
+  font-family: var(--font-numeral);
+  font-size: 40px;
+  margin-top: 2px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+.stat.t-pink   { border-color: color-mix(in oklab, var(--neon-1) 40%, transparent); box-shadow: 0 0 22px -6px color-mix(in oklab, var(--neon-1) 50%, transparent); }
+.stat.t-pink .val   { color: var(--neon-1); text-shadow: 0 0 10px color-mix(in oklab, var(--neon-1) 60%, transparent); }
+.stat.t-cyan   { border-color: color-mix(in oklab, var(--neon-2) 40%, transparent); box-shadow: 0 0 22px -6px color-mix(in oklab, var(--neon-2) 50%, transparent); }
+.stat.t-cyan .val   { color: var(--neon-2); text-shadow: 0 0 10px color-mix(in oklab, var(--neon-2) 60%, transparent); }
+.stat.t-yellow { border-color: color-mix(in oklab, var(--neon-3) 40%, transparent); box-shadow: 0 0 22px -6px color-mix(in oklab, var(--neon-3) 50%, transparent); }
+.stat.t-yellow .val { color: var(--neon-3); text-shadow: 0 0 10px color-mix(in oklab, var(--neon-3) 60%, transparent); }
+.stat.t-purple { border-color: color-mix(in oklab, var(--neon-4) 40%, transparent); box-shadow: 0 0 22px -6px color-mix(in oklab, var(--neon-4) 50%, transparent); }
+.stat.t-purple .val { color: var(--neon-4); text-shadow: 0 0 10px color-mix(in oklab, var(--neon-4) 60%, transparent); }
+.stat.t-mint   { border-color: color-mix(in oklab, var(--neon-5) 40%, transparent); box-shadow: 0 0 22px -6px color-mix(in oklab, var(--neon-5) 50%, transparent); }
+.stat.t-mint .val   { color: var(--neon-5); text-shadow: 0 0 10px color-mix(in oklab, var(--neon-5) 60%, transparent); }
+
+/* ==========================================================
+   Perk card — Monoton-numeral perk cards (from Glow Party)
+   ========================================================== */
+.perks {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+}
+.perk {
+  position: relative;
+  padding: 14px 14px 12px;
+  border-radius: 10px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  overflow: hidden;
+}
+.perk .count {
+  font-family: var(--font-numeral);
+  font-size: 56px;
+  line-height: 0.85;
+  color: var(--c);
+  text-shadow:
+    0 0 6px var(--c),
+    0 0 18px color-mix(in oklab, var(--c) 70%, transparent),
+    0 0 40px color-mix(in oklab, var(--c) 50%, transparent);
+}
+.perk h3 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 13px;
+  letter-spacing: .02em;
+  margin: 10px 0 2px;
+  color: var(--ink);
+}
+.perk p {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--ink-dim);
+}
+.perk.c-cyan   { --c: var(--neon-2); }
+.perk.c-pink   { --c: var(--neon-1); }
+.perk.c-yellow { --c: var(--neon-3); }
+.perk.c-purple { --c: var(--neon-4); }
+
+/* ==========================================================
+   Admin nav
+   ========================================================== */
+.admin-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--line);
+  background: rgba(11, 1, 24, 0.85);
+  backdrop-filter: blur(10px);
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+.admin-nav .brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-right: 16px;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 13px;
+  color: var(--ink);
+  letter-spacing: .04em;
+}
+.admin-nav .brand i {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--neon-1);
+  box-shadow: 0 0 10px var(--neon-1), 0 0 22px var(--neon-1);
+  animation: adminBlink 2.2s ease-in-out infinite;
+}
+@keyframes adminBlink {
+  0%, 70%, 100% { opacity: 1; }
+  75%, 85% { opacity: .2; }
+}
+.admin-nav a {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  text-decoration: none;
+  padding: 7px 12px;
+  border-radius: 999px;
+  transition: all .15s ease;
+}
+.admin-nav a:hover { color: var(--ink); background: var(--bg-elev); }
+.admin-nav a.active {
+  color: var(--neon-3);
+  text-shadow: 0 0 8px color-mix(in oklab, var(--neon-3) 70%, transparent);
+  background: color-mix(in oklab, var(--neon-3) 10%, transparent);
+}
+.admin-nav .home-link {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+/* ==========================================================
+   Page head (inside phone/laptop screens)
+   ========================================================== */
+.page-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px dashed var(--line);
+}
+.page-head .back-link {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  text-decoration: none;
+}
+.page-head .back-link:hover { color: var(--neon-2); }
+.page-head h1 {
+  margin: 4px 0 2px;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 22px;
+  letter-spacing: .01em;
+  line-height: 1.1;
+  color: var(--ink);
+}
+.page-head .sub { margin: 4px 0 0; font-size: 12.5px; color: var(--ink-dim); line-height: 1.5; }
+
+/* ==========================================================
+   Stacks / grids / misc utility
+   ========================================================== */
+.stack-1 > * + * { margin-top: 6px; }
+.stack-2 > * + * { margin-top: 10px; }
+.stack-3 > * + * { margin-top: 14px; }
+.stack-4 > * + * { margin-top: 18px; }
+.stack-5 > * + * { margin-top: 24px; }
+
+.row { display: flex; gap: 10px; align-items: center; }
+.row.gap-2 { gap: 6px; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+
+/* Tables */
+.tbl {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+  background: var(--card);
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+}
+.tbl thead { background: var(--bg-elev); }
+.tbl th {
+  text-align: left;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  font-weight: 600;
+  padding: 10px 12px;
+}
+.tbl td {
+  padding: 10px 12px;
+  border-top: 1px solid var(--line);
+  color: var(--ink);
+}
+.tbl tr:hover td { background: rgba(255, 255, 255, .03); }
+.tbl td.dim { color: var(--ink-dim); }
+.tbl .name-link {
+  color: var(--neon-1);
+  text-shadow: 0 0 6px color-mix(in oklab, var(--neon-1) 50%, transparent);
+  text-decoration: none;
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: .02em;
+}
+
+/* Filter chips */
+.filter-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.filter-chip {
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  background: var(--bg-elev);
+  border: 1px solid var(--line);
+  color: var(--ink-dim);
+  cursor: pointer;
+  font-family: var(--font-mono);
+}
+.filter-chip.active {
+  background: color-mix(in oklab, var(--neon-1) 15%, transparent);
+  border-color: color-mix(in oklab, var(--neon-1) 60%, transparent);
+  color: var(--neon-1);
+  text-shadow: 0 0 6px color-mix(in oklab, var(--neon-1) 50%, transparent);
+}
+
+/* Option buttons (radio-like) */
+.opt {
+  width: 100%;
+  padding: 11px 14px;
+  border-radius: 12px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  background: var(--bg-elev);
+  border: 2px solid var(--line);
+  color: var(--ink);
+  cursor: pointer;
+  text-align: left;
+  transition: all .15s ease;
+  font-family: var(--font-sans);
+}
+.opt:hover { border-color: color-mix(in oklab, var(--neon-1) 50%, transparent); }
+.opt.active {
+  background: color-mix(in oklab, var(--neon-1) 10%, transparent);
+  border-color: var(--neon-1);
+  color: var(--neon-1);
+  box-shadow: 0 0 18px -4px color-mix(in oklab, var(--neon-1) 60%, transparent);
+}
+.opt.cyan.active {
+  background: color-mix(in oklab, var(--neon-2) 10%, transparent);
+  border-color: var(--neon-2);
+  color: var(--neon-2);
+  box-shadow: 0 0 18px -4px color-mix(in oklab, var(--neon-2) 60%, transparent);
+}
+
+/* Fake radio set */
+fieldset.radio-set {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 14px;
+  background: var(--card);
+}
+fieldset.radio-set legend {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  font-weight: 600;
+  padding: 0 8px;
+}
+.radio-opt {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  font-size: 13px;
+  color: var(--ink);
+}
+.radio-opt .dot {
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  border: 1.5px solid var(--line-strong);
+  background: var(--bg-elev);
+  flex-shrink: 0;
+}
+.radio-opt.active .dot {
+  border-color: var(--neon-2);
+  background: radial-gradient(circle, var(--neon-2) 40%, transparent 50%);
+  box-shadow: 0 0 12px color-mix(in oklab, var(--neon-2) 55%, transparent);
+}
+
+/* Dividers */
+.divider { height: 1px; background: var(--line); margin: 12px 0; }
+.divider-dashed { height: 1px; border-bottom: 1px dashed var(--line); margin: 12px 0; }
+.meta-mono {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--ink-faint);
+  letter-spacing: .14em;
+}
+.tabular { font-variant-numeric: tabular-nums; }
+
+/* Consent toggle (pill switch) */
+.toggle {
+  width: 38px; height: 22px; border-radius: 999px;
+  background: var(--line-strong);
+  position: relative; flex-shrink: 0;
+  transition: all .15s ease;
+}
+.toggle.on {
+  background: var(--neon-5);
+  box-shadow: 0 0 12px color-mix(in oklab, var(--neon-5) 60%, transparent);
+}
+.toggle .nub {
+  position: absolute; top: 2px; left: 2px;
+  width: 18px; height: 18px; border-radius: 50%;
+  background: #fff;
+  transition: left .15s ease;
+}
+.toggle.on .nub { left: 18px; }
+
+@media (max-width: 640px) {
+  .gallery, .gallery.wide { grid-template-columns: 1fr; }
+  .phone { width: 100%; max-width: 400px; }
+}
+
+</style>
+</head>
+<body>
+
+<!-- Page-wide backdrop: aurora wash + perspective grid floor + subtle noise -->
+<div class="page-backdrop" aria-hidden="true">
+  <div class="floor"></div>
+  <div class="noise"></div>
+</div>
+
+<div id="root"></div>
+
+<!-- React + Babel (pinned) -->
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" data-presets="react">
+/* global React */
+/* ==========================================================
+   Spring BBQ Bash — primitives + station/volunteer screens
+   Design system: Glow Party (neon on #0b0118)
+   ========================================================== */
+
+const { useState, useMemo } = React;
+
+/* ----------------------- GlowCross (Latin) ----------------------- */
+function GlowCross({ size = 80, color = "cyan", className = "" }) {
+  return (
+    <div
+      className={`glow-cross ${color} ${className}`}
+      style={{ width: size, height: size * 1.32 }}
+      aria-hidden="true"
+    >
+      <div className="halo" />
+      <div className="rays" />
+      <div className="bar v" />
+      <div className="bar h" />
+      <div className="bead" />
+      <span className="spark s1" />
+      <span className="spark s2" />
+      <span className="spark s3" />
+      <span className="spark s4" />
+      <span className="spark s5" />
+      <span className="spark s6" />
+    </div>
+  );
+}
+
+/* ----------------------- Wordmark: RISEN & REDEEMED ----------------------- */
+function Wordmark({ size = 40 }) {
+  return (
+    <div className="neon-wordmark" style={{ fontSize: size }}>
+      <span className="l1">RISEN</span>
+      <span className="l2">
+        <span className="amp">&amp;</span>REDEEMED
+      </span>
+    </div>
+  );
+}
+
+/* ----------------------- In-frame backdrop (aurora + grid) ----------------------- */
+function FrameBackdrop({ soft = false, verySoft = false }) {
+  const cls = ["frame-bg", soft && "soft", verySoft && "very-soft"]
+    .filter(Boolean).join(" ");
+  return (
+    <div className={cls}>
+      <div className="floor" />
+    </div>
+  );
+}
+
+/* ----------------------- Phone + Laptop frames ----------------------- */
+function Phone({ children, bg = "normal" }) {
+  return (
+    <div className="phone">
+      <div className="phone-screen">
+        <FrameBackdrop soft={bg === "soft"} verySoft={bg === "very-soft"} />
+        {children}
+      </div>
+    </div>
+  );
+}
+function Laptop({ url, children }) {
+  return (
+    <div className="laptop">
+      <div className="laptop-chrome">
+        <span className="dot" style={{ background: "#ff5f57" }} />
+        <span className="dot" style={{ background: "#febc2e" }} />
+        <span className="dot" style={{ background: "#28c840" }} />
+        <span className="url">{url}</span>
+      </div>
+      <div className="laptop-screen">
+        <FrameBackdrop verySoft />
+        {children}
+      </div>
+    </div>
+  );
+}
+
+/* ----------------------- Tiny chrome bits ----------------------- */
+function PageHead({ back, title, sub, right }) {
+  return (
+    <div className="page-head">
+      <div>
+        {back && <a className="back-link" href="#">← {back}</a>}
+        <h1>{title}</h1>
+        {sub && <p className="sub">{sub}</p>}
+      </div>
+      {right}
+    </div>
+  );
+}
+function Stat({ lbl, val, tone = "pink" }) {
+  return (
+    <div className={`stat t-${tone}`}>
+      <div className="lbl">{lbl}</div>
+      <div className="val tabular">{val}</div>
+    </div>
+  );
+}
+
+/* ==========================================================
+   1 — Landing (volunteer)
+   ========================================================== */
+function Landing() {
+  return (
+    <div className="screen">
+      <div style={{ textAlign: "center", paddingTop: 28, paddingBottom: 22 }}>
+        <Wordmark size={44} />
+        <div className="mono" style={{
+          marginTop: 10, fontSize: 10.5, letterSpacing: ".28em",
+          textTransform: "uppercase", color: "var(--ink-dim)",
+        }}>
+          Spring BBQ Bash · April 19
+        </div>
+      </div>
+
+      <div style={{ display: "flex", justifyContent: "center", margin: "18px 0 26px" }}>
+        <GlowCross size={100} color="cyan" />
+      </div>
+
+      <div className="sign c-pink" style={{ textAlign: "center" }}>
+        <span className="bolt tl" /><span className="bolt tr" />
+        <span className="bolt bl" /><span className="bolt br" />
+        <div className="eyebrow glow-yellow" style={{ marginBottom: 8 }}>Volunteer Station</div>
+        <div className="font-display" style={{ fontSize: 26, lineHeight: 1.1, color: "var(--ink)" }}>
+          Clock in, grab your<br/>
+          <span className="glow-pink">lanyard</span>, get glowing.
+        </div>
+        <p className="text-dim" style={{ fontSize: 13, marginTop: 10, lineHeight: 1.5 }}>
+          Tap below to confirm your shift and pick up your station wristband.
+          New faces? We'll get you a 5-min orientation and a name tag.
+        </p>
+
+        <div className="stack-2" style={{ marginTop: 18 }}>
+          <button className="btn btn-big btn-xl btn-block">Check me in</button>
+          <button className="btn btn-ghost btn-block">I'm new here →</button>
+        </div>
+      </div>
+
+      <div className="divider-dashed" style={{ margin: "22px 0 14px" }} />
+
+      <div className="row" style={{ justifyContent: "space-between" }}>
+        <div className="meta-mono">RENDEZVOUS · MAIN TENT</div>
+        <div className="meta-mono">5:30–9:00 PM</div>
+      </div>
+
+      <div className="grid-3" style={{ marginTop: 12 }}>
+        <div className="stat t-pink"><div className="lbl">Stations</div><div className="val">07</div></div>
+        <div className="stat t-cyan"><div className="lbl">Volunteers</div><div className="val">42</div></div>
+        <div className="stat t-yellow"><div className="lbl">Guests ex.</div><div className="val">310</div></div>
+      </div>
+    </div>
+  );
+}
+
+/* ==========================================================
+   2 — Volunteer registration (shift details + consent)
+   ========================================================== */
+function Registration() {
+  const [station, setStation] = useState("Check-In");
+  const [shift, setShift] = useState("5:30–7:00");
+  const [consent, setConsent] = useState(true);
+
+  return (
+    <div className="screen">
+      <PageHead
+        back="Volunteer"
+        title="Register for a shift"
+        sub="Two quick picks and you're in. Organizers will see you on the board instantly."
+      />
+
+      <div className="stack-4">
+        <div>
+          <label>Your name</label>
+          <input type="text" defaultValue="Priya Menon" />
+        </div>
+
+        <div>
+          <label>Phone</label>
+          <input type="tel" defaultValue="(415) 555-0148" />
+        </div>
+
+        <div>
+          <label>Station</label>
+          <div className="stack-2">
+            {["Check-In", "Photo Booth", "Grill Runner", "Games & Yard", "Cleanup Crew"].map((s) => (
+              <button key={s} className={`opt ${station === s ? "active" : ""}`} onClick={() => setStation(s)}>
+                {s}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <label>Shift window</label>
+          <div className="grid-3">
+            {["5:30–7:00", "7:00–8:30", "All night"].map((s) => (
+              <button key={s}
+                className={`opt cyan ${shift === s ? "active" : ""}`}
+                onClick={() => setShift(s)}
+                style={{ textAlign: "center", fontSize: 12, padding: "10px 6px" }}
+              >{s}</button>
+            ))}
+          </div>
+        </div>
+
+        <div className="card pad-lg c-purple" onClick={() => setConsent(!consent)} style={{ cursor: "pointer" }}>
+          <div className="row" style={{ alignItems: "flex-start" }}>
+            <div className={`toggle ${consent ? "on" : ""}`}><div className="nub" /></div>
+            <div style={{ flex: 1 }}>
+              <div className="font-display" style={{ fontSize: 13, marginBottom: 4 }}>
+                Photos &amp; video consent
+              </div>
+              <div className="text-dim" style={{ fontSize: 12, lineHeight: 1.45 }}>
+                Our photo team may capture you at stations and in group shots. Approved
+                photos post to the Bash Wall during the event and the parish album after.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <button className="btn btn-big btn-xl btn-block">Confirm my shift</button>
+        <p className="meta-mono" style={{ textAlign: "center", marginTop: 6 }}>
+          You'll get a text 30 min before your shift starts.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/* ==========================================================
+   3 — Check-in station (QR scanner + walk-in)
+   ========================================================== */
+function CheckinStation() {
+  return (
+    <div className="screen">
+      <PageHead
+        back="Stations"
+        title="Check-In Station"
+        sub="Scan a guest's RSVP QR, or tap Walk-in to register a new household."
+        right={<span className="chip chip-cyan">LIVE · <b>217</b></span>}
+      />
+
+      <div className="scanner">
+        <div className="corners"><span/><span/><span/><span/></div>
+        <div className="beam" />
+        <div className="hint">Align QR in view · auto-capture</div>
+      </div>
+
+      <div className="grid-2" style={{ marginTop: 14 }}>
+        <button className="btn btn-big">Walk-in</button>
+        <button className="btn btn-ghost">Manual lookup</button>
+      </div>
+
+      <div className="section-heading c-cyan" style={{ margin: "22px 0 10px" }}>
+        <span className="num">LOG</span>
+        <span className="title">Recent arrivals</span>
+        <span className="rule" />
+      </div>
+
+      <div className="stack-2">
+        {[
+          ["The Okafor family", "Party of 5 · wristbands given", "2m"],
+          ["Han, Esther (+1)", "New to parish · welcome flyer", "4m"],
+          ["The Alvarez family", "Party of 4 · 2 kids zone", "6m"],
+          ["Padilla, Miguel", "Solo · volunteer crossover", "9m"],
+        ].map(([n, d, t]) => (
+          <div key={n} className="card" style={{ padding: "10px 14px" }}>
+            <div className="row" style={{ justifyContent: "space-between" }}>
+              <div>
+                <div className="font-display" style={{ fontSize: 13 }}>{n}</div>
+                <div className="text-dim" style={{ fontSize: 11.5, marginTop: 2 }}>{d}</div>
+              </div>
+              <div className="meta-mono glow-mint">{t} ago</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ==========================================================
+   4 — Photo booth station (consent-gated capture)
+   ========================================================== */
+function PhotoBoothStation() {
+  const [frame, setFrame] = useState("Neon Cross");
+  return (
+    <div className="screen">
+      <PageHead
+        back="Stations"
+        title="Photo Booth"
+        sub="Tap the screen to snap. Guests pick a frame; upload is consent-gated."
+        right={<span className="chip chip-pink">TAKEN · <b>48</b></span>}
+      />
+
+      <div className="scanner" style={{ aspectRatio: "3/4" }}>
+        <div className="corners"><span/><span/><span/><span/></div>
+        <div style={{
+          position: "absolute", inset: 18,
+          border: "1.5px dashed color-mix(in oklab, var(--neon-1) 40%, transparent)",
+          borderRadius: 16,
+          display: "grid", placeItems: "center",
+        }}>
+          <GlowCross size={90} color="pink" />
+        </div>
+        <div className="hint">"{frame}" frame · 3-2-1 auto</div>
+      </div>
+
+      <div style={{ marginTop: 14 }}>
+        <label>Frame style</label>
+        <div className="filter-row">
+          {["Neon Cross", "BBQ Bash", "Glow Halo", "No Frame"].map((f) => (
+            <button key={f}
+              className={`filter-chip ${frame === f ? "active" : ""}`}
+              onClick={() => setFrame(f)}>
+              {f}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="banner banner-ok" style={{ marginTop: 16 }}>
+        <b className="font-display" style={{ fontSize: 12 }}>CONSENT ON</b>
+        <span style={{ marginLeft: 8 }}>
+          Auto-posts to the Bash Wall. Guest can pull it back from their phone anytime.
+        </span>
+      </div>
+
+      <div className="grid-2" style={{ marginTop: 14 }}>
+        <button className="btn btn-pink btn-lg">Snap!</button>
+        <button className="btn btn-ghost">Retake last</button>
+      </div>
+    </div>
+  );
+}
+
+/* ==========================================================
+   5 — Games & prizes (yard station with perk redeems)
+   ========================================================== */
+function GamesStation() {
+  return (
+    <div className="screen">
+      <PageHead
+        back="Stations"
+        title="Games & Prizes"
+        sub="Tap redeem when a kid wins a round. Inventory syncs to the admin board."
+      />
+
+      <div className="perks" style={{ marginBottom: 14 }}>
+        <div className="perk c-cyan">
+          <div className="count">12</div>
+          <h3>Glow wristband</h3>
+          <p>Ring toss · ages 4+</p>
+        </div>
+        <div className="perk c-yellow">
+          <div className="count">08</div>
+          <h3>Halo necklace</h3>
+          <p>Bean bag toss</p>
+        </div>
+        <div className="perk c-pink">
+          <div className="count">20</div>
+          <h3>Sticker pack</h3>
+          <p>Consolation · any game</p>
+        </div>
+        <div className="perk c-purple">
+          <div className="count">04</div>
+          <h3>Plushie prize</h3>
+          <p>Top score · limited</p>
+        </div>
+      </div>
+
+      <div className="section-heading c-yellow">
+        <span className="num">LIVE</span>
+        <span className="title">Quick redeem</span>
+        <span className="rule" />
+      </div>
+
+      <div className="grid-2">
+        <button className="btn btn-cyan btn-lg">−1 Wristband</button>
+        <button className="btn btn-yellow btn-lg">−1 Halo</button>
+        <button className="btn btn-pink btn-lg">−1 Sticker</button>
+        <button className="btn btn-purple btn-lg">−1 Plushie</button>
+      </div>
+
+      <div className="banner banner-warn" style={{ marginTop: 14 }}>
+        <b className="font-display" style={{ fontSize: 12 }}>LOW STOCK</b>
+        <span style={{ marginLeft: 8 }}>
+          Plushies down to 4. Organizers have been notified.
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/* ==========================================================
+   6 — Grill runner station (order board)
+   ========================================================== */
+function GrillStation() {
+  const rows = [
+    ["A-12", "Burger ×2, Dog ×1", "Main Tent", "03:14", "ready"],
+    ["A-13", "Veggie ×1, Dog ×2", "Kids Zone", "02:48", "ready"],
+    ["A-14", "Burger ×3", "Bar Line", "01:22", "cooking"],
+    ["A-15", "Dog ×4, Veg ×1", "Main Tent", "00:44", "cooking"],
+    ["A-16", "Burger ×1", "Pickup", "00:12", "new"],
+  ];
+  return (
+    <div className="screen">
+      <PageHead
+        back="Stations"
+        title="Grill Runner"
+        sub="Take it from the grill and deliver. Tap to mark delivered."
+        right={<span className="chip chip-yellow">QUEUE · <b>5</b></span>}
+      />
+
+      <div className="stack-2">
+        {rows.map(([tk, order, dest, age, status]) => {
+          const chipCls = status === "ready" ? "chip-mint" : status === "cooking" ? "chip-yellow" : "chip-pink";
+          return (
+            <div key={tk} className="card pad-lg">
+              <div className="row" style={{ justifyContent: "space-between", alignItems: "flex-start" }}>
+                <div>
+                  <div className="font-display glow-yellow" style={{ fontSize: 18 }}>{tk}</div>
+                  <div className="font-display" style={{ fontSize: 13, marginTop: 2 }}>{order}</div>
+                  <div className="text-dim" style={{ fontSize: 11.5, marginTop: 4 }}>→ {dest}</div>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <span className={`chip ${chipCls}`}>{status}</span>
+                  <div className="meta-mono tabular" style={{ marginTop: 6 }}>{age}</div>
+                </div>
+              </div>
+              {status === "ready" && (
+                <button className="btn btn-mint btn-block btn-sm" style={{ marginTop: 10 }}>
+                  Delivered — next ↓
+                </button>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ==========================================================
+   7 — Cleanup crew (end-of-night checklist)
+   ========================================================== */
+function CleanupStation() {
+  const [checks, setChecks] = useState({
+    tables: true, trash: true, lost: false, signage: false,
+    recycle: false, leftovers: false, lock: false,
+  });
+  const toggle = (k) => setChecks({ ...checks, [k]: !checks[k] });
+  const items = [
+    ["tables", "Fold & stack tables", "Main Tent"],
+    ["trash",  "Trash bags to dumpster", "Side lot"],
+    ["lost",   "Collect lost & found", "Check-in table"],
+    ["signage","Pull down signage", "Gates + parking"],
+    ["recycle","Break down cardboard", "Back of kitchen"],
+    ["leftovers", "Label leftovers for fridge", "Kitchen"],
+    ["lock",   "Lock sheds + confirm lights", "Grounds"],
+  ];
+  const done = Object.values(checks).filter(Boolean).length;
+
+  return (
+    <div className="screen">
+      <PageHead
+        back="Stations"
+        title="Cleanup Crew"
+        sub="Check items as you finish. Last person to tap 'Lock' closes out the night."
+        right={<span className="chip chip-mint">{done}/{items.length} DONE</span>}
+      />
+
+      <div className="stack-2">
+        {items.map(([k, label, where]) => (
+          <div key={k} className={`card ${checks[k] ? "c-mint" : ""}`}
+            onClick={() => toggle(k)}
+            style={{ padding: "12px 14px", cursor: "pointer", opacity: checks[k] ? .75 : 1 }}
+          >
+            <div className="row" style={{ alignItems: "flex-start" }}>
+              <div className={`toggle ${checks[k] ? "on" : ""}`}><div className="nub" /></div>
+              <div style={{ flex: 1 }}>
+                <div className="font-display" style={{
+                  fontSize: 14,
+                  textDecoration: checks[k] ? "line-through" : "none",
+                  color: checks[k] ? "var(--ink-dim)" : "var(--ink)",
+                }}>{label}</div>
+                <div className="text-dim" style={{ fontSize: 11.5, marginTop: 2 }}>{where}</div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <button
+        className="btn btn-big btn-xl btn-block"
+        style={{ marginTop: 16 }}
+        disabled={done < items.length}
+      >
+        {done < items.length ? `Close out (${items.length - done} left)` : "Close out the night"}
+      </button>
+    </div>
+  );
+}
+
+/* ==========================================================
+   8 — Roaming photo consent prompt (surprise-ambush modal)
+   ========================================================== */
+function RoamingConsent() {
+  return (
+    <div className="screen">
+      <div style={{ textAlign: "center", marginBottom: 18 }}>
+        <Wordmark size={28} />
+        <div className="meta-mono" style={{ marginTop: 6 }}>PHOTO TEAM · ROAMING</div>
+      </div>
+
+      <div className="sign c-yellow" style={{ textAlign: "center" }}>
+        <span className="bolt tl" /><span className="bolt tr" />
+        <span className="bolt bl" /><span className="bolt br" />
+
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: 10 }}>
+          <GlowCross size={72} color="yellow" />
+        </div>
+
+        <div className="eyebrow glow-pink" style={{ marginBottom: 6 }}>Heads up — photo about to happen</div>
+        <div className="font-display" style={{ fontSize: 22, lineHeight: 1.15 }}>
+          Mind if we put your<br/>
+          <span className="glow-yellow">crew on the wall?</span>
+        </div>
+        <p className="text-dim" style={{ fontSize: 12.5, marginTop: 10, lineHeight: 1.5 }}>
+          We'll show it to you first. You can keep it, kill it, or just send it to your phone.
+        </p>
+      </div>
+
+      <div className="stack-2" style={{ marginTop: 16 }}>
+        <button className="btn btn-big btn-lg btn-block">Yes, post to the Wall</button>
+        <button className="btn btn-cyan btn-block" style={{ fontSize: 12 }}>Just text it to me</button>
+        <button className="btn btn-ghost btn-block">No thanks</button>
+      </div>
+
+      <div className="meta-mono" style={{ textAlign: "center", marginTop: 14 }}>
+        FATHER MIKE · BASH LEAD · RISEN&REDEEMED.ORG
+      </div>
+    </div>
+  );
+}
+
+/* ==========================================================
+   9 — Parent-of-kid handoff (wristband + zone)
+   ========================================================== */
+function ParentHandoff() {
+  return (
+    <div className="screen flush">
+      <div style={{ padding: "12px 4px 18px" }}>
+        <PageHead
+          back="Check-in"
+          title="Kids Zone handoff"
+          sub="Please confirm your kid's wristband and pickup code."
+        />
+      </div>
+
+      <div className="sign c-cyan">
+        <span className="bolt tl" /><span className="bolt tr" />
+        <span className="bolt bl" /><span className="bolt br" />
+
+        <div className="eyebrow glow-cyan">WRISTBAND · CY-04</div>
+        <div className="row" style={{ justifyContent: "space-between", alignItems: "flex-end", marginTop: 6 }}>
+          <div>
+            <div className="font-display" style={{ fontSize: 26, lineHeight: 1 }}>
+              Lucas <span className="glow-pink">Alvarez</span>
+            </div>
+            <div className="text-dim" style={{ fontSize: 12.5, marginTop: 6 }}>Age 6 · peanut allergy · glasses</div>
+          </div>
+          <div className="font-numeral" style={{ fontSize: 52, color: "var(--neon-2)", textShadow: "0 0 14px var(--neon-2)" }}>
+            04
+          </div>
+        </div>
+
+        <div className="divider" style={{ margin: "14px 0 12px" }} />
+
+        <div className="grid-2">
+          <div>
+            <div className="eyebrow text-dim">PICKUP CODE</div>
+            <div className="font-numeral" style={{ fontSize: 30, color: "var(--neon-3)", textShadow: "0 0 10px var(--neon-3)", marginTop: 4 }}>
+              7214
+            </div>
+          </div>
+          <div>
+            <div className="eyebrow text-dim">ZONE</div>
+            <div className="font-display" style={{ fontSize: 16, marginTop: 6 }}>Tent B · Craft table</div>
+          </div>
+        </div>
+      </div>
+
+      <div className="screen" style={{ paddingTop: 16 }}>
+        <div className="card c-yellow pad-lg">
+          <div className="eyebrow glow-yellow">REMINDER</div>
+          <div className="text-ink" style={{ fontSize: 13.5, marginTop: 6, lineHeight: 1.5 }}>
+            Pickup is <b className="glow-yellow">by code only</b>. Screenshot this page or have the
+            wristband scanned at the Tent B gate.
+          </div>
+        </div>
+
+        <div className="stack-2" style={{ marginTop: 14 }}>
+          <button className="btn btn-big btn-lg btn-block">Drop off Lucas</button>
+          <button className="btn btn-ghost btn-block">Print wristband</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+Object.assign(window, {
+  GlowCross, Wordmark, FrameBackdrop,
+  Phone, Laptop, PageHead, Stat,
+  Landing, Registration,
+  CheckinStation, PhotoBoothStation, GamesStation,
+  GrillStation, CleanupStation, RoamingConsent, ParentHandoff,
+});
+
+
+/* global React, PageHead, Stat */
+/* ==========================================================
+   Spring BBQ Bash — admin screens (laptop frame)
+   ========================================================== */
+
+const { useState: useStateAdmin } = React;
+
+/* ----------------------- Admin nav ----------------------- */
+function AdminNav({ active }) {
+  const items = ["Dashboard", "Guests", "Volunteers", "Stations", "Photos", "Comms", "Settings"];
+  return (
+    <div className="admin-nav">
+      <span className="brand"><i />RISEN&amp;REDEEMED · BASH OPS</span>
+      {items.map((n) => (
+        <a key={n} href="#" className={n === active ? "active" : ""}>{n}</a>
+      ))}
+      <span className="home-link">FR. MIKE · LIVE</span>
+    </div>
+  );
+}
+
+/* ==========================================================
+   10 — Admin dashboard (live stats + timeline)
+   ========================================================== */
+function AdminDashboard() {
+  return (
+    <>
+      <AdminNav active="Dashboard" />
+      <div className="screen wide">
+        <div className="row" style={{ justifyContent: "space-between", alignItems: "flex-end", marginBottom: 16 }}>
+          <div>
+            <div className="eyebrow text-dim">SATURDAY · APR 19 · 7:12 PM</div>
+            <h1 className="font-display" style={{ fontSize: 26, margin: "4px 0 0", letterSpacing: ".01em" }}>
+              Bash is <span className="glow-mint">live</span>. Here's the pulse.
+            </h1>
+          </div>
+          <div className="row gap-2">
+            <span className="chip chip-mint">LIVE · <b>217</b> ONSITE</span>
+            <button className="btn btn-ghost btn-sm">Broadcast</button>
+          </div>
+        </div>
+
+        <div className="grid-4">
+          <Stat lbl="Checked in"    val="217" tone="mint" />
+          <Stat lbl="Expected"      val="310" tone="cyan" />
+          <Stat lbl="Kids zone"     val="58"  tone="pink" />
+          <Stat lbl="Photos posted" val="94"  tone="yellow" />
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr", gap: 18, marginTop: 18 }}>
+          <div className="card c-purple pad-lg">
+            <div className="row" style={{ justifyContent: "space-between" }}>
+              <div className="eyebrow glow-purple">NIGHT TIMELINE</div>
+              <div className="meta-mono">AUTO-ADVANCE</div>
+            </div>
+            <div style={{ marginTop: 14, position: "relative", paddingLeft: 18 }}>
+              <div style={{
+                position: "absolute", left: 6, top: 6, bottom: 6, width: 2,
+                background: "linear-gradient(to bottom, var(--neon-1), var(--neon-4), var(--neon-2))",
+                borderRadius: 2,
+              }} />
+              {[
+                ["5:30", "Doors open", "done", "mint"],
+                ["6:00", "Welcome + grace (Fr. Mike)", "done", "mint"],
+                ["6:30", "Grill + games in full swing", "now", "yellow"],
+                ["7:30", "Kids' blessing circle", "next", "cyan"],
+                ["8:15", "Group photo · Main Tent", "next", "cyan"],
+                ["8:45", "Last call + thanks", "next", "purple"],
+                ["9:00", "Cleanup crew begins", "next", "pink"],
+              ].map(([t, label, state, tone], i) => (
+                <div key={i} className="row" style={{ marginBottom: 14, position: "relative" }}>
+                  <div style={{
+                    position: "absolute", left: -19, top: 2,
+                    width: 14, height: 14, borderRadius: "50%",
+                    background: "var(--bg-elev)",
+                    border: `2px solid var(--neon-${{mint:5,yellow:3,cyan:2,purple:4,pink:1}[tone]})`,
+                    boxShadow: state === "now" ? `0 0 10px var(--neon-${{mint:5,yellow:3,cyan:2,purple:4,pink:1}[tone]})` : "none",
+                  }} />
+                  <div className="font-numeral tabular" style={{
+                    width: 56, fontSize: 22, color: "var(--ink)",
+                    opacity: state === "done" ? .5 : 1,
+                  }}>{t}</div>
+                  <div style={{ flex: 1 }}>
+                    <div className="font-display" style={{
+                      fontSize: 13,
+                      color: state === "done" ? "var(--ink-dim)" : "var(--ink)",
+                      textDecoration: state === "done" ? "line-through" : "none",
+                    }}>{label}</div>
+                  </div>
+                  {state === "now" && <span className="chip chip-yellow">NOW</span>}
+                  {state === "done" && <span className="chip chip-quiet">done</span>}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="stack-3">
+            <div className="card c-pink pad-lg">
+              <div className="eyebrow glow-pink">ALERTS · 2</div>
+              <div className="stack-2" style={{ marginTop: 10 }}>
+                <div className="card" style={{ padding: "10px 12px" }}>
+                  <div className="font-display" style={{ fontSize: 12.5 }}>Plushies at 4 left</div>
+                  <div className="text-dim" style={{ fontSize: 11.5, marginTop: 2 }}>Games & Yard · raised by Priya</div>
+                </div>
+                <div className="card" style={{ padding: "10px 12px" }}>
+                  <div className="font-display" style={{ fontSize: 12.5 }}>Grill line &gt; 8 min wait</div>
+                  <div className="text-dim" style={{ fontSize: 11.5, marginTop: 2 }}>Auto-detected · 2 runners idle</div>
+                </div>
+              </div>
+              <button className="btn btn-ghost btn-sm btn-block" style={{ marginTop: 10 }}>Triage all →</button>
+            </div>
+
+            <div className="card c-cyan pad-lg">
+              <div className="eyebrow glow-cyan">STATIONS · 7 OPEN</div>
+              <div className="stack-1" style={{ marginTop: 10, fontSize: 12.5 }}>
+                {[
+                  ["Check-In", "mint", "3 on"],
+                  ["Photo Booth", "mint", "2 on"],
+                  ["Grill", "yellow", "busy"],
+                  ["Games & Yard", "pink", "low stock"],
+                  ["Kids Zone", "mint", "4 on"],
+                  ["Bar / Drinks", "mint", "1 on"],
+                  ["Cleanup", "cyan", "on deck"],
+                ].map(([s, tone, note]) => (
+                  <div key={s} className="row" style={{ justifyContent: "space-between", padding: "4px 0" }}>
+                    <span className="font-display" style={{ fontSize: 13 }}>{s}</span>
+                    <span className={`chip chip-${tone}`}>{note}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+/* ==========================================================
+   11 — Guest list (table)
+   ========================================================== */
+function AdminGuests() {
+  const [filter, setFilter] = useStateAdmin("All");
+  const rows = [
+    ["Alvarez family",     "Party of 4", "Checked in", "6:32p", "new"],
+    ["Okafor family",      "Party of 5", "Checked in", "6:29p", ""],
+    ["Han, Esther (+1)",   "Party of 2", "Checked in", "6:27p", "new"],
+    ["Delgado family",     "Party of 3", "Expected",   "—",     ""],
+    ["Wu, Ming",           "Solo",       "Checked in", "6:18p", ""],
+    ["The Okonkwo's",      "Party of 4", "Expected",   "—",     ""],
+    ["Patel family",       "Party of 3", "Checked in", "6:11p", "vip"],
+    ["Blake, Tomás",       "Solo",       "No-show",    "—",     ""],
+  ];
+
+  const shown = rows.filter((r) => filter === "All" || r[2] === filter);
+
+  return (
+    <>
+      <AdminNav active="Guests" />
+      <div className="screen wide">
+        <div className="row" style={{ justifyContent: "space-between", alignItems: "flex-end", marginBottom: 14 }}>
+          <div>
+            <div className="eyebrow text-dim">RSVP · CHECK-IN</div>
+            <h1 className="font-display" style={{ fontSize: 24, margin: "4px 0 0" }}>Guest list</h1>
+          </div>
+          <div className="row gap-2">
+            <input type="search" placeholder="Search name or household…" style={{ width: 260 }} />
+            <button className="btn btn-big btn-sm">+ Add household</button>
+          </div>
+        </div>
+
+        <div className="filter-row" style={{ marginBottom: 12 }}>
+          {["All", "Checked in", "Expected", "No-show"].map((f) => (
+            <button key={f} className={`filter-chip ${filter === f ? "active" : ""}`} onClick={() => setFilter(f)}>
+              {f}
+            </button>
+          ))}
+          <span className="meta-mono" style={{ marginLeft: "auto", alignSelf: "center" }}>
+            {shown.length} of {rows.length}
+          </span>
+        </div>
+
+        <table className="tbl">
+          <thead>
+            <tr>
+              <th>Household</th>
+              <th>Party</th>
+              <th>Status</th>
+              <th>Checked at</th>
+              <th>Tag</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {shown.map(([n, p, s, t, tag], i) => (
+              <tr key={i}>
+                <td><a className="name-link" href="#">{n}</a></td>
+                <td className="dim tabular">{p}</td>
+                <td>
+                  {s === "Checked in" && <span className="chip chip-mint">{s}</span>}
+                  {s === "Expected"   && <span className="chip chip-cyan">{s}</span>}
+                  {s === "No-show"    && <span className="chip chip-quiet">{s}</span>}
+                </td>
+                <td className="dim tabular">{t}</td>
+                <td>
+                  {tag === "new" && <span className="chip chip-yellow">NEW</span>}
+                  {tag === "vip" && <span className="chip chip-pink">VIP</span>}
+                </td>
+                <td style={{ textAlign: "right" }}>
+                  <button className="btn btn-ghost btn-sm">Edit</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
+  );
+}
+
+/* ==========================================================
+   12 — Volunteer board
+   ========================================================== */
+function AdminVolunteers() {
+  const people = [
+    ["Priya Menon",    "Check-In",    "5:30–7:00", "on shift", "mint"],
+    ["Jorge Rivera",   "Grill",       "6:00–8:00", "on shift", "mint"],
+    ["Esther Han",     "Photo Booth", "All night", "on shift", "mint"],
+    ["Sam Okafor",     "Games",       "7:00–8:30", "starts 18m", "cyan"],
+    ["Marisol Alvarez","Kids Zone",   "5:30–7:00", "on shift", "mint"],
+    ["Kenji Wu",       "Cleanup",     "8:30–close","starts 78m", "purple"],
+    ["Teresa Delgado", "Bar",         "7:00–9:00", "starts 18m", "cyan"],
+    ["Fr. Mike Arden", "Floater",     "All night", "on shift", "yellow"],
+  ];
+  return (
+    <>
+      <AdminNav active="Volunteers" />
+      <div className="screen wide">
+        <div className="row" style={{ justifyContent: "space-between", alignItems: "flex-end", marginBottom: 14 }}>
+          <div>
+            <div className="eyebrow text-dim">42 · TONIGHT</div>
+            <h1 className="font-display" style={{ fontSize: 24, margin: "4px 0 0" }}>Volunteer board</h1>
+          </div>
+          <div className="row gap-2">
+            <button className="btn btn-ghost btn-sm">Export roster</button>
+            <button className="btn btn-big btn-sm">+ Add volunteer</button>
+          </div>
+        </div>
+
+        <div className="grid-4" style={{ marginBottom: 14 }}>
+          <Stat lbl="On shift now" val="24" tone="mint" />
+          <Stat lbl="Starting soon" val="06" tone="cyan" />
+          <Stat lbl="Scheduled"    val="42" tone="purple" />
+          <Stat lbl="No-show"      val="02" tone="pink" />
+        </div>
+
+        <table className="tbl">
+          <thead>
+            <tr><th>Name</th><th>Station</th><th>Shift</th><th>Status</th><th></th></tr>
+          </thead>
+          <tbody>
+            {people.map(([n, st, sh, stat, tone], i) => (
+              <tr key={i}>
+                <td><a className="name-link" href="#">{n}</a></td>
+                <td>{st}</td>
+                <td className="dim tabular">{sh}</td>
+                <td><span className={`chip chip-${tone}`}>{stat}</span></td>
+                <td style={{ textAlign: "right" }}>
+                  <button className="btn btn-ghost btn-sm">Msg</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
+  );
+}
+
+/* ==========================================================
+   13 — Photo moderation grid (Bash Wall queue)
+   ========================================================== */
+function AdminPhotos() {
+  const tiles = [
+    { state: "approved",  frame: "pink",   label: "Alvarez fam"   },
+    { state: "queue",     frame: "cyan",   label: "Group · tent"  },
+    { state: "queue",     frame: "yellow", label: "Lucas · bounce"},
+    { state: "approved",  frame: "purple", label: "Fr. Mike"      },
+    { state: "flagged",   frame: "pink",   label: "— consent off" },
+    { state: "approved",  frame: "cyan",   label: "Grill crew"    },
+    { state: "queue",     frame: "yellow", label: "Kids table"    },
+    { state: "approved",  frame: "purple", label: "Sunset"        },
+    { state: "queue",     frame: "pink",   label: "Ring toss"     },
+    { state: "approved",  frame: "cyan",   label: "Dessert line"  },
+    { state: "queue",     frame: "yellow", label: "Esther & crew" },
+    { state: "approved",  frame: "purple", label: "Halo dance"    },
+  ];
+  return (
+    <>
+      <AdminNav active="Photos" />
+      <div className="screen wide">
+        <div className="row" style={{ justifyContent: "space-between", alignItems: "flex-end", marginBottom: 12 }}>
+          <div>
+            <div className="eyebrow text-dim">BASH WALL · MODERATION</div>
+            <h1 className="font-display" style={{ fontSize: 24, margin: "4px 0 0" }}>
+              Photos <span className="glow-pink">queue</span>
+            </h1>
+            <p className="text-dim" style={{ fontSize: 12.5, margin: "4px 0 0" }}>
+              4 awaiting review · approve or flag. Consent-off photos can be released back to the guest only.
+            </p>
+          </div>
+          <div className="row gap-2">
+            <span className="chip chip-mint">APPROVED · <b>94</b></span>
+            <span className="chip chip-yellow">QUEUE · <b>4</b></span>
+            <span className="chip chip-danger">FLAGGED · <b>1</b></span>
+          </div>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
+          {tiles.map((t, i) => {
+            const tone = t.frame;
+            const stateChip = t.state === "approved" ? "chip-mint"
+                           : t.state === "queue" ? "chip-yellow"
+                           : "chip-danger";
+            return (
+              <div key={i} className="card" style={{ padding: 6, position: "relative" }}>
+                <div style={{
+                  aspectRatio: "1/1",
+                  borderRadius: 10,
+                  border: `1.5px solid color-mix(in oklab, var(--neon-${{pink:1,cyan:2,yellow:3,purple:4}[tone]}) 60%, transparent)`,
+                  background: `radial-gradient(ellipse at 50% 50%, color-mix(in oklab, var(--neon-${{pink:1,cyan:2,yellow:3,purple:4}[tone]}) 28%, transparent), #0b0118 75%)`,
+                  display: "grid", placeItems: "center", overflow: "hidden",
+                }}>
+                  <GlowCross size={54} color={tone} />
+                </div>
+                <div className="row" style={{ justifyContent: "space-between", padding: "8px 6px 4px" }}>
+                  <span className="font-mono" style={{ fontSize: 10.5, color: "var(--ink-dim)", letterSpacing: ".1em" }}>
+                    {t.label}
+                  </span>
+                  <span className={`chip ${stateChip}`} style={{ fontSize: 9, padding: "3px 7px" }}>
+                    {t.state}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </>
+  );
+}
+
+Object.assign(window, {
+  AdminNav, AdminDashboard, AdminGuests, AdminVolunteers, AdminPhotos,
+});
+
+
+/* global React, ReactDOM, Phone, Laptop,
+   Landing, Registration, CheckinStation, PhotoBoothStation, GamesStation,
+   GrillStation, CleanupStation, RoamingConsent, ParentHandoff,
+   AdminDashboard, AdminGuests, AdminVolunteers, AdminPhotos */
+
+const SECTIONS = [
+  { id: "all",         label: "All 13 screens" },
+  { id: "volunteer",   label: "Volunteer onboarding" },
+  { id: "stations",    label: "Stations" },
+  { id: "guest",       label: "Guest-facing" },
+  { id: "admin",       label: "Admin / ops" },
+];
+
+function Section({ num, color, title, emphasis, note, children, wide }) {
+  const [before, after] = emphasis ? title.split(emphasis) : [title, ""];
+  return (
+    <div style={{ marginTop: 28 }}>
+      <div className={`section-heading c-${color}`}>
+        <span className="num">{num}</span>
+        <span className="title">{before}{emphasis && <em>{emphasis}</em>}{after}</span>
+        <span className="rule" />
+      </div>
+      {note && <p className="section-note">{note}</p>}
+      <div className={`gallery ${wide ? "wide" : ""}`}>{children}</div>
+    </div>
+  );
+}
+
+function FrameCard({ num, route, label, children }) {
+  return (
+    <div className="frame-card">
+      {children}
+      <div className="frame-label">
+        <b>{num}</b>
+        <span>{label}</span>
+        <span className="route">/{route}</span>
+      </div>
+    </div>
+  );
+}
+
+function App() {
+  const [tab, setTab] = useState("all");
+  const show = (ids) => tab === "all" || ids.includes(tab);
+
+  return (
+    <div className="shell">
+      <div className="shell-head">
+        <div>
+          <div className="meta">PROTOTYPE · V2 · RISEN&amp;REDEEMED · SPRING BBQ BASH</div>
+          <h1>The whole night, one prototype.</h1>
+          <p>
+            13 screens across volunteer onboarding, live station tools,
+            guest-facing prompts, and admin ops — rebuilt on the Glow Party
+            design system (Monoton numerals, Bungee display, neon on indigo).
+          </p>
+        </div>
+        <div className="meta-right">
+          APRIL 19 · 5:30–9:00 PM<br/>
+          ST. ANSELM'S · GROUNDS<br/>
+          V2 · UNBOUNDED AURORA
+        </div>
+      </div>
+
+      <div className="tabs">
+        {SECTIONS.map((s) => (
+          <button key={s.id} className={tab === s.id ? "active" : ""} onClick={() => setTab(s.id)}>
+            {s.label}
+          </button>
+        ))}
+      </div>
+
+      {show(["volunteer"]) && (
+        <Section num="01" color="pink" title="Volunteer onboarding" emphasis="onboarding"
+          note="Sign-in station the volunteers tap first, and a 2-minute registration flow for new faces.">
+          <FrameCard num="01" route="volunteer" label="Landing · check in">
+            <Phone><Landing /></Phone>
+          </FrameCard>
+          <FrameCard num="02" route="volunteer/register" label="Shift registration">
+            <Phone bg="soft"><Registration /></Phone>
+          </FrameCard>
+        </Section>
+      )}
+
+      {show(["stations"]) && (
+        <Section num="02" color="cyan" title="Station tools" emphasis="Station"
+          note="Each volunteer station gets its own screen, tuned for the task at hand: scanning, cooking, running prizes, closing out the night.">
+          <FrameCard num="03" route="station/checkin" label="Check-in · scanner">
+            <Phone><CheckinStation /></Phone>
+          </FrameCard>
+          <FrameCard num="04" route="station/photo" label="Photo booth · consent-gated">
+            <Phone bg="soft"><PhotoBoothStation /></Phone>
+          </FrameCard>
+          <FrameCard num="05" route="station/games" label="Games · prize redeems">
+            <Phone><GamesStation /></Phone>
+          </FrameCard>
+          <FrameCard num="06" route="station/grill" label="Grill runner · order board">
+            <Phone bg="very-soft"><GrillStation /></Phone>
+          </FrameCard>
+          <FrameCard num="07" route="station/cleanup" label="Cleanup · close-out">
+            <Phone><CleanupStation /></Phone>
+          </FrameCard>
+        </Section>
+      )}
+
+      {show(["guest"]) && (
+        <Section num="03" color="yellow" title="Guest-facing" emphasis="Guest-facing"
+          note="The two places a guest's phone actually enters the flow — a roaming photo consent prompt and a Kids Zone handoff confirmation.">
+          <FrameCard num="08" route="guest/photo-consent" label="Roaming photo · consent">
+            <Phone><RoamingConsent /></Phone>
+          </FrameCard>
+          <FrameCard num="09" route="guest/kids-handoff" label="Parent · Kids Zone handoff">
+            <Phone bg="soft"><ParentHandoff /></Phone>
+          </FrameCard>
+        </Section>
+      )}
+
+      {show(["admin"]) && (
+        <Section num="04" color="purple" title="Admin ops" emphasis="Admin"
+          note="What Fr. Mike and the ops lead see on a laptop backstage — the live pulse, guest list, volunteer board, and Bash Wall moderation." wide>
+          <FrameCard num="10" route="admin/dashboard" label="Dashboard · live pulse">
+            <Laptop url="bash.risenandredeemed.org/admin"><AdminDashboard /></Laptop>
+          </FrameCard>
+          <FrameCard num="11" route="admin/guests" label="Guest list · check-in">
+            <Laptop url="bash.risenandredeemed.org/admin/guests"><AdminGuests /></Laptop>
+          </FrameCard>
+          <FrameCard num="12" route="admin/volunteers" label="Volunteer board">
+            <Laptop url="bash.risenandredeemed.org/admin/volunteers"><AdminVolunteers /></Laptop>
+          </FrameCard>
+          <FrameCard num="13" route="admin/photos" label="Bash Wall · moderation">
+            <Laptop url="bash.risenandredeemed.org/admin/photos"><AdminPhotos /></Laptop>
+          </FrameCard>
+        </Section>
+      )}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+
+</script>
+
+</body>
+</html>

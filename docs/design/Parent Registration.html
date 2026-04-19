@@ -1,0 +1,917 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Parent Registration — 3 variants</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Monoton&family=Bungee&family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  html, body, #root { height: 100%; margin: 0; padding: 0; }
+  body { background: #f0eee9; overflow: hidden; font-family: -apple-system, system-ui, sans-serif; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel">
+// ==== design-canvas.jsx ====
+
+// DesignCanvas.jsx — Figma-ish design canvas wrapper
+// Warm gray grid bg + Sections + Artboards + PostIt notes.
+// No assets, no deps.
+
+const DC = {
+  bg: '#f0eee9',
+  grid: 'rgba(0,0,0,0.06)',
+  label: 'rgba(60,50,40,0.7)',
+  title: 'rgba(40,30,20,0.85)',
+  subtitle: 'rgba(60,50,40,0.6)',
+  postitBg: '#fef4a8',
+  postitText: '#5a4a2a',
+  font: '-apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif',
+};
+
+// ─────────────────────────────────────────────────────────────
+// Main canvas — transform-based pan/zoom viewport
+//
+// Input mapping (Figma-style):
+//   • trackpad pinch  → zoom   (ctrlKey wheel; Safari gesture* events)
+//   • trackpad scroll → pan    (two-finger)
+//   • mouse wheel     → zoom   (notched; distinguished from trackpad scroll)
+//   • middle-drag / primary-drag-on-bg → pan
+//
+// Transform state lives in a ref and is written straight to the DOM
+// (translate3d + will-change) so wheel ticks don't go through React —
+// keeps pans at 60fps on dense canvases.
+// ─────────────────────────────────────────────────────────────
+function DesignCanvas({ children, minScale = 0.1, maxScale = 8, style = {} }) {
+  const vpRef = React.useRef(null);
+  const worldRef = React.useRef(null);
+  const tf = React.useRef({ x: 0, y: 0, scale: 1 });
+
+  const apply = React.useCallback(() => {
+    const { x, y, scale } = tf.current;
+    const el = worldRef.current;
+    if (el) el.style.transform = `translate3d(${x}px, ${y}px, 0) scale(${scale})`;
+  }, []);
+
+  React.useEffect(() => {
+    const vp = vpRef.current;
+    if (!vp) return;
+
+    const zoomAt = (cx, cy, factor) => {
+      const r = vp.getBoundingClientRect();
+      const px = cx - r.left, py = cy - r.top;
+      const t = tf.current;
+      const next = Math.min(maxScale, Math.max(minScale, t.scale * factor));
+      const k = next / t.scale;
+      // keep the world point under the cursor fixed
+      t.x = px - (px - t.x) * k;
+      t.y = py - (py - t.y) * k;
+      t.scale = next;
+      apply();
+    };
+
+    // Mouse-wheel vs trackpad-scroll heuristic. A physical wheel sends
+    // line-mode deltas (Firefox) or large integer pixel deltas with no X
+    // component (Chrome/Safari, typically multiples of 100/120). Trackpad
+    // two-finger scroll sends small/fractional pixel deltas, often with
+    // non-zero deltaX. ctrlKey is set by the browser for trackpad pinch.
+    const isMouseWheel = (e) =>
+      e.deltaMode !== 0 ||
+      (e.deltaX === 0 && Number.isInteger(e.deltaY) && Math.abs(e.deltaY) >= 40);
+
+    const onWheel = (e) => {
+      e.preventDefault();
+      if (isGesturing) return; // Safari: gesture* owns the pinch — discard concurrent wheels
+      if (e.ctrlKey) {
+        // trackpad pinch (or explicit ctrl+wheel)
+        zoomAt(e.clientX, e.clientY, Math.exp(-e.deltaY * 0.01));
+      } else if (isMouseWheel(e)) {
+        // notched mouse wheel — fixed-ratio step per click
+        zoomAt(e.clientX, e.clientY, Math.exp(-Math.sign(e.deltaY) * 0.18));
+      } else {
+        // trackpad two-finger scroll — pan
+        tf.current.x -= e.deltaX;
+        tf.current.y -= e.deltaY;
+        apply();
+      }
+    };
+
+    // Safari sends native gesture* events for trackpad pinch with a smooth
+    // e.scale; preferring these over the ctrl+wheel fallback gives a much
+    // better feel there. No-ops on other browsers. Safari also fires
+    // ctrlKey wheel events during the same pinch — isGesturing makes
+    // onWheel drop those entirely so they neither zoom nor pan.
+    let gsBase = 1;
+    let isGesturing = false;
+    const onGestureStart = (e) => { e.preventDefault(); isGesturing = true; gsBase = tf.current.scale; };
+    const onGestureChange = (e) => {
+      e.preventDefault();
+      zoomAt(e.clientX, e.clientY, (gsBase * e.scale) / tf.current.scale);
+    };
+    const onGestureEnd = (e) => { e.preventDefault(); isGesturing = false; };
+
+    // Drag-pan: middle button anywhere, or primary button starting on the
+    // canvas background (not inside an artboard).
+    let drag = null;
+    const onPointerDown = (e) => {
+      const onBg = e.target === vp || e.target === worldRef.current;
+      if (!(e.button === 1 || (e.button === 0 && onBg))) return;
+      e.preventDefault();
+      vp.setPointerCapture(e.pointerId);
+      drag = { id: e.pointerId, lx: e.clientX, ly: e.clientY };
+      vp.style.cursor = 'grabbing';
+    };
+    const onPointerMove = (e) => {
+      if (!drag || e.pointerId !== drag.id) return;
+      tf.current.x += e.clientX - drag.lx;
+      tf.current.y += e.clientY - drag.ly;
+      drag.lx = e.clientX; drag.ly = e.clientY;
+      apply();
+    };
+    const onPointerUp = (e) => {
+      if (!drag || e.pointerId !== drag.id) return;
+      vp.releasePointerCapture(e.pointerId);
+      drag = null;
+      vp.style.cursor = '';
+    };
+
+    vp.addEventListener('wheel', onWheel, { passive: false });
+    vp.addEventListener('gesturestart', onGestureStart, { passive: false });
+    vp.addEventListener('gesturechange', onGestureChange, { passive: false });
+    vp.addEventListener('gestureend', onGestureEnd, { passive: false });
+    vp.addEventListener('pointerdown', onPointerDown);
+    vp.addEventListener('pointermove', onPointerMove);
+    vp.addEventListener('pointerup', onPointerUp);
+    vp.addEventListener('pointercancel', onPointerUp);
+    return () => {
+      vp.removeEventListener('wheel', onWheel);
+      vp.removeEventListener('gesturestart', onGestureStart);
+      vp.removeEventListener('gesturechange', onGestureChange);
+      vp.removeEventListener('gestureend', onGestureEnd);
+      vp.removeEventListener('pointerdown', onPointerDown);
+      vp.removeEventListener('pointermove', onPointerMove);
+      vp.removeEventListener('pointerup', onPointerUp);
+      vp.removeEventListener('pointercancel', onPointerUp);
+    };
+  }, [apply, minScale, maxScale]);
+
+  const gridSvg = `url("data:image/svg+xml,%3Csvg width='120' height='120' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M120 0H0v120' fill='none' stroke='${encodeURIComponent(DC.grid)}' stroke-width='1'/%3E%3C/svg%3E")`;
+  return (
+    <div
+      ref={vpRef}
+      className="design-canvas"
+      style={{
+        height: '100vh', width: '100vw',
+        background: DC.bg,
+        overflow: 'hidden',
+        overscrollBehavior: 'none',
+        touchAction: 'none',
+        position: 'relative',
+        fontFamily: DC.font,
+        boxSizing: 'border-box',
+        ...style,
+      }}
+    >
+      <div
+        ref={worldRef}
+        style={{
+          position: 'absolute', top: 0, left: 0,
+          transformOrigin: '0 0',
+          willChange: 'transform',
+          width: 'max-content', minWidth: '100%',
+          minHeight: '100%',
+          padding: '60px 0 80px',
+          backgroundImage: gridSvg,
+          backgroundSize: '120px 120px',
+        }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Section — title + subtitle + h-stack of artboards (no wrap)
+// ─────────────────────────────────────────────────────────────
+function DCSection({ title, subtitle, children, gap = 48 }) {
+  return (
+    <div style={{ marginBottom: 80, position: 'relative' }}>
+      <div style={{ padding: '0 60px 36px' }}>
+        <div style={{
+          fontSize: 22, fontWeight: 600, color: DC.title,
+          letterSpacing: -0.3, marginBottom: 4,
+        }}>{title}</div>
+        {subtitle && (
+          <div style={{
+            fontSize: 14, fontWeight: 400, color: DC.subtitle,
+          }}>{subtitle}</div>
+        )}
+      </div>
+      {/* h-stack — clips offscreen, never wraps */}
+      <div style={{
+        display: 'flex', gap, padding: '0 60px',
+        alignItems: 'flex-start', width: 'max-content',
+      }}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Artboard — labeled card
+// ─────────────────────────────────────────────────────────────
+function DCArtboard({ label, children, width, height, style = {} }) {
+  return (
+    <div style={{ position: 'relative', flexShrink: 0 }}>
+      {label && (
+        <div style={{
+          position: 'absolute', bottom: '100%', left: 0,
+          paddingBottom: 8,
+          fontSize: 12, fontWeight: 500, color: DC.label,
+          whiteSpace: 'nowrap',
+        }}>{label}</div>
+      )}
+      <div style={{
+        borderRadius: 2,
+        boxShadow: '0 1px 3px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.06)',
+        overflow: 'hidden',
+        width, height,
+        background: '#fff',
+        ...style,
+      }}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Post-it — absolute-positioned sticky note
+// ─────────────────────────────────────────────────────────────
+function DCPostIt({ children, top, left, right, bottom, rotate = -2, width = 180 }) {
+  return (
+    <div style={{
+      position: 'absolute', top, left, right, bottom, width,
+      background: DC.postitBg, padding: '14px 16px',
+      fontFamily: '"Comic Sans MS", "Marker Felt", "Segoe Print", cursive',
+      fontSize: 14, lineHeight: 1.4, color: DC.postitText,
+      boxShadow: '0 2px 8px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.08)',
+      transform: `rotate(${rotate}deg)`,
+      zIndex: 5,
+    }}>{children}</div>
+  );
+}
+
+Object.assign(window, { DesignCanvas, DCSection, DCArtboard, DCPostIt });
+
+
+// ==== registration-variants.jsx ====
+// registration-variants.jsx — 3 parent-registration concepts, fully neon
+// Each variant is a single iPhone screen showing the permission-slip UX
+// at the moment parents most engage with it.
+
+const NEON = {
+  bg: '#0b0118',
+  bgElev: '#160529',
+  ink: '#f5f3ff',
+  inkDim: 'rgba(245,243,255,0.62)',
+  inkFaint: 'rgba(245,243,255,0.38)',
+  line: 'rgba(255,255,255,0.10)',
+  pink: '#ff3ea5',
+  cyan: '#22d3ee',
+  yellow: '#fde047',
+  purple: '#8b5cf6',
+  mint: '#4be6b3',
+};
+
+// ─────────────────────────────────────────────────────────────
+// Shared building blocks
+// ─────────────────────────────────────────────────────────────
+
+const MonoLabel = ({ children, c = NEON.inkDim, glow, sz = 10.5 }) => (
+  <span style={{
+    fontFamily: '"JetBrains Mono", monospace',
+    fontSize: sz, letterSpacing: '0.18em',
+    textTransform: 'uppercase', color: c,
+    textShadow: glow ? `0 0 8px ${glow}` : 'none',
+  }}>{children}</span>
+);
+
+const BungeeTitle = ({ children, size = 28, c = '#fff', style = {} }) => (
+  <span style={{
+    fontFamily: '"Bungee", sans-serif', fontWeight: 400,
+    fontSize: size, lineHeight: 1.02, color: c,
+    letterSpacing: '0.01em', ...style,
+  }}>{children}</span>
+);
+
+const MonotonNum = ({ children, c = NEON.cyan, size = 48 }) => (
+  <span style={{
+    fontFamily: '"Monoton", sans-serif', fontSize: size,
+    lineHeight: 0.85, color: c,
+    textShadow: `0 0 6px ${c}, 0 0 20px ${c}88, 0 0 46px ${c}66`,
+  }}>{children}</span>
+);
+
+// Neon-glow button (big CTA)
+const NeonBtn = ({ children, c1 = NEON.pink, c2 = NEON.cyan, style = {} }) => (
+  <div style={{
+    padding: '14px 22px', borderRadius: 999,
+    fontFamily: '"Bungee", sans-serif', fontSize: 13,
+    letterSpacing: '0.04em', color: '#0a0717',
+    background: `linear-gradient(90deg, ${c1}, ${c2})`,
+    boxShadow: `0 0 0 1px #fff inset, 0 0 24px ${c1}88, 0 0 60px ${c2}55`,
+    display: 'inline-flex', alignItems: 'center', gap: 10,
+    textAlign: 'center', justifyContent: 'center',
+    ...style,
+  }}>{children}</div>
+);
+
+// Backdrop — same floor grid + aurora wash as Landing.html but sized for phone
+const PhoneBackdrop = () => (
+  <div style={{
+    position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none',
+  }}>
+    <div style={{
+      position: 'absolute', inset: '-20%',
+      background: `
+        radial-gradient(ellipse 80% 40% at 30% 10%, ${NEON.pink}33, transparent 60%),
+        radial-gradient(ellipse 70% 40% at 80% 25%, ${NEON.cyan}2a, transparent 65%),
+        radial-gradient(ellipse 90% 50% at 50% 100%, ${NEON.yellow}22, transparent 70%)
+      `,
+      filter: 'blur(30px)',
+    }} />
+    <div style={{
+      position: 'absolute', left: '50%', bottom: '-15%',
+      width: '240%', height: '60%',
+      transform: 'translateX(-50%) perspective(500px) rotateX(62deg)',
+      backgroundImage: `
+        linear-gradient(to right, ${NEON.purple}1a 1px, transparent 1px),
+        linear-gradient(to bottom, ${NEON.purple}1a 1px, transparent 1px)
+      `,
+      backgroundSize: '40px 40px',
+      maskImage: 'linear-gradient(to top, black 10%, transparent 90%)',
+      WebkitMaskImage: 'linear-gradient(to top, black 10%, transparent 90%)',
+    }} />
+  </div>
+);
+
+// Tiny LCA crest pill
+const CrestPill = () => (
+  <div style={{
+    display: 'inline-flex', alignItems: 'center', gap: 8,
+    padding: '5px 10px 5px 6px', borderRadius: 999,
+    border: `1px solid ${NEON.line}`, background: '#0b0118cc',
+  }}>
+    <div style={{
+      width: 20, height: 20, borderRadius: '50%',
+      border: `1.2px solid ${NEON.ink}`,
+      display: 'grid', placeItems: 'center',
+      fontFamily: '"Bungee", sans-serif', fontSize: 8,
+      color: NEON.ink,
+    }}>LCA</div>
+    <MonoLabel sz={9}>SPRING BASH '26</MonoLabel>
+  </div>
+);
+
+// Neon status bar (white glyphs on dark)
+const NeonStatusBar = ({ time = '5:00' }) => (
+  <div style={{
+    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+    padding: '21px 34px 14px', position: 'relative', zIndex: 20,
+  }}>
+    <span style={{
+      fontFamily: '-apple-system, "SF Pro", system-ui', fontWeight: 590,
+      fontSize: 17, color: '#fff',
+    }}>{time}</span>
+    <div style={{ display: 'flex', gap: 7, alignItems: 'center' }}>
+      <svg width="19" height="12" viewBox="0 0 19 12">
+        <rect x="0" y="7.5" width="3.2" height="4.5" rx=".7" fill="#fff"/>
+        <rect x="4.8" y="5" width="3.2" height="7" rx=".7" fill="#fff"/>
+        <rect x="9.6" y="2.5" width="3.2" height="9.5" rx=".7" fill="#fff"/>
+        <rect x="14.4" y="0" width="3.2" height="12" rx=".7" fill="#fff"/>
+      </svg>
+      <svg width="17" height="12" viewBox="0 0 17 12">
+        <path d="M8.5 3.2C10.8 3.2 12.9 4.1 14.4 5.6L15.5 4.5C13.7 2.7 11.2 1.5 8.5 1.5C5.8 1.5 3.3 2.7 1.5 4.5L2.6 5.6C4.1 4.1 6.2 3.2 8.5 3.2Z" fill="#fff"/>
+        <path d="M8.5 6.8C9.9 6.8 11.1 7.3 12 8.2L13.1 7.1C11.8 5.9 10.2 5.1 8.5 5.1C6.8 5.1 5.2 5.9 3.9 7.1L5 8.2C5.9 7.3 7.1 6.8 8.5 6.8Z" fill="#fff"/>
+        <circle cx="8.5" cy="10.5" r="1.5" fill="#fff"/>
+      </svg>
+      <svg width="27" height="13" viewBox="0 0 27 13">
+        <rect x=".5" y=".5" width="23" height="12" rx="3.5" stroke="#fff" strokeOpacity=".45" fill="none"/>
+        <rect x="2" y="2" width="20" height="9" rx="2" fill="#fff"/>
+        <path d="M25 4.5V8.5C25.8 8.2 26.5 7.2 26.5 6.5C26.5 5.8 25.8 4.8 25 4.5Z" fill="#fff" fillOpacity=".4"/>
+      </svg>
+    </div>
+  </div>
+);
+
+// ─────────────────────────────────────────────────────────────
+// Variant A — "The Wristband Builder"
+// Parent builds their kid's wristband live. Each toggle fills in
+// a perk slot on a visual wristband that glows as you go.
+// Shown mid-flow, on Step 3 of 5.
+// ─────────────────────────────────────────────────────────────
+
+const PerkSlot = ({ filled, count, label, c, animate }) => (
+  <div style={{
+    padding: '12px 10px 10px', borderRadius: 10,
+    background: filled ? `${c}15` : NEON.bg,
+    border: `1px solid ${filled ? c + '88' : NEON.line}`,
+    display: 'flex', flexDirection: 'column', gap: 4,
+    transition: 'all 0.3s ease',
+    boxShadow: filled ? `0 0 20px ${c}44` : 'none',
+    position: 'relative',
+  }}>
+    <MonotonNum c={filled ? c : NEON.inkFaint} size={34}>{count}</MonotonNum>
+    <span style={{
+      fontFamily: '"Bungee", sans-serif', fontSize: 9,
+      letterSpacing: '0.04em', color: filled ? '#fff' : NEON.inkFaint,
+    }}>{label}</span>
+  </div>
+);
+
+function VariantA() {
+  return (
+    <div style={{
+      width: 402, height: 874, borderRadius: 48, overflow: 'hidden',
+      position: 'relative', background: NEON.bg,
+      boxShadow: '0 40px 80px rgba(0,0,0,0.28), 0 0 0 1px rgba(0,0,0,0.12)',
+      fontFamily: 'system-ui, -apple-system, sans-serif',
+    }}>
+      {/* dynamic island */}
+      <div style={{
+        position: 'absolute', top: 11, left: '50%', transform: 'translateX(-50%)',
+        width: 126, height: 37, borderRadius: 24, background: '#000', zIndex: 50,
+      }} />
+      <PhoneBackdrop />
+      <div style={{ position: 'relative', zIndex: 10, height: '100%', display: 'flex', flexDirection: 'column' }}>
+        <NeonStatusBar />
+
+        {/* top bar */}
+        <div style={{ padding: '4px 20px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <CrestPill />
+          <div style={{
+            width: 34, height: 34, borderRadius: '50%',
+            border: `1px solid ${NEON.line}`,
+            display: 'grid', placeItems: 'center',
+            color: NEON.inkDim, fontSize: 16,
+          }}>✕</div>
+        </div>
+
+        {/* progress dots */}
+        <div style={{ padding: '18px 20px 10px', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <MonoLabel sz={9.5}>STEP 3 / 5</MonoLabel>
+          <div style={{ flex: 1, height: 2, background: NEON.line, borderRadius: 2, overflow: 'hidden', marginLeft: 10 }}>
+            <div style={{ width: '60%', height: '100%', background: `linear-gradient(90deg, ${NEON.cyan}, ${NEON.pink})`, boxShadow: `0 0 10px ${NEON.pink}aa` }} />
+          </div>
+        </div>
+
+        {/* heading */}
+        <div style={{ padding: '0 20px 14px' }}>
+          <BungeeTitle size={28} style={{ display: 'block' }}>BUILD</BungeeTitle>
+          <BungeeTitle size={28} c={NEON.yellow} style={{
+            display: 'block',
+            textShadow: `0 0 10px ${NEON.yellow}aa`,
+          }}>HAZEL'S WRISTBAND</BungeeTitle>
+          <div style={{ marginTop: 6, fontSize: 12.5, color: NEON.inkDim, lineHeight: 1.4 }}>
+            Each slot lights up as you load it. What you pick is what her wristband does at the gate.
+          </div>
+        </div>
+
+        {/* live wristband preview */}
+        <div style={{
+          margin: '0 16px 14px', padding: 16, borderRadius: 16,
+          background: NEON.bgElev,
+          border: `1px solid ${NEON.line}`,
+          position: 'relative', overflow: 'hidden',
+        }}>
+          <div style={{
+            position: 'absolute', inset: 0, pointerEvents: 'none',
+            background: `radial-gradient(ellipse at 50% 120%, ${NEON.pink}33, transparent 60%)`,
+          }} />
+          {/* wristband */}
+          <div style={{
+            position: 'relative', height: 72, borderRadius: 8,
+            background: `linear-gradient(135deg, #1a0933, #0b0118)`,
+            border: `1.5px solid ${NEON.pink}66`,
+            boxShadow: `0 0 24px ${NEON.pink}44, inset 0 0 12px ${NEON.pink}22`,
+            padding: '8px 12px',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          }}>
+            {/* punch holes left */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+              {[0,1,2].map(i => (
+                <div key={i} style={{ width: 4, height: 4, borderRadius: '50%', background: NEON.bg }} />
+              ))}
+            </div>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontFamily: '"Bungee", sans-serif', fontSize: 11, color: NEON.yellow, textShadow: `0 0 8px ${NEON.yellow}` }}>HAZEL M.</div>
+              <div style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: 8, letterSpacing: '0.2em', color: NEON.inkDim }}>GRADE 3 · #0142</div>
+            </div>
+            {/* qr */}
+            <div style={{
+              width: 44, height: 44, borderRadius: 4,
+              background: '#fff',
+              display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 1.2, padding: 3,
+            }}>
+              {'11010 10110 01011 11001 10101'.split(' ').join('').split('').map((v, i) => (
+                <div key={i} style={{ background: v === '1' ? '#000' : 'transparent' }} />
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* perk grid */}
+        <div style={{ padding: '0 16px', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
+          <PerkSlot filled count={2} label="PREMIUM" c={NEON.cyan} />
+          <PerkSlot filled count={3} label="JAIL" c={NEON.pink} />
+          <PerkSlot filled count={1} label="SPIN" c={NEON.yellow} />
+          <PerkSlot count={0} label="+ ADD" c={NEON.purple} />
+        </div>
+
+        {/* allergies card (condensed) */}
+        <div style={{ padding: '14px 16px 0' }}>
+          <div style={{
+            padding: '12px 14px', borderRadius: 10,
+            background: NEON.bgElev, border: `1px solid ${NEON.mint}44`,
+            display: 'flex', alignItems: 'center', gap: 10,
+          }}>
+            <div style={{
+              width: 28, height: 28, borderRadius: '50%',
+              background: `${NEON.mint}22`, border: `1px solid ${NEON.mint}66`,
+              display: 'grid', placeItems: 'center',
+              color: NEON.mint, fontSize: 14, fontWeight: 700,
+            }}>⚠</div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 12, color: '#fff', fontWeight: 600 }}>Peanut allergy</div>
+              <div style={{ fontSize: 10.5, color: NEON.inkDim }}>Flags at every food scan · tap to edit</div>
+            </div>
+            <div style={{ color: NEON.mint, fontSize: 18 }}>✓</div>
+          </div>
+        </div>
+
+        {/* CTA */}
+        <div style={{ marginTop: 'auto', padding: '14px 20px 30px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <NeonBtn style={{ width: '100%' }}>NEXT · PHOTO OPT-INS →</NeonBtn>
+          <div style={{ textAlign: 'center', color: NEON.inkDim, fontSize: 11, fontFamily: '"JetBrains Mono", monospace', letterSpacing: '0.1em' }}>
+            AUTO-SAVED · PICKS UP WHERE YOU LEFT OFF
+          </div>
+        </div>
+
+        {/* home indicator */}
+        <div style={{ position: 'absolute', bottom: 8, left: 0, right: 0, display: 'flex', justifyContent: 'center', zIndex: 60 }}>
+          <div style={{ width: 139, height: 5, borderRadius: 100, background: 'rgba(255,255,255,0.7)' }} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Variant B — "Backstage Pass" (photo opt-in moment)
+// The 3-toggle photo/AI/story step made heroic — this is the
+// moment that determines whether they get the keepsake email.
+// ─────────────────────────────────────────────────────────────
+
+const BigToggle = ({ on, onColor, title, sub, icon }) => (
+  <div style={{
+    padding: '16px 16px 14px', borderRadius: 14,
+    background: on ? `${onColor}14` : NEON.bgElev,
+    border: `1px solid ${on ? onColor + '88' : NEON.line}`,
+    boxShadow: on ? `0 0 22px ${onColor}33, inset 0 0 12px ${onColor}14` : 'none',
+    display: 'flex', alignItems: 'center', gap: 12,
+    transition: 'all 0.25s ease',
+  }}>
+    <div style={{
+      width: 40, height: 40, borderRadius: 10,
+      background: on ? `${onColor}33` : NEON.bg,
+      border: `1px solid ${on ? onColor + '88' : NEON.line}`,
+      display: 'grid', placeItems: 'center',
+      fontSize: 18, color: on ? onColor : NEON.inkDim,
+    }}>{icon}</div>
+    <div style={{ flex: 1 }}>
+      <div style={{ fontFamily: '"Bungee", sans-serif', fontSize: 13, color: '#fff', letterSpacing: '0.01em' }}>{title}</div>
+      <div style={{ fontSize: 11, color: NEON.inkDim, marginTop: 2, lineHeight: 1.35 }}>{sub}</div>
+    </div>
+    {/* iOS-ish toggle */}
+    <div style={{
+      width: 44, height: 26, borderRadius: 999,
+      background: on ? onColor : '#3a3a3a',
+      boxShadow: on ? `0 0 14px ${onColor}aa` : 'none',
+      position: 'relative', transition: 'all 0.2s',
+    }}>
+      <div style={{
+        position: 'absolute', top: 2, left: on ? 20 : 2,
+        width: 22, height: 22, borderRadius: '50%',
+        background: '#fff', transition: 'all 0.2s',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+      }} />
+    </div>
+  </div>
+);
+
+function VariantB() {
+  return (
+    <div style={{
+      width: 402, height: 874, borderRadius: 48, overflow: 'hidden',
+      position: 'relative', background: NEON.bg,
+      boxShadow: '0 40px 80px rgba(0,0,0,0.28), 0 0 0 1px rgba(0,0,0,0.12)',
+      fontFamily: 'system-ui, -apple-system, sans-serif',
+    }}>
+      <div style={{
+        position: 'absolute', top: 11, left: '50%', transform: 'translateX(-50%)',
+        width: 126, height: 37, borderRadius: 24, background: '#000', zIndex: 50,
+      }} />
+      <PhoneBackdrop />
+      <div style={{ position: 'relative', zIndex: 10, height: '100%', display: 'flex', flexDirection: 'column' }}>
+        <NeonStatusBar />
+
+        <div style={{ padding: '4px 20px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <CrestPill />
+          <MonoLabel sz={9.5}>4 / 5</MonoLabel>
+        </div>
+
+        {/* hero badge */}
+        <div style={{ padding: '24px 20px 6px', textAlign: 'center' }}>
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: 8,
+            padding: '6px 14px 6px 10px', borderRadius: 999,
+            border: `1px solid ${NEON.purple}66`,
+            background: `${NEON.purple}15`,
+          }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: NEON.purple, boxShadow: `0 0 8px ${NEON.purple}` }} />
+            <MonoLabel sz={10} c={NEON.purple} glow={NEON.purple}>BACKSTAGE PASS</MonoLabel>
+          </div>
+        </div>
+
+        <div style={{ padding: '10px 20px 12px', textAlign: 'center' }}>
+          <BungeeTitle size={34} style={{ display: 'block' }}>YOUR CALL.</BungeeTitle>
+          <BungeeTitle size={34} c={NEON.yellow} style={{
+            display: 'block',
+            textShadow: `0 0 12px ${NEON.yellow}aa`,
+          }}>NO PRESSURE.</BungeeTitle>
+          <div style={{ marginTop: 10, fontSize: 12.5, color: NEON.inkDim, lineHeight: 1.5, maxWidth: 320, margin: '10px auto 0' }}>
+            Three toggles. Each one unlocks a different piece of the morning-after surprise. You can change any of these later.
+          </div>
+        </div>
+
+        {/* toggles */}
+        <div style={{ padding: '18px 16px 0', display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <BigToggle on onColor={NEON.cyan} title="PTO PHOTO ALBUM" sub="Your kid can appear in the class-wide shared album." icon="📷" />
+          <BigToggle on onColor={NEON.pink} title="PERSONAL KEEPSAKE EMAIL" sub="You get a private email Sunday with their photos + highlights." icon="✉" />
+          <BigToggle on={false} onColor={NEON.yellow} title="AI STORY OF THEIR NIGHT" sub="Attn: To Detail writes a short illustrated recap of her night." icon="✦" />
+        </div>
+
+        {/* status pill */}
+        <div style={{ padding: '18px 20px 0', display: 'flex', justifyContent: 'center' }}>
+          <div style={{
+            padding: '8px 14px', borderRadius: 999,
+            border: `1px solid ${NEON.mint}66`,
+            background: `${NEON.mint}14`,
+            display: 'flex', alignItems: 'center', gap: 8,
+          }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: NEON.mint, boxShadow: `0 0 8px ${NEON.mint}` }} />
+            <span style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: 10.5, color: NEON.mint, letterSpacing: '0.12em' }}>
+              2 OF 3 · YOU'RE ON THE LIST
+            </span>
+          </div>
+        </div>
+
+        {/* CTA */}
+        <div style={{ marginTop: 'auto', padding: '18px 20px 30px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <NeonBtn style={{ width: '100%' }} c1={NEON.purple} c2={NEON.pink}>LAST STEP · SIGN →</NeonBtn>
+          <div style={{ textAlign: 'center', color: NEON.inkFaint, fontSize: 10.5, fontFamily: '"JetBrains Mono", monospace', letterSpacing: '0.1em' }}>
+            CHANGE ANY OF THESE LATER FROM YOUR FAMILY PROFILE
+          </div>
+        </div>
+
+        <div style={{ position: 'absolute', bottom: 8, left: 0, right: 0, display: 'flex', justifyContent: 'center', zIndex: 60 }}>
+          <div style={{ width: 139, height: 5, borderRadius: 100, background: 'rgba(255,255,255,0.7)' }} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Variant C — "Marquee Check-In" (confirmation screen)
+// They just finished. This is the celebratory "you're in" screen
+// that functions as both receipt and hype. Doubles as the
+// contact card they show at the gate.
+// ─────────────────────────────────────────────────────────────
+
+function VariantC() {
+  return (
+    <div style={{
+      width: 402, height: 874, borderRadius: 48, overflow: 'hidden',
+      position: 'relative', background: NEON.bg,
+      boxShadow: '0 40px 80px rgba(0,0,0,0.28), 0 0 0 1px rgba(0,0,0,0.12)',
+      fontFamily: 'system-ui, -apple-system, sans-serif',
+    }}>
+      <div style={{
+        position: 'absolute', top: 11, left: '50%', transform: 'translateX(-50%)',
+        width: 126, height: 37, borderRadius: 24, background: '#000', zIndex: 50,
+      }} />
+      <PhoneBackdrop />
+
+      <div style={{ position: 'relative', zIndex: 10, height: '100%', display: 'flex', flexDirection: 'column' }}>
+        <NeonStatusBar />
+
+        <div style={{ padding: '4px 20px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <CrestPill />
+          <div style={{
+            padding: '4px 10px', borderRadius: 999,
+            border: `1px solid ${NEON.mint}66`,
+            background: `${NEON.mint}14`, display: 'flex', alignItems: 'center', gap: 6,
+          }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: NEON.mint, boxShadow: `0 0 6px ${NEON.mint}` }} />
+            <MonoLabel sz={9} c={NEON.mint}>CONFIRMED</MonoLabel>
+          </div>
+        </div>
+
+        {/* BIG marquee */}
+        <div style={{ padding: '36px 20px 16px', textAlign: 'center' }}>
+          <div style={{
+            fontFamily: '"Monoton", sans-serif', fontSize: 90,
+            lineHeight: 0.9, color: '#fff',
+            textShadow: `0 0 6px #fff, 0 0 16px ${NEON.cyan}, 0 0 36px ${NEON.cyan}, 0 0 72px ${NEON.cyan}aa`,
+            letterSpacing: '0.02em',
+          }}>YOU'RE</div>
+          <div style={{
+            fontFamily: '"Monoton", sans-serif', fontSize: 130,
+            lineHeight: 0.9, color: '#fff',
+            textShadow: `0 0 6px #fff, 0 0 16px ${NEON.pink}, 0 0 36px ${NEON.pink}, 0 0 72px ${NEON.pink}aa`,
+            letterSpacing: '0.02em',
+            marginTop: -6,
+          }}>IN</div>
+          <div style={{ marginTop: 10, fontSize: 12, color: NEON.inkDim, fontFamily: '"JetBrains Mono", monospace', letterSpacing: '0.2em', textTransform: 'uppercase' }}>
+            April 25 · 5–8 PM · The Lot
+          </div>
+        </div>
+
+        {/* ticket / gate pass */}
+        <div style={{ padding: '0 16px' }}>
+          <div style={{
+            borderRadius: 14, overflow: 'hidden',
+            border: `1px solid ${NEON.line}`, background: NEON.bgElev,
+          }}>
+            {/* ticket top */}
+            <div style={{
+              padding: '14px 18px 12px',
+              background: `linear-gradient(90deg, ${NEON.pink}22, ${NEON.cyan}22)`,
+              borderBottom: `1px dashed ${NEON.line}`,
+              display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end',
+            }}>
+              <div>
+                <MonoLabel sz={9}>FAMILY</MonoLabel>
+                <div style={{ fontFamily: '"Bungee", sans-serif', fontSize: 16, color: '#fff', marginTop: 2 }}>
+                  THE MILLERS
+                </div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <MonoLabel sz={9}>WRISTBANDS</MonoLabel>
+                <div style={{ fontFamily: '"Monoton", sans-serif', fontSize: 30, color: NEON.yellow, textShadow: `0 0 10px ${NEON.yellow}`, lineHeight: 1 }}>
+                  3
+                </div>
+              </div>
+            </div>
+            {/* perforation */}
+            <div style={{
+              height: 8,
+              backgroundImage: `radial-gradient(circle at 4px 4px, ${NEON.bg} 3px, transparent 3.5px)`,
+              backgroundSize: '14px 8px',
+            }} />
+            {/* kids */}
+            <div style={{ padding: '8px 18px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {[
+                { name: 'Hazel M.', grade: '3rd', color: NEON.cyan, flags: 'peanut' },
+                { name: 'Theo M.', grade: 'K', color: NEON.pink, flags: null },
+                { name: 'June M.', grade: '5th', color: NEON.yellow, flags: null },
+              ].map((k, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{
+                    width: 26, height: 26, borderRadius: '50%',
+                    background: `${k.color}33`, border: `1px solid ${k.color}aa`,
+                    display: 'grid', placeItems: 'center',
+                    fontFamily: '"Bungee", sans-serif', fontSize: 10,
+                    color: k.color, textShadow: `0 0 6px ${k.color}`,
+                  }}>{k.grade[0]}</div>
+                  <div style={{ flex: 1, fontSize: 13, color: '#fff' }}>{k.name} <span style={{ color: NEON.inkDim }}>· {k.grade}</span></div>
+                  {k.flags && (
+                    <div style={{ fontSize: 9.5, color: NEON.mint, fontFamily: '"JetBrains Mono", monospace', letterSpacing: '0.1em' }}>
+                      ⚠ {k.flags.toUpperCase()}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Save-to-wallet card */}
+        <div style={{ padding: '14px 16px 0' }}>
+          <div style={{
+            padding: '12px 14px', borderRadius: 12,
+            background: NEON.bg, border: `1px solid ${NEON.line}`,
+            display: 'flex', alignItems: 'center', gap: 12,
+          }}>
+            <div style={{
+              width: 32, height: 32, borderRadius: 8,
+              background: '#000', display: 'grid', placeItems: 'center',
+              color: '#fff', fontSize: 14,
+            }}></div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 12.5, color: '#fff' }}>Add pass to Apple Wallet</div>
+              <div style={{ fontSize: 10.5, color: NEON.inkDim }}>Show at the gate · works offline</div>
+            </div>
+            <div style={{ color: NEON.cyan, fontSize: 14 }}>›</div>
+          </div>
+        </div>
+
+        {/* CTA */}
+        <div style={{ marginTop: 'auto', padding: '18px 20px 30px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <NeonBtn style={{ width: '100%' }}>ADD TO CALENDAR · APR 25</NeonBtn>
+          <div style={{ textAlign: 'center', color: NEON.inkFaint, fontSize: 10.5, fontFamily: '"JetBrains Mono", monospace', letterSpacing: '0.1em' }}>
+            CONFIRMATION SENT TO MEG@MILLERS.COM
+          </div>
+        </div>
+
+        <div style={{ position: 'absolute', bottom: 8, left: 0, right: 0, display: 'flex', justifyContent: 'center', zIndex: 60 }}>
+          <div style={{ width: 139, height: 5, borderRadius: 100, background: 'rgba(255,255,255,0.7)' }} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// App
+// ─────────────────────────────────────────────────────────────
+
+function RegistrationApp() {
+  return (
+    <DesignCanvas>
+      <div style={{ padding: '0 0 120px' }}>
+        <div style={{ padding: '0 60px 40px' }}>
+          <div style={{
+            fontSize: 30, fontWeight: 700,
+            fontFamily: '"Bungee", "Space Grotesk", system-ui',
+            color: '#2a1a4a', letterSpacing: '0.01em',
+          }}>Parent Registration — 3 Takes</div>
+          <div style={{ marginTop: 4, fontSize: 13, color: 'rgba(40,30,60,0.6)', maxWidth: 620 }}>
+            Each variant puts the registration somewhere different in the flow: setup, opt-in moment, or confirmation. All fully neon, all iPhone, all real copy. Pan + pinch to explore.
+          </div>
+        </div>
+
+        <DCSection
+          title="A · The Wristband Builder"
+          subtitle="Mid-flow (step 3/5). Parents build a live preview of the kid's wristband as they add perks. Every choice lights up the physical object — it stops feeling like a form."
+          gap={80}
+        >
+          <DCArtboard label="Step 3 · Build wristband" width={402} height={874}>
+            <VariantA />
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection
+          title="B · Backstage Pass (photo opt-in)"
+          subtitle="The most-avoided step, made the most celebrated. Framed as unlocking backstage access — not a legal consent form. Three clear toggles, live feedback on what unlocks."
+          gap={80}
+        >
+          <DCArtboard label="Step 4 · Opt-ins" width={402} height={874}>
+            <VariantB />
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection
+          title="C · Marquee Check-in (confirmation)"
+          subtitle="The 'you're in' receipt. Monoton marquee says YOU'RE IN in glowing 90/130px — this is the first moment of hype. Gate pass with kid list, allergy flags, Apple Wallet."
+          gap={80}
+        >
+          <DCArtboard label="Done · Confirmation" width={402} height={874}>
+            <VariantC />
+          </DCArtboard>
+        </DCSection>
+      </div>
+    </DesignCanvas>
+  );
+}
+
+try {
+  ReactDOM.createRoot(document.getElementById('root')).render(<RegistrationApp />);
+} catch (e) {
+  document.getElementById('root').innerHTML = '<pre style="padding:20px;color:red;font:14px monospace;white-space:pre-wrap">' + (e.stack || e.message) + '</pre>';
+  console.error(e);
+}
+
+</script>
+</body>
+</html>

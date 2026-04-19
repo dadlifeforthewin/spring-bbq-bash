@@ -1,0 +1,2332 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Spring BBQ Bash — Full Prototype</title>
+<style>
+/* ========================================================
+   Spring BBQ Bash — Glow Party Edition
+   Tokens mirror kid-profile-rebuild branch exactly:
+   - bg #0B0A1F, aurora radials, Unbounded + Inter
+   - neon palette, ink/paper/mist/faint, card tokens
+   ========================================================*/
+
+@import url('https://fonts.googleapis.com/css2?family=Unbounded:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+:root {
+  color-scheme: dark;
+  --font-display: 'Unbounded', system-ui, -apple-system, sans-serif;
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* Dark grounds (ink.*) */
+  --ink: #0B0A1F;
+  --ink-2: #14133A;
+  --ink-3: #1F1C4E;
+  --ink-hair: #2A2760;
+
+  /* Text (paper/mist/faint) */
+  --paper: #F5F2FF;
+  --mist: #B6B3D9;
+  --faint: #7D7AB3;
+
+  /* Neon */
+  --neon-magenta: #FF2E93;
+  --neon-cyan: #00E6F7;
+  --neon-uv: #9B5CFF;
+  --neon-gold: #FFE147;
+  --neon-mint: #4BE6B3;
+
+  /* Semantic */
+  --danger: #FF5B7A;
+  --warn: #FFB057;
+  --ok: #4BE6B3;
+
+  /* Shadows (real neon glow) */
+  --glow-magenta: 0 0 0 1px rgba(255,46,147,.7), 0 0 16px 2px rgba(255,46,147,.45), 0 0 40px 4px rgba(255,46,147,.25);
+  --glow-cyan:    0 0 0 1px rgba(0,230,247,.7),  0 0 16px 2px rgba(0,230,247,.45),  0 0 40px 4px rgba(0,230,247,.25);
+  --glow-uv:      0 0 0 1px rgba(155,92,255,.7), 0 0 18px 2px rgba(155,92,255,.45), 0 0 44px 4px rgba(155,92,255,.25);
+  --glow-gold:    0 0 0 1px rgba(255,225,71,.7), 0 0 16px 2px rgba(255,225,71,.45), 0 0 40px 4px rgba(255,225,71,.25);
+  --glow-mint:    0 0 0 1px rgba(75,230,179,.7), 0 0 16px 2px rgba(75,230,179,.45), 0 0 40px 4px rgba(75,230,179,.25);
+  --card-shadow: 0 1px 0 0 rgba(255,255,255,.04) inset, 0 30px 60px -30px rgba(0,0,0,.6);
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: var(--ink); }
+body {
+  color: var(--paper);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+  font-feature-settings: "ss01", "cv11";
+}
+
+/* ================== Gallery shell ================== */
+.shell {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 30px 22px 80px;
+  position: relative;
+}
+.shell-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 18px;
+  flex-wrap: wrap;
+  padding-bottom: 20px;
+  margin-bottom: 24px;
+  border-bottom: 1px dashed var(--ink-hair);
+}
+.shell-head .meta {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+.shell-head h1 {
+  margin: 8px 0 0;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 30px;
+  letter-spacing: -.02em;
+  background-image: linear-gradient(92deg, #FFE147 0%, #FF2E93 38%, #9B5CFF 65%, #00E6F7 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 18px rgba(155, 92, 255, .4));
+}
+.shell-head p {
+  margin: 8px 0 0;
+  color: var(--mist);
+  font-size: 13px;
+  max-width: 68ch;
+  line-height: 1.55;
+}
+
+.tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 22px; }
+.tabs button {
+  background: var(--ink-2);
+  border: 1px solid var(--ink-hair);
+  color: var(--paper);
+  padding: 7px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 11.5px;
+  letter-spacing: .05em;
+  transition: all .15s ease;
+}
+.tabs button:hover {
+  border-color: rgba(0, 230, 247, .5);
+  color: var(--neon-cyan);
+}
+.tabs button.active {
+  background: linear-gradient(90deg, var(--neon-magenta), var(--neon-uv));
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 0 24px -6px var(--neon-magenta), 0 0 38px -14px var(--neon-uv);
+}
+
+.gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+  gap: 28px;
+}
+.gallery.single { grid-template-columns: minmax(0, 420px); justify-content: center; }
+.gallery.wide   { grid-template-columns: repeat(auto-fill, minmax(560px, 1fr)); }
+
+.frame-card { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.frame-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--mist);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.frame-label b {
+  color: var(--neon-gold);
+  font-weight: 700;
+  text-shadow: 0 0 6px rgba(255, 225, 71, .7);
+}
+.frame-label .route {
+  color: var(--faint);
+  font-weight: 400;
+  font-size: 10.5px;
+}
+
+/* ================== Phone frame ================== */
+.phone {
+  width: 400px;
+  height: 780px;
+  border-radius: 46px;
+  padding: 10px;
+  background: linear-gradient(145deg, #3a2880, #0B0A1F);
+  box-shadow: 0 30px 80px -20px rgba(0, 0, 0, .7), 0 0 0 1px rgba(255, 255, 255, .08);
+  position: relative;
+  overflow: hidden;
+}
+.phone::before {
+  content: "";
+  position: absolute;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 112px;
+  height: 26px;
+  background: #000;
+  border-radius: 14px;
+  z-index: 30;
+}
+.phone-screen {
+  width: 100%;
+  height: 100%;
+  border-radius: 36px;
+  background: var(--ink);
+  overflow-y: auto;
+  overflow-x: hidden;
+  position: relative;
+}
+.phone-screen::-webkit-scrollbar { width: 0; }
+
+.laptop {
+  width: 100%;
+  max-width: 900px;
+  height: 620px;
+  border-radius: 18px;
+  background: var(--ink-2);
+  border: 1px solid var(--ink-hair);
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 30px 80px -20px rgba(0, 0, 0, .7);
+}
+.laptop-chrome {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  background: #0a0918;
+  border-bottom: 1px solid var(--ink-hair);
+}
+.laptop-chrome .dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: #2A2760;
+}
+.laptop-chrome .url {
+  margin-left: 14px;
+  flex: 1;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--faint);
+}
+.laptop-screen {
+  height: calc(100% - 38px);
+  overflow-y: auto;
+  position: relative;
+  background: var(--ink);
+}
+
+/* ================== Aurora backdrop inside frames ================== */
+.aurora {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+.aurora::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(60% 80% at 50% -10%, rgba(155, 92, 255, 0.28) 0%, rgba(11, 10, 31, 0) 65%),
+    radial-gradient(40% 55% at 85% 100%, rgba(255, 46, 147, 0.18) 0%, rgba(11, 10, 31, 0) 65%),
+    radial-gradient(35% 50% at 10% 90%, rgba(0, 230, 247, 0.14) 0%, rgba(11, 10, 31, 0) 65%);
+}
+.aurora.soft::before { opacity: .6; }
+.aurora.very-soft::before { opacity: .35; }
+/* grain */
+.aurora::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: .35;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' seed='4'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .035 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+
+.screen { position: relative; z-index: 1; padding: 52px 18px 40px; }
+.screen.flush { padding: 18px 18px 40px; }
+.screen.wide  { padding: 22px 26px 40px; }
+
+/* ================== Primitives ================== */
+.font-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+  font-weight: 700;
+}
+.mono { font-family: var(--font-mono); }
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: .22em;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+.eye-magenta { color: var(--neon-magenta); text-shadow: 0 0 10px rgba(255,46,147,.5); }
+.eye-cyan    { color: var(--neon-cyan);    text-shadow: 0 0 10px rgba(0,230,247,.5); }
+.eye-uv      { color: var(--neon-uv);      text-shadow: 0 0 10px rgba(155,92,255,.5); }
+.eye-gold    { color: var(--neon-gold);    text-shadow: 0 0 10px rgba(255,225,71,.5); }
+.eye-mint    { color: var(--neon-mint);    text-shadow: 0 0 10px rgba(75,230,179,.5); }
+
+.text-mist  { color: var(--mist); }
+.text-faint { color: var(--faint); }
+.text-paper { color: var(--paper); }
+
+.text-wordmark {
+  background-image: linear-gradient(92deg, #FFE147 0%, #FF2E93 38%, #9B5CFF 65%, #00E6F7 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 18px rgba(155, 92, 255, .45)) drop-shadow(0 0 36px rgba(255, 46, 147, .25));
+}
+.text-glow-magenta { color: var(--neon-magenta); text-shadow: 0 0 12px rgba(255,46,147,.55), 0 0 32px rgba(255,46,147,.28); }
+.text-glow-cyan    { color: var(--neon-cyan);    text-shadow: 0 0 12px rgba(0,230,247,.55),  0 0 32px rgba(0,230,247,.28); }
+.text-glow-uv      { color: var(--neon-uv);      text-shadow: 0 0 12px rgba(155,92,255,.55), 0 0 32px rgba(155,92,255,.28); }
+.text-glow-gold    { color: var(--neon-gold);    text-shadow: 0 0 12px rgba(255,225,71,.55), 0 0 32px rgba(255,225,71,.28); }
+
+/* Card */
+.card {
+  background: rgba(20, 19, 58, .7);
+  border: 1px solid var(--ink-hair);
+  border-radius: 20px;
+  padding: 16px;
+  backdrop-filter: blur(4px);
+  box-shadow: var(--card-shadow);
+}
+.card.pad-lg { padding: 20px; }
+.card.tone-magenta { border-color: rgba(255,46,147,.35); box-shadow: 0 0 30px -10px rgba(255,46,147,.45), var(--card-shadow); }
+.card.tone-cyan    { border-color: rgba(0,230,247,.35);  box-shadow: 0 0 30px -10px rgba(0,230,247,.45),  var(--card-shadow); }
+.card.tone-uv      { border-color: rgba(155,92,255,.35); box-shadow: 0 0 30px -10px rgba(155,92,255,.45), var(--card-shadow); }
+.card.tone-gold    { border-color: rgba(255,225,71,.35); box-shadow: 0 0 30px -10px rgba(255,225,71,.45), var(--card-shadow); }
+.card.tone-mint    { border-color: rgba(75,230,179,.35); box-shadow: 0 0 30px -10px rgba(75,230,179,.45), var(--card-shadow); }
+
+.card-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: .22em;
+  text-transform: uppercase;
+  font-weight: 600;
+  margin-bottom: 6px;
+  display: block;
+}
+
+/* Button */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 18px;
+  border-radius: 14px;
+  font: inherit;
+  font-weight: 700;
+  font-size: 14px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform .12s ease, box-shadow .15s ease;
+  white-space: nowrap;
+  letter-spacing: .01em;
+}
+.btn:active { transform: scale(.97); }
+.btn-block { width: 100%; }
+.btn-xl { padding: 16px 22px; font-size: 16px; border-radius: 16px; }
+.btn-lg { padding: 14px 20px; font-size: 15px; }
+.btn-sm { padding: 8px 12px; font-size: 12.5px; border-radius: 10px; }
+
+.btn-magenta { background: var(--neon-magenta); color: #fff; box-shadow: var(--glow-magenta); }
+.btn-cyan    { background: var(--neon-cyan);    color: #0a0918; box-shadow: var(--glow-cyan); font-weight: 800; }
+.btn-uv      { background: var(--neon-uv);      color: #fff; box-shadow: var(--glow-uv); }
+.btn-gold    { background: var(--neon-gold);    color: #1a1504; box-shadow: var(--glow-gold); font-weight: 800; }
+.btn-mint    { background: var(--neon-mint);    color: #0a1a14; box-shadow: var(--glow-mint); font-weight: 800; }
+.btn-ghost   { background: rgba(255,255,255,.06); color: var(--paper); border-color: var(--ink-hair); }
+.btn-ghost:hover { border-color: rgba(0,230,247,.5); color: var(--neon-cyan); }
+.btn-outline { background: transparent; border-color: rgba(0,230,247,.6); color: var(--neon-cyan); }
+.btn-danger  { background: var(--danger); color: #fff; }
+.btn[disabled], .btn:disabled { opacity: .4; cursor: not-allowed; box-shadow: none; }
+
+/* Form controls */
+input[type=text], input[type=number], input[type=tel], input[type=email],
+input[type=password], input[type=search], input[type=date], input[type=datetime-local],
+select, textarea {
+  width: 100%;
+  background: rgba(31, 28, 78, .55);
+  border: 1px solid var(--ink-hair);
+  color: var(--paper);
+  padding: 12px 14px;
+  border-radius: 12px;
+  font: inherit;
+  font-size: 15px;
+  outline: none;
+  font-family: var(--font-sans);
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+input:focus, select:focus, textarea:focus {
+  border-color: var(--neon-cyan);
+  box-shadow: 0 0 0 3px rgba(0, 230, 247, .18);
+}
+textarea { resize: vertical; min-height: 72px; }
+label {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--mist);
+  margin-bottom: 6px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+/* Chip */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 11px;
+  border-radius: 999px;
+  font-size: 11px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  font-weight: 700;
+  border: 1px solid currentColor;
+}
+.chip-magenta { color: var(--neon-magenta); background: rgba(255,46,147,.1); box-shadow: var(--glow-magenta); }
+.chip-cyan    { color: var(--neon-cyan);    background: rgba(0,230,247,.1);  box-shadow: var(--glow-cyan); }
+.chip-uv      { color: var(--neon-uv);      background: rgba(155,92,255,.1); box-shadow: var(--glow-uv); }
+.chip-gold    { color: var(--neon-gold);    background: rgba(255,225,71,.1); box-shadow: var(--glow-gold); }
+.chip-mint    { color: var(--neon-mint);    background: rgba(75,230,179,.1); box-shadow: var(--glow-mint); }
+.chip-quiet   { color: var(--faint);        background: rgba(125,122,179,.08); border-color: var(--ink-hair); }
+.chip-danger  { color: var(--danger);       background: rgba(255,91,122,.12); }
+
+/* Banner / toast */
+.banner {
+  padding: 10px 13px;
+  border-radius: 12px;
+  font-size: 13px;
+  border: 1px solid;
+  line-height: 1.45;
+}
+.banner-ok    { color: var(--neon-mint); background: rgba(75,230,179,.1);  border-color: rgba(75,230,179,.5); box-shadow: var(--glow-mint); }
+.banner-warn  { color: var(--warn);      background: rgba(255,176,87,.1);  border-color: rgba(255,176,87,.5); }
+.banner-err   { color: var(--danger);    background: rgba(255,91,122,.1);  border-color: rgba(255,91,122,.5); }
+
+/* ========= Glow cross — Latin cross, reverent ========= */
+.glow-cross {
+  position: relative;
+  display: inline-block;
+  --c: var(--neon-cyan);
+  --c-rgb: 0, 230, 247;
+}
+.glow-cross.magenta { --c: var(--neon-magenta); --c-rgb: 255, 46, 147; }
+.glow-cross.uv      { --c: var(--neon-uv);      --c-rgb: 155, 92, 255; }
+.glow-cross.gold    { --c: var(--neon-gold);    --c-rgb: 255, 225, 71; }
+.glow-cross.mint    { --c: var(--neon-mint);    --c-rgb: 75, 230, 179; }
+
+/* Soft aurora halo — breathes gently */
+.glow-cross .halo {
+  position: absolute;
+  inset: -45%;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(var(--c-rgb), 0.55) 0%, rgba(var(--c-rgb), 0.22) 25%, transparent 62%);
+  filter: blur(10px);
+  animation: gc-breathe 3.8s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes gc-breathe {
+  0%, 100% { opacity: .7; transform: scale(.94); }
+  50%      { opacity: 1;  transform: scale(1.08); }
+}
+
+/* Radiant light rays — soft conic aura rotating slowly behind cross */
+.glow-cross .rays {
+  position: absolute;
+  inset: -25%;
+  border-radius: 50%;
+  background:
+    conic-gradient(from 0deg,
+      rgba(var(--c-rgb), 0.0) 0deg,
+      rgba(var(--c-rgb), 0.25) 12deg,
+      rgba(var(--c-rgb), 0.0) 24deg,
+      rgba(var(--c-rgb), 0.0) 60deg,
+      rgba(var(--c-rgb), 0.28) 72deg,
+      rgba(var(--c-rgb), 0.0) 84deg,
+      rgba(var(--c-rgb), 0.0) 140deg,
+      rgba(var(--c-rgb), 0.22) 152deg,
+      rgba(var(--c-rgb), 0.0) 164deg,
+      rgba(var(--c-rgb), 0.0) 220deg,
+      rgba(var(--c-rgb), 0.26) 232deg,
+      rgba(var(--c-rgb), 0.0) 244deg,
+      rgba(var(--c-rgb), 0.0) 300deg,
+      rgba(var(--c-rgb), 0.24) 312deg,
+      rgba(var(--c-rgb), 0.0) 324deg,
+      rgba(var(--c-rgb), 0.0) 360deg);
+  filter: blur(4px);
+  opacity: .9;
+  animation: gc-spin 40s linear infinite;
+  pointer-events: none;
+  mask-image: radial-gradient(circle, black 20%, transparent 70%);
+  -webkit-mask-image: radial-gradient(circle, black 20%, transparent 70%);
+}
+@keyframes gc-spin { to { transform: rotate(360deg); } }
+
+/* The cross bars — Latin proportions */
+.glow-cross .bar {
+  position: absolute;
+  background: linear-gradient(180deg, #fff 0%, var(--c) 45%, var(--c) 55%, #fff 100%);
+  background-size: 100% 220%;
+  border-radius: 3px;
+  box-shadow:
+    0 0 10px 1px var(--c),
+    0 0 24px 5px rgba(var(--c-rgb), .55),
+    0 0 46px 12px rgba(var(--c-rgb), .3);
+  animation: gc-shimmer 3.2s ease-in-out infinite;
+}
+/* Vertical: tall, narrow, centered */
+.glow-cross .bar.v {
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 14%;
+  transform: translateX(-50%);
+}
+/* Horizontal: crossbar, upper third (starts at 30% from top) — Latin cross proportions */
+.glow-cross .bar.h {
+  top: 30%;
+  left: 14%;
+  right: 14%;
+  height: 14%;
+  background: linear-gradient(90deg, #fff 0%, var(--c) 45%, var(--c) 55%, #fff 100%);
+  background-size: 220% 100%;
+}
+@keyframes gc-shimmer {
+  0%, 100% { background-position: 0% 0%;     filter: brightness(1); }
+  50%      { background-position: 100% 100%; filter: brightness(1.3); }
+}
+
+/* Bright bead at the intersection */
+.glow-cross .bead {
+  position: absolute;
+  top: 37%;
+  left: 50%;
+  width: 20%;
+  height: 20%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 0%, var(--c) 45%, transparent 78%);
+  box-shadow: 0 0 16px 4px var(--c), 0 0 34px 10px rgba(var(--c-rgb), .55);
+  animation: gc-pulse 2.4s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes gc-pulse {
+  0%, 100% { transform: translate(-50%, -50%) scale(1);    opacity: 1; }
+  50%      { transform: translate(-50%, -50%) scale(1.22); opacity: .88; }
+}
+
+/* Twinkling micro-sparkles scattered around */
+.glow-cross .spark {
+  position: absolute;
+  width: 3px; height: 3px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 6px 1px var(--c);
+  animation: gc-twinkle 3s ease-in-out infinite;
+  opacity: 0;
+  pointer-events: none;
+}
+.glow-cross .spark.s1 { top: -8%;  left: 20%;  animation-delay: 0.0s; }
+.glow-cross .spark.s2 { top: 14%;  right: -6%; animation-delay: .6s;  width: 4px; height: 4px; }
+.glow-cross .spark.s3 { bottom: 8%;  right: 20%; animation-delay: 1.2s; }
+.glow-cross .spark.s4 { bottom: -4%; left: 40%;  animation-delay: 1.8s; width: 4px; height: 4px; }
+.glow-cross .spark.s5 { top: 44%;  left: -6%;  animation-delay: 2.2s; }
+.glow-cross .spark.s6 { top: 10%;  left: 8%;   animation-delay: 2.6s; }
+@keyframes gc-twinkle {
+  0%, 100% { opacity: 0; transform: scale(.4); }
+  40%, 60% { opacity: 1; transform: scale(1.2); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glow-cross .halo, .glow-cross .rays,
+  .glow-cross .bar, .glow-cross .bead, .glow-cross .spark {
+    animation: none !important;
+  }
+}
+
+/* Scanner viewfinder */
+.scanner {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  border-radius: 18px;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 50% 50%, rgba(155,92,255,.25), transparent 70%),
+    linear-gradient(135deg, #1a0933, #0B0A1F);
+  border: 1px solid rgba(0,230,247,.35);
+  box-shadow: inset 0 0 40px -8px rgba(0,230,247,.3);
+}
+.scanner .corners { position: absolute; inset: 18px; pointer-events: none; }
+.scanner .corners span {
+  position: absolute; width: 26px; height: 26px;
+  border: 2px solid var(--neon-cyan);
+  box-shadow: 0 0 8px var(--neon-cyan);
+}
+.scanner .corners span:nth-child(1) { top: 0; left: 0; border-right: 0; border-bottom: 0; }
+.scanner .corners span:nth-child(2) { top: 0; right: 0; border-left: 0; border-bottom: 0; }
+.scanner .corners span:nth-child(3) { bottom: 0; left: 0; border-right: 0; border-top: 0; }
+.scanner .corners span:nth-child(4) { bottom: 0; right: 0; border-left: 0; border-top: 0; }
+.scanner .beam {
+  position: absolute; left: 8%; right: 8%; top: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--neon-cyan), transparent);
+  box-shadow: 0 0 14px var(--neon-cyan);
+  animation: beam 2.4s ease-in-out infinite;
+}
+@keyframes beam {
+  0%,100% { transform: translateY(28px); }
+  50%     { transform: translateY(75%); }
+}
+.scanner .hint {
+  position: absolute; inset: auto 0 12px 0;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: .22em;
+  color: var(--mist);
+  text-transform: uppercase;
+}
+
+/* Stat tile */
+.stat {
+  padding: 14px;
+  border-radius: 18px;
+  background: rgba(20, 19, 58, .7);
+  border: 1px solid var(--ink-hair);
+  backdrop-filter: blur(4px);
+}
+.stat .lbl {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--faint);
+  font-weight: 600;
+}
+.stat .val {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 700;
+  margin-top: 4px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.stat.t-magenta { border-color: rgba(255,46,147,.4); box-shadow: 0 0 20px -5px rgba(255,46,147,.4); }
+.stat.t-magenta .val { color: var(--neon-magenta); }
+.stat.t-cyan    { border-color: rgba(0,230,247,.4);  box-shadow: 0 0 20px -5px rgba(0,230,247,.4); }
+.stat.t-cyan .val    { color: var(--neon-cyan); }
+.stat.t-uv      { border-color: rgba(155,92,255,.4); box-shadow: 0 0 20px -5px rgba(155,92,255,.4); }
+.stat.t-uv .val      { color: var(--neon-uv); }
+.stat.t-gold    { border-color: rgba(255,225,71,.4); box-shadow: 0 0 20px -5px rgba(255,225,71,.4); }
+.stat.t-gold .val    { color: var(--neon-gold); }
+.stat.t-mint    { border-color: rgba(75,230,179,.4); box-shadow: 0 0 20px -5px rgba(75,230,179,.4); }
+.stat.t-mint .val    { color: var(--neon-mint); }
+
+/* Admin nav */
+.admin-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--ink-hair);
+  background: rgba(11, 10, 31, .85);
+  backdrop-filter: blur(10px);
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+.admin-nav .brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-right: 16px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--paper);
+}
+.admin-nav .brand i {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--neon-magenta);
+  box-shadow: 0 0 14px var(--neon-magenta);
+}
+.admin-nav a {
+  font-size: 12.5px;
+  color: var(--mist);
+  text-decoration: none;
+  padding: 6px 12px;
+  border-radius: 999px;
+  transition: all .12s ease;
+}
+.admin-nav a:hover { color: var(--paper); background: var(--ink-2); }
+.admin-nav a.active { color: var(--paper); background: var(--ink-3); }
+.admin-nav .home-link { margin-left: auto; font-family: var(--font-mono); font-size: 10px; letter-spacing: .18em; text-transform: uppercase; }
+
+/* Page head */
+.page-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px dashed var(--ink-hair);
+}
+.page-head .back-link {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--faint);
+  text-decoration: none;
+}
+.page-head .back-link:hover { color: var(--neon-cyan); }
+.page-head h1 {
+  margin: 4px 0 2px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 24px;
+  letter-spacing: -.02em;
+  line-height: 1.1;
+}
+.page-head .sub { margin: 4px 0 0; font-size: 12.5px; color: var(--mist); }
+
+/* Stack utils */
+.stack-1 > * + * { margin-top: 6px; }
+.stack-2 > * + * { margin-top: 10px; }
+.stack-3 > * + * { margin-top: 14px; }
+.stack-4 > * + * { margin-top: 18px; }
+.stack-5 > * + * { margin-top: 24px; }
+
+.row { display: flex; gap: 10px; align-items: center; }
+.row.gap-2 { gap: 6px; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+
+/* Table */
+.tbl {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+  background: rgba(20,19,58,.5);
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid var(--ink-hair);
+}
+.tbl thead {
+  background: rgba(31,28,78,.6);
+}
+.tbl th {
+  text-align: left;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--faint);
+  font-weight: 600;
+  padding: 10px 12px;
+}
+.tbl td { padding: 10px 12px; border-top: 1px solid rgba(42,39,96,.6); color: var(--paper); }
+.tbl tr:hover td { background: rgba(31,28,78,.3); }
+.tbl td.mist { color: var(--mist); }
+.tbl .name-link { color: var(--neon-magenta); text-decoration: none; font-weight: 700; }
+.tbl .name-link:hover { text-shadow: 0 0 10px rgba(255,46,147,.6); }
+
+/* Filter chips */
+.filter-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.filter-chip {
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  background: var(--ink-2);
+  border: 1px solid var(--ink-hair);
+  color: var(--mist);
+  cursor: pointer;
+  font: inherit;
+  letter-spacing: .02em;
+  text-transform: capitalize;
+}
+.filter-chip.active {
+  background: rgba(255,46,147,.12);
+  border-color: var(--neon-magenta);
+  color: var(--neon-magenta);
+  text-shadow: 0 0 8px rgba(255,46,147,.5);
+}
+
+/* Option buttons */
+.opt {
+  padding: 11px 14px;
+  border-radius: 14px;
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 700;
+  background: var(--ink-2);
+  border: 2px solid var(--ink-hair);
+  color: var(--paper);
+  cursor: pointer;
+  text-align: left;
+  transition: all .15s ease;
+}
+.opt:hover { border-color: rgba(255,46,147,.5); }
+.opt.active {
+  background: rgba(255,46,147,.1);
+  border-color: var(--neon-magenta);
+  color: var(--neon-magenta);
+  box-shadow: var(--glow-magenta);
+}
+.opt.cyan.active { background: rgba(0,230,247,.1); border-color: var(--neon-cyan); color: var(--neon-cyan); box-shadow: var(--glow-cyan); }
+
+/* Radio fake */
+fieldset.radio-set {
+  border: 1px solid var(--ink-hair);
+  border-radius: 16px;
+  padding: 14px;
+  background: rgba(20,19,58,.6);
+}
+fieldset.radio-set legend {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--mist);
+  font-weight: 600;
+  padding: 0 8px;
+}
+.radio-opt {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 6px 0;
+  font-size: 13px;
+  color: var(--paper);
+}
+.radio-opt .dot {
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  border: 1.5px solid var(--ink-hair);
+  background: var(--ink-2);
+  flex-shrink: 0;
+}
+.radio-opt.active .dot {
+  border-color: var(--neon-cyan);
+  background: radial-gradient(circle, var(--neon-cyan) 35%, transparent 45%);
+  box-shadow: 0 0 12px rgba(0,230,247,.5);
+}
+
+/* Wordmark pieces */
+.wordmark {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 42px;
+  letter-spacing: -.03em;
+  line-height: 1;
+  background-image: linear-gradient(92deg, #FFE147 0%, #FF2E93 38%, #9B5CFF 65%, #00E6F7 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 18px rgba(155, 92, 255, .45)) drop-shadow(0 0 36px rgba(255, 46, 147, .25));
+}
+
+/* Misc */
+.divider { height: 1px; background: var(--ink-hair); margin: 12px 0; }
+.divider-dashed { height: 1px; border-bottom: 1px dashed var(--ink-hair); margin: 12px 0; }
+.meta-mono { font-family: var(--font-mono); font-size: 10.5px; color: var(--faint); letter-spacing: .12em; }
+.tabular { font-variant-numeric: tabular-nums; }
+
+@media (max-width: 640px) {
+  .gallery, .gallery.wide { grid-template-columns: 1fr; }
+  .phone { width: 100%; max-width: 400px; }
+}
+
+</style>
+</head>
+<body>
+
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel">
+/* Spring BBQ Bash — Customer + Station screens
+   Each screen is exported to window so the main HTML can compose them. */
+
+const { useState } = React;
+
+// ========================================================
+// Shared primitives
+// ========================================================
+function GlowCross({ tone = 'cyan', size = 80 }) {
+  const cls = `glow-cross ${tone === 'cyan' ? '' : tone}`;
+  // Latin cross proportions: narrow wrapper, taller than wide
+  const w = Math.round(size * 0.68);
+  const h = size;
+  return (
+    <span className={cls} style={{ width: w, height: h }}>
+      <span className="halo" />
+      <span className="rays" />
+      <span className="bar v" />
+      <span className="bar h" />
+      <span className="bead" />
+      <span className="spark s1" />
+      <span className="spark s2" />
+      <span className="spark s3" />
+      <span className="spark s4" />
+      <span className="spark s5" />
+      <span className="spark s6" />
+    </span>
+  );
+}
+
+function PhoneFrame({ children, atmosphere = 'soft' }) {
+  return (
+    <div className="phone">
+      <div className="phone-screen">
+        <div className={`aurora ${atmosphere}`} />
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function LaptopFrame({ url, children }) {
+  return (
+    <div className="laptop">
+      <div className="laptop-chrome">
+        <span className="dot" style={{ background: '#FF5B7A' }} />
+        <span className="dot" style={{ background: '#FFE147' }} />
+        <span className="dot" style={{ background: '#4BE6B3' }} />
+        <span className="url">{url}</span>
+      </div>
+      <div className="laptop-screen">
+        <div className="aurora very-soft" />
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function PageHead({ back = 'Home', eyebrow, title, sub }) {
+  return (
+    <div className="page-head">
+      <div>
+        {eyebrow && <div className={`eyebrow ${eyebrow.tone || 'eye-magenta'}`}>{eyebrow.text}</div>}
+        <h1>{title}</h1>
+        {sub && <p className="sub">{sub}</p>}
+      </div>
+      {back && <a href="#" className="back-link">← {back}</a>}
+    </div>
+  );
+}
+
+function StationShell({ eyebrow, title, subtitle, back = 'Home', children }) {
+  return (
+    <div className="screen stack-4">
+      <PageHead back={back} eyebrow={{ text: eyebrow, tone: 'eye-magenta' }} title={title} sub={subtitle} />
+      {children}
+    </div>
+  );
+}
+
+// Child profile card (mirrors ChildCard.tsx)
+function ChildProfileCard({
+  name = 'Ellie Chen',
+  age = 9,
+  grade = '4',
+  allergies = 'Peanuts (EpiPen in bag)',
+  parent = 'Maya Chen',
+  phone = '555-0134',
+  photoConsent = true,
+  drinks = 2, jail = 3, wheel = 1, dj = 1,
+  checkedIn = false,
+  checkedOut = false,
+}) {
+  const tone = photoConsent ? 'tone-mint' : 'tone-magenta';
+  return (
+    <div className={`card ${tone}`} style={{ padding: 0, overflow: 'hidden' }}>
+      <div style={{
+        padding: '8px 16px',
+        textAlign: 'center',
+        fontSize: 10.5,
+        letterSpacing: '.3em',
+        fontWeight: 900,
+        textTransform: 'uppercase',
+        background: photoConsent ? 'rgba(75,230,179,.1)' : 'rgba(255,91,122,.15)',
+        color: photoConsent ? 'var(--neon-mint)' : 'var(--danger)',
+      }}>
+        {photoConsent ? '✓ Photos OK' : '✕ No Photos — Do Not Include'}
+      </div>
+      <div style={{ padding: 18 }} className="stack-3">
+        <div>
+          <h2 className="font-display" style={{ margin: 0, fontSize: 22, color: 'var(--paper)', lineHeight: 1.1 }}>
+            {name}
+          </h2>
+          <div className="mono" style={{ fontSize: 11, color: 'var(--mist)', marginTop: 4, letterSpacing: '.08em' }}>
+            Age {age} · Grade {grade}
+          </div>
+        </div>
+        {allergies && (
+          <div style={{
+            padding: '10px 12px',
+            borderRadius: 12,
+            background: 'rgba(255,176,87,.12)',
+            border: '1px solid rgba(255,176,87,.4)',
+            color: 'var(--warn)',
+            fontSize: 12.5,
+            fontWeight: 600,
+          }}>
+            ⚠ Allergies / medical: {allergies}
+          </div>
+        )}
+        <div style={{
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          padding: '10px 14px', borderRadius: 12,
+          background: 'rgba(31,28,78,.5)', border: '1px solid var(--ink-hair)',
+        }}>
+          <div style={{ minWidth: 0 }}>
+            <div className="mono" style={{ fontSize: 9.5, color: 'var(--faint)', letterSpacing: '.18em', textTransform: 'uppercase' }}>Parent</div>
+            <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--paper)' }}>{parent}</div>
+          </div>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button className="btn btn-outline btn-sm">📞 Call</button>
+            <button className="btn btn-outline btn-sm">💬 Text</button>
+          </div>
+        </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+          <PerkChip tone="cyan" value={drinks} label="drinks" />
+          <PerkChip tone="magenta" value={jail} label="jail / pass" />
+          <PerkChip tone="gold" value={wheel === 1 ? 1 : 'used'} label="prize wheel" zero={wheel !== 1} />
+          <PerkChip tone="uv" value={dj === 1 ? 1 : 'used'} label="DJ shoutout" zero={dj !== 1} />
+        </div>
+        {(checkedIn || checkedOut) && (
+          <div className="mono" style={{ fontSize: 10.5, color: 'var(--faint)', letterSpacing: '.08em' }}>
+            {checkedOut ? `Checked out 7:42 PM` : `Checked in 5:18 PM`}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function PerkChip({ tone, value, label, zero }) {
+  return (
+    <span className={`chip chip-${zero ? 'quiet' : tone}`} style={{ fontSize: 10.5 }}>
+      <b style={{ fontSize: 13 }}>{value}</b>
+      <span style={{ fontWeight: 500, textTransform: 'none', letterSpacing: '.02em', opacity: .85 }}>{label}</span>
+    </span>
+  );
+}
+
+// ========================================================
+// 01 Landing
+// ========================================================
+function Landing() {
+  return (
+    <PhoneFrame atmosphere="soft">
+      <div className="screen stack-4" style={{ textAlign: 'center' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: 8 }}>
+          <GlowCross tone="cyan" size={72} />
+        </div>
+        <div className="stack-2">
+          <div className="eyebrow eye-magenta">LCA · Est. 1995 · 30 Years</div>
+          <div className="wordmark">Spring BBQ Bash</div>
+          <div className="font-display text-glow-gold" style={{ fontSize: 17, letterSpacing: '.02em' }}>
+            Glow Party Edition
+          </div>
+          <div className="text-mist" style={{ fontSize: 12.5 }}>
+            Saturday, April 25, 2026 · 5:00–8:00 PM
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 6 }}>
+          <span className="chip chip-cyan">2 drinks</span>
+          <span className="chip chip-magenta">3 jail / pass</span>
+          <span className="chip chip-gold">1 prize spin</span>
+          <span className="chip chip-uv">1 DJ shoutout</span>
+        </div>
+
+        <div className="card tone-magenta stack-3" style={{ textAlign: 'left' }}>
+          <span className="card-eyebrow eye-cyan">Parents</span>
+          <p className="text-paper" style={{ margin: 0, fontSize: 13.5, lineHeight: 1.5 }}>
+            After you've bought your ticket, finish the permission slip so
+            your kid's wristband is ready when they arrive.
+          </p>
+          <button className="btn btn-magenta btn-lg btn-block">Fill out permission slip →</button>
+        </div>
+
+        <div className="card stack-3" style={{ textAlign: 'left' }}>
+          <span className="card-eyebrow eye-gold">Volunteers &amp; organizers</span>
+          <div className="grid-2">
+            <button className="btn btn-cyan">Volunteer portal</button>
+            <button className="btn btn-gold">Admin</button>
+          </div>
+        </div>
+
+        <div className="mono" style={{ fontSize: 9.5, color: 'var(--faint)', letterSpacing: '.14em', paddingTop: 8 }}>
+          Built by <span style={{ color: 'var(--neon-cyan)', borderBottom: '1px dotted currentColor' }}>Attn: To Detail</span><br/>
+          Donated to LCA in celebration of 30 years.
+        </div>
+      </div>
+    </PhoneFrame>
+  );
+}
+
+// ========================================================
+// 02 Registration / Permission slip
+// ========================================================
+function Registration() {
+  return (
+    <PhoneFrame atmosphere="soft">
+      <div className="screen stack-4" style={{ textAlign: 'center' }}>
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <GlowCross tone="cyan" size={60} />
+        </div>
+        <div className="stack-1">
+          <div className="eyebrow eye-magenta">Permission Slip · LCA</div>
+          <div className="wordmark" style={{ fontSize: 32 }}>Spring BBQ Bash</div>
+          <div className="font-display text-glow-gold" style={{ fontSize: 14 }}>Glow Party Edition</div>
+          <div className="text-mist" style={{ fontSize: 11.5 }}>Sat Apr 25, 2026 · 5–8 PM</div>
+        </div>
+        <p className="text-paper" style={{ fontSize: 12.5, lineHeight: 1.55, margin: '0 auto', maxWidth: 320 }}>
+          Fill this out once per family. Every kid gets the full Glow Party Edition
+          perks — you just tell us who's coming and sign the waiver.
+        </p>
+
+        <div style={{ textAlign: 'left' }} className="stack-3">
+          {/* Primary parent */}
+          <div className="card stack-2">
+            <div className="eyebrow eye-cyan">Step 1 · Parents</div>
+            <h3 className="font-display" style={{ margin: 0, fontSize: 17 }}>Primary Parent / Guardian</h3>
+            <div><label>Full name</label><input type="text" defaultValue="Maya Chen" /></div>
+            <div className="grid-2">
+              <div><label>Phone</label><input type="tel" defaultValue="555-0134" /></div>
+              <div><label>Email</label><input type="email" defaultValue="maya@chen.fam" /></div>
+            </div>
+          </div>
+          <button style={{
+            width: '100%',
+            padding: '12px',
+            borderRadius: 12,
+            border: '1.5px dashed var(--ink-hair)',
+            background: 'rgba(20,19,58,.4)',
+            color: 'var(--neon-cyan)',
+            fontSize: 13,
+            fontWeight: 700,
+            cursor: 'pointer',
+            fontFamily: 'inherit',
+          }}>+ Add a secondary parent</button>
+
+          {/* Children */}
+          <div className="stack-2" style={{ paddingTop: 6 }}>
+            <div className="eyebrow eye-cyan">Step 2 · Children</div>
+            <h3 className="font-display" style={{ margin: 0, fontSize: 17 }}>Who's coming?</h3>
+          </div>
+          <div className="card stack-2">
+            <div className="row" style={{ justifyContent: 'space-between' }}>
+              <div className="eyebrow eye-magenta">Kid #1</div>
+              <button className="btn btn-ghost btn-sm" style={{ fontSize: 11 }}>Remove</button>
+            </div>
+            <div className="grid-2">
+              <div><label>First name</label><input type="text" defaultValue="Ellie" /></div>
+              <div><label>Last name</label><input type="text" defaultValue="Chen" /></div>
+            </div>
+            <div className="grid-2">
+              <div><label>Age</label><input type="number" defaultValue="9" /></div>
+              <div><label>Grade</label><input type="text" defaultValue="4" /></div>
+            </div>
+            <div><label>Allergies / medical</label><input type="text" defaultValue="Peanuts (EpiPen in bag)" /></div>
+            <div><label>Special instructions</label><textarea defaultValue="Gets overwhelmed in loud spaces — OK to step out to quiet corner." rows={2} /></div>
+            <div>
+              <label>Approved pickup (besides parents)</label>
+              <input type="text" defaultValue="Grandma Joan Chen" />
+            </div>
+            <div className="divider-dashed" />
+            <div className="eyebrow eye-gold">FACTS reload permission</div>
+            <label style={{ display: 'flex', gap: 8, alignItems: 'flex-start', textTransform: 'none', letterSpacing: 0, fontSize: 12, color: 'var(--paper)', fontFamily: 'inherit', fontWeight: 400, cursor: 'pointer' }}>
+              <input type="checkbox" defaultChecked style={{ width: 'auto', marginTop: 2, accentColor: 'var(--neon-magenta)' }} />
+              <span>Allow volunteers to top up drink tickets on my FACTS account.</span>
+            </label>
+            <div><label>Max amount ($)</label><input type="number" defaultValue="20.00" step="0.01" /></div>
+          </div>
+
+          <button style={{
+            width: '100%',
+            padding: '12px',
+            borderRadius: 12,
+            border: '1.5px dashed var(--ink-hair)',
+            background: 'rgba(20,19,58,.4)',
+            color: 'var(--neon-cyan)',
+            fontSize: 13,
+            fontWeight: 700,
+            cursor: 'pointer',
+            fontFamily: 'inherit',
+          }}>+ Add another child</button>
+
+          {/* Waiver */}
+          <div className="card stack-2" style={{ paddingTop: 14 }}>
+            <div className="eyebrow eye-uv">Step 3 · Waiver</div>
+            <p className="text-mist" style={{ margin: 0, fontSize: 12, lineHeight: 1.55 }}>
+              I acknowledge the risks of participation and release LCA, its staff, and
+              volunteers from liability. I confirm I'm the legal guardian and grant
+              permission for my kid to attend.
+            </p>
+            <label>Type your name to sign</label>
+            <input type="text" defaultValue="Maya Chen" />
+            <label style={{ display: 'flex', gap: 8, alignItems: 'flex-start', textTransform: 'none', letterSpacing: 0, fontSize: 12, color: 'var(--paper)', fontFamily: 'inherit', fontWeight: 400, cursor: 'pointer' }}>
+              <input type="checkbox" defaultChecked style={{ width: 'auto', marginTop: 2, accentColor: 'var(--neon-magenta)' }} />
+              <span>I've read and agree to the waiver above.</span>
+            </label>
+          </div>
+
+          {/* Photo consent */}
+          <div className="card stack-2">
+            <div className="eyebrow eye-mint">Step 4 · Photos</div>
+            <ConsentToggle label="OK to use photos in the keepsake app (sent to you the morning after)" defaultChecked />
+            <ConsentToggle label="OK to use photos in LCA promo / social media" />
+            <ConsentToggle label="OK to use AI vision to auto-tag my kid in candid shots" defaultChecked />
+            <label>Sign (type name)</label>
+            <input type="text" defaultValue="Maya Chen" />
+          </div>
+
+          {/* AI section */}
+          <div className="card stack-2">
+            <div className="eyebrow eye-gold">Step 5 · AI keepsake</div>
+            <p className="text-mist" style={{ margin: 0, fontSize: 12, lineHeight: 1.55 }}>
+              The morning after the party, we'll email you a short AI-generated story
+              about your kid's night — built from photos + station visits.
+            </p>
+            <label style={{ display: 'flex', gap: 8, alignItems: 'flex-start', textTransform: 'none', letterSpacing: 0, fontSize: 12, color: 'var(--paper)', fontFamily: 'inherit', fontWeight: 400, cursor: 'pointer' }}>
+              <input type="checkbox" defaultChecked style={{ width: 'auto', marginTop: 2, accentColor: 'var(--neon-magenta)' }} />
+              <span>I consent to AI-generated content about my kid, reviewed by LCA before send.</span>
+            </label>
+            <label>Sign (type name)</label>
+            <input type="text" defaultValue="Maya Chen" />
+          </div>
+
+          <div className="card tone-gold" style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+            <div style={{ fontSize: 22 }}>✨</div>
+            <div>
+              <div className="eyebrow eye-gold" style={{ marginBottom: 4 }}>One more thing…</div>
+              <div className="text-paper" style={{ fontSize: 12.5, lineHeight: 1.5 }}>
+                A little something is landing in your inbox the morning after the party.
+                Watch for it — we think you'll like it.
+              </div>
+            </div>
+          </div>
+
+          <button className="btn btn-magenta btn-xl btn-block" style={{ marginTop: 10 }}>Submit permission slip</button>
+          <div className="text-faint mono" style={{ textAlign: 'center', fontSize: 10, letterSpacing: '.12em' }}>
+            Built with love by <span style={{ color: 'var(--neon-cyan)' }}>Attn: To Detail</span>
+          </div>
+        </div>
+      </div>
+    </PhoneFrame>
+  );
+}
+
+function ConsentToggle({ label, defaultChecked }) {
+  return (
+    <label style={{ display: 'flex', gap: 8, alignItems: 'flex-start', textTransform: 'none', letterSpacing: 0, fontSize: 12, color: 'var(--paper)', fontFamily: 'inherit', fontWeight: 400, cursor: 'pointer' }}>
+      <input type="checkbox" defaultChecked={defaultChecked} style={{ width: 'auto', marginTop: 2, accentColor: 'var(--neon-mint)' }} />
+      <span>{label}</span>
+    </label>
+  );
+}
+
+// ========================================================
+// 03 Registration confirmation
+// ========================================================
+function RegistrationConfirm() {
+  return (
+    <PhoneFrame atmosphere="soft">
+      <div className="screen stack-4" style={{ textAlign: 'center', paddingTop: 70 }}>
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <GlowCross tone="mint" size={72} />
+        </div>
+        <div className="stack-2">
+          <div className="eyebrow eye-mint">✓ Submitted</div>
+          <div className="font-display text-glow-cyan" style={{ fontSize: 30, lineHeight: 1.1 }}>
+            You're on the list
+          </div>
+          <p className="text-mist" style={{ fontSize: 13, lineHeight: 1.55, margin: '0 auto', maxWidth: 300 }}>
+            We've got Ellie's permission slip. Her wristband will be printed and
+            waiting at the check-in table.
+          </p>
+        </div>
+        <div className="card tone-cyan" style={{ textAlign: 'left' }}>
+          <div className="card-eyebrow eye-cyan">Edit later</div>
+          <p className="text-paper" style={{ margin: '6px 0 10px', fontSize: 12.5, lineHeight: 1.55 }}>
+            Need to change allergies, pickup list, or photo consent? Use this
+            secure link — we've emailed a copy to you too.
+          </p>
+          <button className="btn btn-ghost btn-sm btn-block">maya@chen.fam · Copy edit link</button>
+        </div>
+        <button className="btn btn-magenta btn-lg btn-block">Download receipt (PDF)</button>
+        <div className="text-faint mono" style={{ fontSize: 10, letterSpacing: '.12em', paddingTop: 10 }}>
+          See you Saturday · Wear white ✨
+        </div>
+      </div>
+    </PhoneFrame>
+  );
+}
+
+// ========================================================
+// 04 Station picker
+// ========================================================
+const STATIONS = [
+  { slug: 'check_in',          name: 'Check-in',           tone: 'cyan',    emoji: '👋' },
+  { slug: 'check_out',         name: 'Check-out',          tone: 'mint',    emoji: '🚪' },
+  { slug: 'jail',              name: 'Jail',               tone: 'magenta', emoji: '🚨' },
+  { slug: 'drinks',            name: 'Drinks',             tone: 'cyan',    emoji: '🥤' },
+  { slug: 'prize_wheel',       name: 'Prize Wheel',        tone: 'gold',    emoji: '🎡' },
+  { slug: 'dj_shoutout',       name: 'DJ Shoutout',        tone: 'uv',      emoji: '📻' },
+  { slug: 'cornhole',          name: 'Cornhole',           tone: 'magenta', emoji: '🌽' },
+  { slug: 'face_painting',     name: 'Face Painting',      tone: 'uv',      emoji: '🎨' },
+  { slug: 'arts_crafts',       name: 'Arts & Crafts',      tone: 'gold',    emoji: '✂️' },
+  { slug: 'video_games',       name: 'Video Games',        tone: 'cyan',    emoji: '🎮' },
+  { slug: 'dance_competition', name: 'Dance Competition',  tone: 'magenta', emoji: '💃' },
+  { slug: 'pizza',             name: 'Pizza',              tone: 'gold',    emoji: '🍕' },
+  { slug: 'reload',            name: 'Reload',             tone: 'magenta', emoji: '💵' },
+  { slug: 'roaming',           name: 'Roaming Photo',      tone: 'uv',      emoji: '📸' },
+  { slug: 'photo',             name: 'Photo Station',      tone: 'magenta', emoji: '✨' },
+  { slug: 'lookup',            name: 'Profile Lookup',     tone: 'cyan',    emoji: '🔍' },
+];
+
+function StationPickerScreen() {
+  return (
+    <PhoneFrame>
+      <StationShell
+        eyebrow="Volunteer · Picker"
+        title="Pick your station"
+        subtitle="Tap once. The app remembers, so scans go straight to your post next time."
+      >
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+          {STATIONS.map((s) => (
+            <button key={s.slug} className="card" style={{
+              padding: 12,
+              textAlign: 'left',
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+              color: 'var(--paper)',
+              height: 112,
+            }}>
+              <div style={{ fontSize: 22, lineHeight: 1 }}>{s.emoji}</div>
+              <div className="font-display" style={{ fontSize: 13, marginTop: 8, lineHeight: 1.15 }}>{s.name}</div>
+              <div className="mono" style={{ fontSize: 9, color: 'var(--faint)', marginTop: 4, letterSpacing: '.16em', textTransform: 'uppercase' }}>
+                {s.slug.replace(/_/g, ' ')}
+              </div>
+            </button>
+          ))}
+        </div>
+        <div className="card" style={{ fontSize: 12.5, lineHeight: 1.55 }}>
+          <div className="card-eyebrow eye-gold">Quick reference</div>
+          <div className="text-paper" style={{ marginTop: 4 }}>
+            Every kid arrives with <b>2 drinks</b>, <b>3 jail/pass tokens</b>, <b>1 prize-wheel spin</b>, and
+            <b> 1 DJ shoutout</b>. Other stations just need a scan to log the visit for the keepsake email.
+          </div>
+        </div>
+      </StationShell>
+    </PhoneFrame>
+  );
+}
+
+// ========================================================
+// 05 Check-in
+// ========================================================
+function CheckInScreen() {
+  return (
+    <PhoneFrame>
+      <StationShell
+        eyebrow="Station · Check-in"
+        title="Welcome the kid in"
+        subtitle="Scan their wristband, take the jail mugshot, assign a dropoff, check them in."
+      >
+        <div className="row">
+          <input type="text" defaultValue="SBBQ-018" placeholder="Scan or paste QR" style={{ flex: 1 }} />
+          <button className="btn btn-ghost">Look up</button>
+        </div>
+
+        <ChildProfileCard />
+
+        <div><label>Your name (staff)</label><input type="text" defaultValue="Pastor Dan" /></div>
+
+        <div className="card tone-magenta stack-2">
+          <div className="card-eyebrow eye-magenta">Jail mugshot</div>
+          <div className="scanner">
+            <div className="corners"><span /><span /><span /><span /></div>
+            <div className="beam" />
+            <div className="hint">Frame the kid · hit shutter</div>
+          </div>
+          <button className="btn btn-magenta btn-lg btn-block">📸 Take mugshot</button>
+        </div>
+
+        <fieldset className="radio-set stack-1">
+          <legend>Dropoff</legend>
+          <div className="radio-opt active"><span className="dot" /><span>Both parents</span></div>
+          <div className="radio-opt"><span className="dot" /><span>One parent</span></div>
+          <div className="radio-opt"><span className="dot" /><span>Grandparent</span></div>
+          <div className="radio-opt"><span className="dot" /><span>Other approved adult</span></div>
+        </fieldset>
+
+        <button className="btn btn-magenta btn-xl btn-block">Check In</button>
+      </StationShell>
+    </PhoneFrame>
+  );
+}
+
+// ========================================================
+// 06 Check-out
+// ========================================================
+function CheckOutScreen() {
+  return (
+    <PhoneFrame>
+      <StationShell
+        eyebrow="Station · Check-out"
+        title="Send them home safely"
+        subtitle="Scan the wristband, confirm who's picking up, type your name."
+      >
+        <div className="row">
+          <input type="text" defaultValue="SBBQ-018" placeholder="Scan or paste QR" style={{ flex: 1 }} />
+          <button className="btn btn-ghost">Look up</button>
+        </div>
+
+        <ChildProfileCard checkedIn />
+
+        <fieldset className="radio-set stack-2">
+          <legend>Who's picking up?</legend>
+          <button className="opt">
+            <div>Maya Chen</div>
+            <div className="mono" style={{ fontSize: 10, color: 'var(--faint)', marginTop: 3, letterSpacing: '.08em', textTransform: 'none', fontWeight: 500 }}>Primary parent</div>
+          </button>
+          <button className="opt active">
+            <div>James Chen</div>
+            <div className="mono" style={{ fontSize: 10, color: 'var(--neon-magenta)', marginTop: 3, letterSpacing: '.08em', textTransform: 'none', fontWeight: 500, opacity: .8 }}>Secondary parent</div>
+          </button>
+          <button className="opt">
+            <div>Grandma Joan Chen</div>
+            <div className="mono" style={{ fontSize: 10, color: 'var(--faint)', marginTop: 3, letterSpacing: '.08em', textTransform: 'none', fontWeight: 500 }}>Grandmother</div>
+          </button>
+        </fieldset>
+
+        <div><label>Your name (staff)</label><input type="text" defaultValue="Sarah M." /></div>
+        <button className="btn btn-mint btn-xl btn-block">Release to James Chen</button>
+      </StationShell>
+    </PhoneFrame>
+  );
+}
+
+// ========================================================
+// 07 Activity (jail variant)
+// ========================================================
+function ActivityJailScreen() {
+  return (
+    <PhoneFrame>
+      <StationShell
+        eyebrow="Metered · 3 sends or passes"
+        title="Jail"
+        subtitle={null}
+      >
+        <div className="row">
+          <input type="text" defaultValue="SBBQ-018" placeholder="Scan or paste QR" style={{ flex: 1 }} />
+          <button className="btn btn-ghost">Look up</button>
+        </div>
+
+        <ChildProfileCard checkedIn jail={3} />
+
+        <fieldset className="radio-set stack-2">
+          <legend>Which way?</legend>
+          <div className="grid-2">
+            <button className="opt active">🚨 Send to jail</button>
+            <button className="opt cyan">🗝 Use pass</button>
+          </div>
+        </fieldset>
+
+        <div><label>Your name (staff, optional)</label><input type="text" placeholder="e.g. Volunteer Dan" /></div>
+        <button className="btn btn-magenta btn-xl btn-block">Send to jail</button>
+
+        <div className="banner banner-ok">✨ Sent to jail — 2 left.</div>
+        <button className="btn btn-ghost btn-block">Scan next wristband</button>
+      </StationShell>
+    </PhoneFrame>
+  );
+}
+
+// ========================================================
+// 08 Activity (drinks + DJ + free)
+// ========================================================
+function ActivityDrinksScreen() {
+  return (
+    <PhoneFrame>
+      <StationShell
+        eyebrow="Metered · 2 per kid"
+        title="Drinks"
+      >
+        <div className="row">
+          <input type="text" defaultValue="SBBQ-018" placeholder="Scan or paste QR" style={{ flex: 1 }} />
+          <button className="btn btn-ghost">Look up</button>
+        </div>
+        <ChildProfileCard checkedIn drinks={2} />
+        <div><label>Your name (staff, optional)</label><input type="text" /></div>
+        <button className="btn btn-cyan btn-xl btn-block">Redeem drink ticket</button>
+      </StationShell>
+    </PhoneFrame>
+  );
+}
+
+function ActivityDJScreen() {
+  return (
+    <PhoneFrame>
+      <StationShell
+        eyebrow="One request per kid"
+        title="DJ Shoutout"
+      >
+        <div className="row">
+          <input type="text" defaultValue="SBBQ-018" placeholder="Scan or paste QR" style={{ flex: 1 }} />
+          <button className="btn btn-ghost">Look up</button>
+        </div>
+        <ChildProfileCard checkedIn />
+        <div>
+          <label>Song request (kid-appropriate, please)</label>
+          <textarea defaultValue="Mr. Brightside" rows={2} />
+          <div className="mono" style={{ fontSize: 10, color: 'var(--faint)', marginTop: 4, letterSpacing: '.08em' }}>
+            Shown to the DJ. Keep it clean.
+          </div>
+        </div>
+        <div><label>Your name (staff, optional)</label><input type="text" /></div>
+        <button className="btn btn-uv btn-xl btn-block">Queue shoutout</button>
+      </StationShell>
+    </PhoneFrame>
+  );
+}
+
+// ========================================================
+// 09 Reload
+// ========================================================
+function ReloadScreen() {
+  const [method, setMethod] = useState('facts');
+  return (
+    <PhoneFrame>
+      <StationShell
+        eyebrow="Station · Reload"
+        title="Top up drink tickets"
+        subtitle="Only drink tickets reload — jail, prize wheel, and DJ are fixed at the start."
+      >
+        <div className="row">
+          <input type="text" defaultValue="SBBQ-018" placeholder="Scan or paste QR" style={{ flex: 1 }} />
+          <button className="btn btn-ghost">Look up</button>
+        </div>
+
+        <ChildProfileCard checkedIn drinks={0} />
+
+        <div className="card">
+          <div className="card-eyebrow eye-cyan">FACTS allowance</div>
+          <div className="text-mist" style={{ fontSize: 13, marginTop: 4 }}>
+            $4.00 used of $20.00 — <span className="text-paper" style={{ fontWeight: 700 }}>$16.00 left</span>
+          </div>
+        </div>
+
+        <div className="grid-2">
+          <div><label>Tickets to add</label><input type="number" defaultValue="2" /></div>
+          <div><label>Amount charged ($)</label><input type="number" defaultValue="2.00" step="0.01" /></div>
+        </div>
+
+        <fieldset className="radio-set">
+          <legend>Payment method</legend>
+          <div className="grid-2" style={{ gap: 6, marginTop: 4 }}>
+            {[
+              { v: 'cash', l: 'Cash' },
+              { v: 'venmo', l: 'Venmo' },
+              { v: 'facts', l: 'FACTS', sub: '$16.00 left' },
+              { v: 'comp', l: 'Comp' },
+            ].map(m => (
+              <button key={m.v} className={`opt ${method === m.v ? 'active' : ''}`} onClick={() => setMethod(m.v)}>
+                <div>{m.l}</div>
+                {m.sub && <div className="mono" style={{ fontSize: 9.5, marginTop: 3, letterSpacing: '.08em', textTransform: 'none', fontWeight: 500, opacity: .7 }}>{m.sub}</div>}
+              </button>
+            ))}
+          </div>
+        </fieldset>
+
+        <div><label>Your name (staff)</label><input type="text" defaultValue="Pastor Dan" /></div>
+        <button className="btn btn-magenta btn-xl btn-block">Add 2 drink tickets</button>
+      </StationShell>
+    </PhoneFrame>
+  );
+}
+
+// ========================================================
+// 10 Lookup (profile)
+// ========================================================
+function LookupScreen() {
+  return (
+    <PhoneFrame>
+      <StationShell
+        eyebrow="Station · Profile lookup"
+        title="Who is this kid?"
+        subtitle="Read-only view — useful for questions, allergies, or check-in checks."
+      >
+        <div className="row">
+          <input type="text" defaultValue="SBBQ-018" placeholder="Scan or paste QR" style={{ flex: 1 }} />
+          <button className="btn btn-ghost">Look up</button>
+        </div>
+
+        <ChildProfileCard checkedIn drinks={1} jail={2} />
+
+        <div className="card">
+          <div className="card-eyebrow eye-cyan">Consents</div>
+          <ul style={{ margin: '4px 0 0', padding: 0, listStyle: 'none', fontSize: 12.5 }} className="stack-1">
+            <li style={{ display: 'flex', justifyContent: 'space-between' }}><span className="text-mist">App photos</span><span className="text-paper" style={{ fontWeight: 700 }}>YES</span></li>
+            <li style={{ display: 'flex', justifyContent: 'space-between' }}><span className="text-mist">Promo / social</span><span className="text-paper" style={{ fontWeight: 700 }}>NO</span></li>
+            <li style={{ display: 'flex', justifyContent: 'space-between' }}><span className="text-mist">Vision matching</span><span className="text-paper" style={{ fontWeight: 700 }}>YES</span></li>
+            <li style={{ display: 'flex', justifyContent: 'space-between' }}><span className="text-mist">FACTS</span><span className="text-paper" style={{ fontWeight: 700 }}>up to $20.00</span></li>
+          </ul>
+        </div>
+
+        <div className="card">
+          <div className="card-eyebrow eye-uv">Special instructions</div>
+          <p className="text-paper" style={{ margin: '4px 0 0', fontSize: 12.5 }}>
+            Gets overwhelmed in loud spaces — OK to step out to quiet corner.
+          </p>
+        </div>
+
+        <div className="card">
+          <div className="card-eyebrow eye-gold">Contacts</div>
+          <div className="text-paper" style={{ fontSize: 12.5, marginTop: 4 }}><b>Primary:</b> Maya Chen · 555-0134 · maya@chen.fam</div>
+          <div className="text-paper" style={{ fontSize: 12.5, marginTop: 4 }}><b>Secondary:</b> James Chen · 555-0135 · james@chen.fam</div>
+        </div>
+
+        <div className="card">
+          <div className="card-eyebrow eye-magenta">Approved pickup</div>
+          <ul style={{ margin: '4px 0 0', padding: 0, listStyle: 'none', fontSize: 12.5, color: 'var(--paper)' }}>
+            <li>Grandma Joan Chen · Grandmother</li>
+          </ul>
+        </div>
+
+        <div className="card">
+          <div className="card-eyebrow eye-mint">Status</div>
+          <ul style={{ margin: '4px 0 0', padding: 0, listStyle: 'none', fontSize: 12.5, color: 'var(--paper)' }} className="stack-1">
+            <li>Checked in: 5:18 PM <span className="text-faint">(both parents)</span></li>
+            <li>Checked out: <span className="text-faint">no</span></li>
+          </ul>
+        </div>
+
+        <div className="card">
+          <div className="card-eyebrow">Timeline</div>
+          <ul style={{ margin: '4px 0 0', padding: 0, listStyle: 'none', fontSize: 12, color: 'var(--paper)' }} className="stack-1">
+            <li><span className="text-faint mono">5:18 PM</span> check_in at check_in <span className="text-faint">· Pastor Dan</span></li>
+            <li><span className="text-faint mono">5:24 PM</span> <b>spend</b> at drinks · lemonade · <span className="text-glow-cyan">-1 🎟</span></li>
+            <li><span className="text-faint mono">5:41 PM</span> <b>spend</b> at jail · send · <span className="text-glow-magenta">-1 🎟</span></li>
+            <li><span className="text-faint mono">5:53 PM</span> <b>visit</b> at face_painting</li>
+            <li><span className="text-faint mono">6:12 PM</span> <b>spin</b> at prize_wheel <span className="text-glow-gold">🎡</span></li>
+          </ul>
+        </div>
+      </StationShell>
+    </PhoneFrame>
+  );
+}
+
+// ========================================================
+// 11 Photo station (multi-tag)
+// ========================================================
+function PhotoScreen() {
+  return (
+    <PhoneFrame>
+      <StationShell
+        eyebrow="Station · Photo"
+        title="Scan then shoot"
+        subtitle="Scan every kid in the frame, then hit shutter."
+      >
+        <div className="row">
+          <input type="text" placeholder="Scan or paste QR" style={{ flex: 1 }} />
+          <button className="btn btn-ghost">Add to frame</button>
+        </div>
+
+        <div className="stack-2">
+          <div className="eyebrow" style={{ color: 'var(--mist)' }}>In this shot</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            <span className="chip chip-mint">Ellie Chen ✕</span>
+            <span className="chip chip-mint">Noah Patel ✕</span>
+            <span className="chip chip-mint">Aria Kim ✕</span>
+          </div>
+        </div>
+
+        <div className="scanner" style={{ aspectRatio: '3 / 4' }}>
+          <div className="corners"><span /><span /><span /><span /></div>
+          <div className="beam" />
+          <div className="hint">3 kids tagged · ready</div>
+        </div>
+
+        <div><label>Your name (staff, optional)</label><input type="text" defaultValue="Photog Jamie" /></div>
+        <button className="btn btn-magenta btn-xl btn-block">📸 Shutter (3)</button>
+
+        <div className="banner banner-ok">✨ Uploaded · tagged 3 kids.</div>
+      </StationShell>
+    </PhoneFrame>
+  );
+}
+
+// ========================================================
+// 12 Roaming photographer
+// ========================================================
+function RoamingScreen() {
+  return (
+    <PhoneFrame>
+      <StationShell
+        eyebrow="Station · Roaming photographer"
+        title="Shoot candids"
+        subtitle="Claude vision will try to tag kids with matching consent. You just keep shooting."
+      >
+        <div><label>Your name (staff, optional)</label><input type="text" defaultValue="Photog Jamie" /></div>
+
+        <div className="scanner" style={{ aspectRatio: '3 / 4' }}>
+          <div className="corners"><span /><span /><span /><span /></div>
+          <div className="beam" />
+          <div className="hint">Point · shoot · we'll tag later</div>
+        </div>
+
+        <button className="btn btn-uv btn-xl btn-block">📸 Shutter</button>
+
+        <div className="stack-2">
+          <div className="eyebrow" style={{ color: 'var(--mist)' }}>Recent shots</div>
+          <div className="stack-1">
+            <ShotRow time="7:12:04 PM" status="done" tag="Ellie Chen" />
+            <ShotRow time="7:11:43 PM" status="done" tag="Noah Patel + 1" />
+            <ShotRow time="7:11:22 PM" status="review" />
+            <ShotRow time="7:11:05 PM" status="processing" />
+            <ShotRow time="7:10:48 PM" status="unmatched" />
+          </div>
+        </div>
+      </StationShell>
+    </PhoneFrame>
+  );
+}
+
+function ShotRow({ time, status, tag }) {
+  const labels = {
+    uploading: <span className="text-mist">uploading…</span>,
+    processing: <span className="text-mist">analyzing…</span>,
+    done: <span className="text-glow-cyan" style={{ fontWeight: 700 }}>✓ tagged {tag}</span>,
+    review: <span className="text-glow-gold" style={{ fontWeight: 700 }}>🔍 pending review</span>,
+    unmatched: <span className="text-faint">? unmatched</span>,
+  };
+  return (
+    <div className="card" style={{ padding: '10px 12px', fontSize: 12.5 }}>
+      <span className="text-faint mono" style={{ marginRight: 8 }}>{time}</span>
+      {labels[status]}
+    </div>
+  );
+}
+
+// ========================================================
+// 13 Volunteer gate
+// ========================================================
+function VolunteerGateScreen() {
+  return (
+    <PhoneFrame atmosphere="soft">
+      <div className="screen stack-4" style={{ paddingTop: 100, textAlign: 'center' }}>
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <GlowCross tone="magenta" size={60} />
+        </div>
+        <div className="stack-1">
+          <div className="eyebrow eye-magenta">Volunteer access</div>
+          <div className="font-display text-glow-uv" style={{ fontSize: 28, lineHeight: 1.1 }}>
+            Enter tonight's code
+          </div>
+          <p className="text-mist" style={{ fontSize: 12.5, margin: '6px 0 0' }}>
+            Ask the station lead — it rotates each event.
+          </p>
+        </div>
+        <div style={{ textAlign: 'left' }} className="stack-2">
+          <label>Access code</label>
+          <input type="password" defaultValue="••••" style={{ fontSize: 20, letterSpacing: '.4em', textAlign: 'center', fontFamily: 'var(--font-mono)' }} />
+        </div>
+        <button className="btn btn-magenta btn-xl btn-block">Unlock</button>
+        <div className="text-faint mono" style={{ fontSize: 10, letterSpacing: '.14em' }}>
+          Locked to this browser until the event ends.
+        </div>
+      </div>
+    </PhoneFrame>
+  );
+}
+
+// ========================================================
+// Export all
+// ========================================================
+Object.assign(window, {
+  Landing, Registration, RegistrationConfirm,
+  StationPickerScreen, CheckInScreen, CheckOutScreen,
+  ActivityJailScreen, ActivityDrinksScreen, ActivityDJScreen,
+  ReloadScreen, LookupScreen, PhotoScreen, RoamingScreen,
+  VolunteerGateScreen,
+  LaptopFrame, PhoneFrame, ChildProfileCard,
+});
+
+</script>
+<script type="text/babel">
+/* Spring BBQ Bash — Admin screens (laptop/desktop chrome) */
+
+function AdminNav({ active = 'Dashboard' }) {
+  const items = ['Dashboard', 'Kids', 'Stations', 'Photos', 'Settings'];
+  return (
+    <div className="admin-nav">
+      <span className="brand"><i />Spring BBQ · Admin</span>
+      {items.map(i => (
+        <a key={i} href="#" className={i === active ? 'active' : ''}>{i}</a>
+      ))}
+      <span className="home-link text-faint">← Back to home</span>
+    </div>
+  );
+}
+
+// ========================================================
+// 14 Admin dashboard
+// ========================================================
+function AdminDashboardScreen() {
+  return (
+    <LaptopFrame url="bbq.lca.church/admin">
+      <AdminNav active="Dashboard" />
+      <div className="screen wide stack-4">
+        <PageHead
+          back={null}
+          eyebrow={{ text: 'Event control · Live', tone: 'eye-magenta' }}
+          title="Tonight at a glance"
+          sub="Saturday, April 25, 2026 · 5:00–8:00 PM · Started 5:03 PM"
+        />
+
+        <div className="grid-4">
+          <div className="stat t-cyan">
+            <div className="lbl">Checked in</div>
+            <div className="val">87<span className="text-faint" style={{ fontSize: 16, marginLeft: 6 }}>/ 112</span></div>
+          </div>
+          <div className="stat t-mint">
+            <div className="lbl">Checked out</div>
+            <div className="val">14</div>
+          </div>
+          <div className="stat t-magenta">
+            <div className="lbl">Drinks sold</div>
+            <div className="val">176</div>
+          </div>
+          <div className="stat t-gold">
+            <div className="lbl">Reloads</div>
+            <div className="val">$164</div>
+          </div>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: 16 }}>
+          <div className="card pad-lg stack-3">
+            <div className="card-eyebrow eye-cyan">Live feed</div>
+            <div className="stack-1" style={{ fontSize: 12.5 }}>
+              <FeedRow time="7:14 PM" who="Ellie Chen" what="redeemed a drink ticket" where="drinks" />
+              <FeedRow time="7:13 PM" who="Noah Patel" what="checked out — James Patel" where="check-out" tone="mint" />
+              <FeedRow time="7:11 PM" who="Aria Kim" what="used jail pass" where="jail" tone="magenta" />
+              <FeedRow time="7:09 PM" who="Micah Evans" what="spun the prize wheel: JUMBO CANDY" where="prize wheel" tone="gold" />
+              <FeedRow time="7:06 PM" who="Ellie Chen" what="requested DJ shoutout" where="DJ" tone="uv" />
+              <FeedRow time="7:03 PM" who="Sam Ortega" what="reloaded +2 via FACTS" where="reload" tone="magenta" />
+            </div>
+          </div>
+          <div className="stack-3">
+            <div className="card pad-lg stack-2">
+              <div className="card-eyebrow eye-gold">Needs attention</div>
+              <div className="banner banner-warn">3 pending photo reviews (partial match &lt; 85%).</div>
+              <div className="banner banner-warn">2 kids with allergies not yet checked in.</div>
+              <div className="banner banner-err">1 kid at check-out — pickup not on approved list.</div>
+            </div>
+            <div className="card pad-lg stack-2">
+              <div className="card-eyebrow eye-magenta">Station busy-ness</div>
+              <BusyBar label="Drinks" pct={88} tone="magenta" />
+              <BusyBar label="Prize Wheel" pct={72} tone="gold" />
+              <BusyBar label="Jail" pct={56} tone="cyan" />
+              <BusyBar label="Dance" pct={48} tone="uv" />
+              <BusyBar label="Face Painting" pct={34} tone="mint" />
+              <BusyBar label="Check-in" pct={12} tone="cyan" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </LaptopFrame>
+  );
+}
+
+function FeedRow({ time, who, what, where, tone = 'cyan' }) {
+  return (
+    <div className="row" style={{ padding: '7px 0', borderBottom: '1px dashed var(--ink-hair)', alignItems: 'baseline' }}>
+      <span className="text-faint mono" style={{ fontSize: 11, minWidth: 62 }}>{time}</span>
+      <span className={`text-glow-${tone}`} style={{ fontWeight: 700 }}>{who}</span>
+      <span className="text-mist">{what}</span>
+      <span className="text-faint" style={{ marginLeft: 'auto', fontSize: 11 }}>@ {where}</span>
+    </div>
+  );
+}
+
+function BusyBar({ label, pct, tone }) {
+  const color = {
+    magenta: 'var(--neon-magenta)', cyan: 'var(--neon-cyan)',
+    uv: 'var(--neon-uv)', gold: 'var(--neon-gold)', mint: 'var(--neon-mint)',
+  }[tone];
+  return (
+    <div>
+      <div className="row" style={{ justifyContent: 'space-between', fontSize: 12 }}>
+        <span className="text-mist">{label}</span>
+        <span className="tabular" style={{ fontWeight: 700, color }}>{pct}%</span>
+      </div>
+      <div style={{ height: 6, borderRadius: 4, background: 'var(--ink-2)', overflow: 'hidden', marginTop: 4 }}>
+        <div style={{ width: `${pct}%`, height: '100%', background: color, boxShadow: `0 0 8px ${color}` }} />
+      </div>
+    </div>
+  );
+}
+
+// ========================================================
+// 15 Kids list
+// ========================================================
+const KIDS = [
+  { id: 'SBBQ-018', name: 'Ellie Chen',    age: 9,  grade: '4', status: 'in',  drinks: 1, flags: 'allergy', parent: 'Maya Chen' },
+  { id: 'SBBQ-019', name: 'James Chen',    age: 11, grade: '5', status: 'in',  drinks: 2, flags: null, parent: 'Maya Chen' },
+  { id: 'SBBQ-020', name: 'Noah Patel',    age: 8,  grade: '3', status: 'out', drinks: 0, flags: null, parent: 'Raj Patel' },
+  { id: 'SBBQ-021', name: 'Aria Kim',      age: 10, grade: '5', status: 'in',  drinks: 2, flags: 'no-photo', parent: 'Joy Kim' },
+  { id: 'SBBQ-022', name: 'Micah Evans',   age: 7,  grade: '2', status: 'in',  drinks: 1, flags: null, parent: 'Dre Evans' },
+  { id: 'SBBQ-023', name: 'Sam Ortega',    age: 12, grade: '6', status: 'in',  drinks: 2, flags: null, parent: 'Gabi Ortega' },
+  { id: 'SBBQ-024', name: 'Lila Brooks',   age: 9,  grade: '4', status: 'reg', drinks: 0, flags: 'allergy', parent: 'Tina Brooks' },
+  { id: 'SBBQ-025', name: 'Eli Yamamoto',  age: 11, grade: '5', status: 'in',  drinks: 1, flags: null, parent: 'Ken Yamamoto' },
+  { id: 'SBBQ-026', name: 'Ruth Nguyen',   age: 8,  grade: '3', status: 'reg', drinks: 0, flags: null, parent: 'Phuong Nguyen' },
+];
+
+function AdminKidsScreen() {
+  const [filter, setFilter] = useState('all');
+  const filtered = filter === 'all' ? KIDS
+    : filter === 'in' ? KIDS.filter(k => k.status === 'in')
+    : filter === 'out' ? KIDS.filter(k => k.status === 'out')
+    : filter === 'flags' ? KIDS.filter(k => k.flags)
+    : KIDS;
+
+  return (
+    <LaptopFrame url="bbq.lca.church/admin/kids">
+      <AdminNav active="Kids" />
+      <div className="screen wide stack-4">
+        <PageHead
+          back={null}
+          eyebrow={{ text: 'All kids · 112 registered', tone: 'eye-magenta' }}
+          title="Kids"
+          sub="Search, filter, click into any profile."
+        />
+
+        <div className="row" style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+          <input type="search" placeholder="Search name, parent, wristband ID…" style={{ maxWidth: 320 }} />
+          <div className="filter-row">
+            {[
+              ['all', 'All'],
+              ['in', 'Checked in'],
+              ['out', 'Checked out'],
+              ['flags', 'Has flags'],
+            ].map(([v, l]) => (
+              <button key={v} className={`filter-chip ${filter === v ? 'active' : ''}`} onClick={() => setFilter(v)}>{l}</button>
+            ))}
+          </div>
+        </div>
+
+        <table className="tbl">
+          <thead>
+            <tr>
+              <th>Wristband</th><th>Kid</th><th>Age</th><th>Grade</th><th>Parent</th><th>Status</th><th>Drinks left</th><th>Flags</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map(k => (
+              <tr key={k.id}>
+                <td className="mono" style={{ color: 'var(--mist)' }}>{k.id}</td>
+                <td><a className="name-link">{k.name}</a></td>
+                <td>{k.age}</td>
+                <td>{k.grade}</td>
+                <td className="mist">{k.parent}</td>
+                <td>
+                  {k.status === 'in' && <span className="chip chip-mint" style={{ fontSize: 9.5, padding: '2px 8px' }}>In</span>}
+                  {k.status === 'out' && <span className="chip chip-quiet" style={{ fontSize: 9.5, padding: '2px 8px' }}>Out</span>}
+                  {k.status === 'reg' && <span className="chip chip-gold" style={{ fontSize: 9.5, padding: '2px 8px' }}>Registered</span>}
+                </td>
+                <td className="tabular" style={{ fontWeight: 700, color: k.drinks === 0 ? 'var(--faint)' : 'var(--neon-cyan)' }}>{k.drinks}</td>
+                <td>
+                  {k.flags === 'allergy' && <span className="chip chip-danger" style={{ fontSize: 9.5, padding: '2px 8px' }}>⚠ allergy</span>}
+                  {k.flags === 'no-photo' && <span className="chip" style={{ fontSize: 9.5, padding: '2px 8px', color: 'var(--warn)', background: 'rgba(255,176,87,.1)', border: '1px solid rgba(255,176,87,.5)' }}>no photos</span>}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </LaptopFrame>
+  );
+}
+
+// ========================================================
+// 16 Photo review queue
+// ========================================================
+function AdminPhotoReviewScreen() {
+  return (
+    <LaptopFrame url="bbq.lca.church/admin/photos">
+      <AdminNav active="Photos" />
+      <div className="screen wide stack-4">
+        <PageHead
+          back={null}
+          eyebrow={{ text: 'Review queue · 3 pending', tone: 'eye-magenta' }}
+          title="Photos needing a human"
+          sub="Claude vision tagged these but wasn't confident. Approve, re-tag, or hide."
+        />
+
+        <div className="grid-3">
+          {[0, 1, 2].map(i => (
+            <div key={i} className="card stack-3">
+              <div style={{
+                aspectRatio: '4 / 3',
+                borderRadius: 12,
+                background:
+                  i === 0 ? 'linear-gradient(135deg, #FF2E93, #9B5CFF)' :
+                  i === 1 ? 'linear-gradient(135deg, #00E6F7, #9B5CFF)' :
+                            'linear-gradient(135deg, #FFE147, #FF2E93)',
+                position: 'relative',
+                overflow: 'hidden',
+              }}>
+                <div style={{
+                  position: 'absolute', inset: 0,
+                  background: 'radial-gradient(circle at 30% 50%, rgba(255,255,255,.3), transparent 50%)',
+                }} />
+                <div style={{
+                  position: 'absolute', bottom: 8, left: 8,
+                  padding: '4px 8px', borderRadius: 6,
+                  background: 'rgba(0,0,0,.6)',
+                  fontSize: 10, fontFamily: 'var(--font-mono)',
+                  color: '#fff', letterSpacing: '.08em',
+                }}>
+                  {['7:02 PM', '7:04 PM', '7:07 PM'][i]} · roaming
+                </div>
+              </div>
+              <div className="card-eyebrow eye-gold">Claude's guesses</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {['Ellie Chen · 78%', 'Noah Patel · 62%', 'Unknown kid · 44%'].slice(0, i + 1).map(g => (
+                  <span key={g} className="chip chip-uv" style={{ fontSize: 10.5 }}>{g}</span>
+                ))}
+              </div>
+              <div className="grid-3">
+                <button className="btn btn-mint btn-sm">✓ Approve</button>
+                <button className="btn btn-ghost btn-sm">Re-tag</button>
+                <button className="btn btn-danger btn-sm">Hide</button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="card">
+          <div className="card-eyebrow eye-cyan">How this works</div>
+          <p className="text-mist" style={{ margin: '4px 0 0', fontSize: 12.5, lineHeight: 1.55 }}>
+            Anything above 85% auto-tags and goes straight to the keepsake app. Between
+            60–85% shows up here. Below 60% goes to the unmatched pile — only an admin
+            can promote those.
+          </p>
+        </div>
+      </div>
+    </LaptopFrame>
+  );
+}
+
+// ========================================================
+// 17 Event settings
+// ========================================================
+function AdminSettingsScreen() {
+  return (
+    <LaptopFrame url="bbq.lca.church/admin/settings">
+      <AdminNav active="Settings" />
+      <div className="screen wide stack-4">
+        <PageHead
+          back={null}
+          eyebrow={{ text: 'Event settings', tone: 'eye-magenta' }}
+          title="Spring BBQ Bash · Glow Party Edition"
+          sub="Change once before the event. Allowances are locked during check-in."
+        />
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          <div className="card pad-lg stack-3">
+            <div className="card-eyebrow eye-cyan">Basics</div>
+            <div><label>Event name</label><input type="text" defaultValue="Spring BBQ Bash" /></div>
+            <div><label>Edition / subtitle</label><input type="text" defaultValue="Glow Party Edition" /></div>
+            <div className="grid-2">
+              <div><label>Start</label><input type="datetime-local" defaultValue="2026-04-25T17:00" /></div>
+              <div><label>End</label><input type="datetime-local" defaultValue="2026-04-25T20:00" /></div>
+            </div>
+            <div><label>Volunteer access code</label><input type="text" defaultValue="GLOW25" /></div>
+          </div>
+
+          <div className="card pad-lg stack-3">
+            <div className="card-eyebrow eye-magenta">Perks per kid</div>
+            <div className="grid-2">
+              <div><label>Drink tickets</label><input type="number" defaultValue="2" /></div>
+              <div><label>Jail / pass tokens</label><input type="number" defaultValue="3" /></div>
+            </div>
+            <div className="grid-2">
+              <div><label>Prize-wheel spins</label><input type="number" defaultValue="1" /></div>
+              <div><label>DJ shoutouts</label><input type="number" defaultValue="1" /></div>
+            </div>
+            <div><label>Drink reload price ($ each)</label><input type="number" defaultValue="1.00" step="0.01" /></div>
+            <div className="banner banner-warn">⚠ Changing these after doors open only applies to not-yet-registered kids.</div>
+          </div>
+
+          <div className="card pad-lg stack-3">
+            <div className="card-eyebrow eye-uv">Photos &amp; AI</div>
+            <ConsentToggleRow label="Run Claude vision on roaming shots" checked />
+            <ConsentToggleRow label="Auto-tag above 85% confidence" checked />
+            <ConsentToggleRow label="Send keepsake email the morning after" checked />
+            <ConsentToggleRow label="Include AI-written story in keepsake" checked />
+            <div><label>Story tone</label>
+              <select defaultValue="warm">
+                <option value="warm">Warm &amp; reverent</option>
+                <option value="playful">Playful &amp; goofy</option>
+                <option value="poetic">Poetic / literary</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="card pad-lg stack-3">
+            <div className="card-eyebrow eye-gold">Stations</div>
+            <div className="stack-1">
+              {STATIONS.slice(0, 9).map(s => (
+                <div key={s.slug} className="row" style={{ padding: '6px 0', borderBottom: '1px dashed var(--ink-hair)' }}>
+                  <span style={{ fontSize: 18 }}>{s.emoji}</span>
+                  <span style={{ fontWeight: 600, fontSize: 13 }}>{s.name}</span>
+                  <span className="mono text-faint" style={{ marginLeft: 'auto', fontSize: 10, letterSpacing: '.1em' }}>{s.slug}</span>
+                  <ConsentToggleRow compact checked />
+                </div>
+              ))}
+            </div>
+            <button className="btn btn-ghost btn-sm">+ Add station</button>
+          </div>
+        </div>
+
+        <div className="row" style={{ justifyContent: 'flex-end', gap: 8, paddingTop: 8 }}>
+          <button className="btn btn-ghost">Cancel</button>
+          <button className="btn btn-magenta">Save settings</button>
+        </div>
+      </div>
+    </LaptopFrame>
+  );
+}
+
+function ConsentToggleRow({ label, checked, compact }) {
+  if (compact) {
+    return (
+      <span style={{
+        width: 38, height: 22, borderRadius: 999,
+        background: checked ? 'var(--neon-mint)' : 'var(--ink-hair)',
+        boxShadow: checked ? '0 0 12px rgba(75,230,179,.6)' : 'none',
+        position: 'relative', flexShrink: 0,
+      }}>
+        <span style={{
+          position: 'absolute', top: 2, left: checked ? 18 : 2,
+          width: 18, height: 18, borderRadius: '50%', background: '#fff',
+          transition: 'left .15s ease',
+        }} />
+      </span>
+    );
+  }
+  return (
+    <label style={{ display: 'flex', gap: 10, alignItems: 'center', textTransform: 'none', letterSpacing: 0, fontSize: 13, color: 'var(--paper)', fontFamily: 'inherit', fontWeight: 500, cursor: 'pointer', marginBottom: 0 }}>
+      <span style={{
+        width: 38, height: 22, borderRadius: 999,
+        background: checked ? 'var(--neon-mint)' : 'var(--ink-hair)',
+        boxShadow: checked ? '0 0 12px rgba(75,230,179,.6)' : 'none',
+        position: 'relative', flexShrink: 0,
+      }}>
+        <span style={{
+          position: 'absolute', top: 2, left: checked ? 18 : 2,
+          width: 18, height: 18, borderRadius: '50%', background: '#fff',
+        }} />
+      </span>
+      <span>{label}</span>
+    </label>
+  );
+}
+
+// ========================================================
+// Export
+// ========================================================
+Object.assign(window, {
+  AdminDashboardScreen, AdminKidsScreen,
+  AdminPhotoReviewScreen, AdminSettingsScreen,
+  AdminNav,
+});
+
+</script>
+
+<script type="text/babel">
+const { useState, useEffect } = React;
+
+const SECTIONS = [
+  {
+    id: 'all',
+    label: 'All screens',
+    note: 'Every screen in the flow, grouped by surface. Phone for volunteers + parents; laptop for admin.',
+  },
+  { id: 'customer',   label: 'Parent flow',    note: 'What parents see: landing page → permission slip → confirmation.' },
+  { id: 'stations',   label: 'Volunteer stations', note: 'What volunteers see on their phones at each station post.' },
+  { id: 'photos',     label: 'Photo surfaces', note: 'Posed photo booth + roaming photographer.' },
+  { id: 'admin',      label: 'Admin portal',   note: 'What you (the organizer) see on a laptop before & during the event.' },
+];
+
+function SectionHead({ title, route }) {
+  return (
+    <div className="frame-label">
+      <b>{title}</b>
+      {route && <span className="route">{route}</span>}
+    </div>
+  );
+}
+
+function Gallery({ children, mode = 'phone' }) {
+  return <div className={`gallery ${mode === 'wide' ? 'wide' : ''}`}>{children}</div>;
+}
+
+const CUSTOMER = [
+  { title: 'Landing', route: '/', el: <Landing /> },
+  { title: 'Permission slip', route: '/register', el: <Registration /> },
+  { title: 'Confirmation', route: '/register/done', el: <RegistrationConfirm /> },
+];
+const STATION_SCREENS = [
+  { title: 'Volunteer gate', route: '/v', el: <VolunteerGateScreen /> },
+  { title: 'Station picker', route: '/v/pick', el: <StationPickerScreen /> },
+  { title: 'Check-in', route: '/v/check_in', el: <CheckInScreen /> },
+  { title: 'Check-out', route: '/v/check_out', el: <CheckOutScreen /> },
+  { title: 'Jail (metered)', route: '/v/jail', el: <ActivityJailScreen /> },
+  { title: 'Drinks (metered)', route: '/v/drinks', el: <ActivityDrinksScreen /> },
+  { title: 'DJ shoutout', route: '/v/dj_shoutout', el: <ActivityDJScreen /> },
+  { title: 'Reload', route: '/v/reload', el: <ReloadScreen /> },
+  { title: 'Profile lookup', route: '/v/lookup', el: <LookupScreen /> },
+];
+const PHOTOS = [
+  { title: 'Photo station', route: '/v/photo', el: <PhotoScreen /> },
+  { title: 'Roaming photographer', route: '/v/roaming', el: <RoamingScreen /> },
+];
+const ADMIN = [
+  { title: 'Dashboard', route: '/admin', el: <AdminDashboardScreen /> },
+  { title: 'Kids list', route: '/admin/kids', el: <AdminKidsScreen /> },
+  { title: 'Photo review queue', route: '/admin/photos', el: <AdminPhotoReviewScreen /> },
+  { title: 'Event settings', route: '/admin/settings', el: <AdminSettingsScreen /> },
+];
+
+function FrameCard({ title, route, children }) {
+  return (
+    <div className="frame-card">
+      <SectionHead title={title} route={route} />
+      {children}
+    </div>
+  );
+}
+
+function App() {
+  const [tab, setTab] = useState(() => {
+    try { return localStorage.getItem('sbbq_tab') || 'all'; } catch { return 'all'; }
+  });
+  useEffect(() => { try { localStorage.setItem('sbbq_tab', tab); } catch {} }, [tab]);
+
+  return (
+    <div className="shell">
+      <div className="shell-head">
+        <div>
+          <div className="meta">Spring BBQ Bash · Glow Party Edition · Full prototype</div>
+          <h1>Every screen, in one place.</h1>
+          <p>Rebuilt against the new design system — Unbounded display, aurora backdrops, neon glow cards.
+          Flip between parent, volunteer, photo, and admin surfaces with the tabs below.</p>
+        </div>
+        <div className="text-faint mono" style={{ fontSize: 10.5, letterSpacing: '.14em', textAlign: 'right' }}>
+          LCA · 30 Years · Est. 1995<br/>
+          by Attn: To Detail
+        </div>
+      </div>
+
+      <div className="tabs">
+        {SECTIONS.map(s => (
+          <button key={s.id} className={tab === s.id ? 'active' : ''} onClick={() => setTab(s.id)}>
+            {s.label}
+          </button>
+        ))}
+      </div>
+
+      <div style={{ marginBottom: 18, fontSize: 13, color: 'var(--mist)', maxWidth: '60ch' }}>
+        {SECTIONS.find(s => s.id === tab)?.note}
+      </div>
+
+      {(tab === 'all' || tab === 'customer') && (
+        <section style={{ marginBottom: 44 }}>
+          <h2 className="font-display text-glow-magenta" style={{ fontSize: 20, margin: '0 0 18px', letterSpacing: '-.02em' }}>
+            Parent flow
+          </h2>
+          <Gallery>
+            {CUSTOMER.map(s => <FrameCard key={s.route} {...s}>{s.el}</FrameCard>)}
+          </Gallery>
+        </section>
+      )}
+
+      {(tab === 'all' || tab === 'stations') && (
+        <section style={{ marginBottom: 44 }}>
+          <h2 className="font-display text-glow-cyan" style={{ fontSize: 20, margin: '0 0 18px', letterSpacing: '-.02em' }}>
+            Volunteer stations
+          </h2>
+          <Gallery>
+            {STATION_SCREENS.map(s => <FrameCard key={s.route} {...s}>{s.el}</FrameCard>)}
+          </Gallery>
+        </section>
+      )}
+
+      {(tab === 'all' || tab === 'photos') && (
+        <section style={{ marginBottom: 44 }}>
+          <h2 className="font-display text-glow-uv" style={{ fontSize: 20, margin: '0 0 18px', letterSpacing: '-.02em' }}>
+            Photos
+          </h2>
+          <Gallery>
+            {PHOTOS.map(s => <FrameCard key={s.route} {...s}>{s.el}</FrameCard>)}
+          </Gallery>
+        </section>
+      )}
+
+      {(tab === 'all' || tab === 'admin') && (
+        <section style={{ marginBottom: 44 }}>
+          <h2 className="font-display text-glow-gold" style={{ fontSize: 20, margin: '0 0 18px', letterSpacing: '-.02em' }}>
+            Admin portal
+          </h2>
+          <Gallery mode="wide">
+            {ADMIN.map(s => <FrameCard key={s.route} {...s}>{s.el}</FrameCard>)}
+          </Gallery>
+        </section>
+      )}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+
+</body>
+</html>
