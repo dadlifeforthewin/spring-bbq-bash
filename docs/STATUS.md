@@ -1,20 +1,26 @@
 # Kid Profile Rebuild — STATUS
 
-**Branch:** `kid-profile-rebuild` · **Last update:** 2026-04-18
+**Branch:** `kid-profile-rebuild` · **Last update:** 2026-04-19 (early hours, from a 2026-04-18 evening session)
 **Live:** https://spring-bbq-bash.vercel.app · **Event:** Saturday, April 25, 2026
 **Plan:** `docs/plans/2026-04-16-kid-profile-rebuild-plan.md` · **Spec:** `docs/specs/2026-04-16-kid-profile-rebuild-design.md`
 
-## Go-live status (2026-04-18 evening)
+## Go-live status (2026-04-18 late evening)
 
-Phases 1–7 of the plan are shipped. A full visual rebuild (D1–D9 glow pass) was layered on top and is also live. **Today's session** added the real LCA waiver text + a new AI & data use disclosure step + Photo/Video Release legal modal + reseeded the AI reference story + wrote four pre-event runbooks. The site represents Attn: To Detail's first public-facing project — donated to LCA for the event. Craft bar: everything the parents see needs to feel like it came from a real studio.
+Phases 1–7 of the plan are shipped. **Two visual rebuilds are now live**: the original D1–D9 glow pass, and on top of that a Glow Party design-system rebuild today (D10 landing + D11 registration) implementing the Claude Design handoff in `docs/design/`. The site represents Attn: To Detail's first public-facing project — donated to LCA for the event. Craft bar: everything the parents see needs to feel like it came from a real studio.
 
 **What's live right now:**
-- Parent flow at `/register` with aurora-glow hero, "Spring BBQ Bash · Glow Party Edition" wordmark, glow-lit LCA cross, and a mysterious keepsake teaser (no reveal of what the email contains).
-- 5-step permission slip: parent → children → **LCA paper-slip waiver text (verbatim)** → photo permissions (with expandable full LCA Photo/Video Release legal text) → **AI & data use disclosure (Step 5)** with independent acknowledgment + signature.
-- `/register/confirm` with "See you Saturday under the blacklight" hero and the event's 3 preloaded perks displayed as neon chips. ⚠️ **Decorative only — see P0 in critical path.**
+- **Landing (`/`)** — Glow Party Edition: neon-sign hero (Monoton title with cyan/pink glow stack), live countdown to Apr 25 5pm PT, 4-up stat strip, wristband perks card (2 DRINKS / 3 JAIL / 1 SPIN / 1 DJ), CTA → /register. Full atmosphere: radial gradient + perspective synthwave grid floor + noise.
+- **Parent flow (`/register`)** — fully restyled to the Glow Party design system. 5-step permission slip:
+  1. **Parent** — neon card with cyan-tinted inputs
+  2. **Children** — each kid gets a live `<WristbandPreview>` (name + grade + QR placeholder + 4 perk slots showing the locked ticket model)
+  3. **Waiver** — verbatim LCA paper-slip "Permission and Release of Liability"
+  4. **Photo permissions** — Backstage Pass treatment: 3 `<BigToggle>` rows + "{N} of 3 · You're on the list" status pill + expandable full LCA Photo/Video Release legal text
+  5. **AI & data use** — yellow-accented neon card with the disclosure + **OPT IN / OPT OUT radio cards (no default — parent must actively choose)** + independent signature + ack checkbox
+- **`/register/confirm`** — Marquee "YOU'RE IN" + per-kid gate-pass card with **REAL QR codes** (qrcode lib) + edit link + ICS calendar download + Print button + Apple Wallet placeholder. **P0 closed.**
 - Volunteer portal at `/station` with emoji station picker and a unified `/station/activity` endpoint for drinks, jail, prize wheel, DJ, and free-visit logging.
 - Admin at `/admin` with dark-mode dashboard, children list showing per-kid perks, story moderation, photo queue, settings.
 - Keepsake email template (`src/emails/StoryEmail.tsx`) — dark hero, Unbounded wordmark, per-child block with photo grid + stats pill + A2D signature footer. Not yet wired to a real inbox (`RESEND_API_KEY` empty).
+- **AI opt-out is real, not theater.** `children.ai_consent_granted` (migration 0009) is enforced at every AI touchpoint: story generator early-returns `{skipped: true, reason: 'ai_opted_out'}` before any Anthropic call; photo upload skips face description; photo match candidate query filters opted-out kids; register API doesn't even pre-queue an `ai_stories` row for opted-out kids → no row → no keepsake email for them.
 
 **Ticket model (locked):** every kid starts with 2 drink tickets, 3 jail/pass tickets (one bucket, two uses), 1 prize wheel spin, 1 DJ shoutout. Free stations just log a visit for the keepsake email.
 
@@ -24,7 +30,7 @@ Phases 1–7 of the plan are shipped. A full visual rebuild (D1–D9 glow pass) 
 
 Ordered by urgency. **#1 is the new P0 (discovered 2026-04-18 during runbook audit).** The first four are non-negotiable; skip any of them and the event has a real problem.
 
-1. **🚨 P0 — `/register/confirm` shows no QR codes and no email is sent.** `/api/register` currently `console.log`s the receipt payload; `/register/confirm` ignores the API's `created` array + `edit_token`. **Effect:** parents register today, walk into Saturday with zero record of which wristband belongs to which kid. Two paths: (a) quick patch — render QRs on the confirm page from the API response, ~30 min, ships value tonight; (b) full Resend-backed receipt email, ~2hr, blocked on Resend setup. Recommend doing (a) immediately and (b) after Resend is verified.
+1. ✅ **DONE 2026-04-18 (was P0).** `/register/confirm` now renders real per-kid QR codes from the API response (sessionStorage flow carries `created[]` + `edit_token`). Parents leave registration with a printable gate-pass per child + an edit link. Apple Wallet `.pkpass` generation is still TODO (button is a placeholder); confirmation email still pending Resend setup (#2 below) — current copy says "confirmation sent to {email}" which technically isn't true yet, so soften that line if Resend isn't live by event-week.
 2. **Email delivery live.** Set `RESEND_API_KEY` + `EMAIL_FROM` in Vercel env (and `.env.local`). Complete Resend domain DNS (SPF / DKIM / DMARC). Without this, the keepsake email can't send the morning after. `CRON_SECRET` is already set; the Vercel cron fires at `0 16 * * *` UTC (9 AM Pacific) automatically. **Step-by-step:** `docs/runbooks/resend-setup.md`.
 3. **Full manual dry-run on a real phone.** Test family → `/register` → check-in with jail mugshot → visit 5+ stations → check out → confirm story generates via `/admin/stories` → confirm keepsake email renders in a real burner inbox via the test-send button in `/admin/settings`. **Step-by-step (19 steps, ~30 min):** `docs/runbooks/event-dry-run.md`. Run by Tuesday April 21.
 4. **Volunteer device setup.** Each station gets a tablet/phone, logged into `/station`, station slug picked (stored in `localStorage`). Print one cheat-sheet per volunteer. **Print-ready:** `docs/runbooks/volunteer-cheatsheet.md`.
@@ -38,6 +44,19 @@ Ordered by urgency. **#1 is the new P0 (discovered 2026-04-18 during runbook aud
 7. ✅ **DONE 2026-04-18.** `events.reference_story_text` reseeded with a fictional Olivia Bennett story across 7 real seeded stations (~205 words). Migration 0008 applied. Auto-check rules verified (word count, opener mentions child, ≥2 stations in opener+closer, no banned phrases, no timestamps).
 8. Applitools baseline capture for the parent flow + email (enables regression detection post-event).
 9. Swap the teaser-email copy to final voice once the reveal is confirmed okay. Current copy is the "surprise" direction Brian approved.
+
+## What landed in the 2026-04-18 evening session (committed + pushed)
+
+Four commits on `kid-profile-rebuild`, all pushed:
+
+| SHA | Subject |
+|---|---|
+| `155680c` | docs: drop Claude Design handoff bundle (Glow Party + Parent Registration concepts) |
+| `d98b3d3` | design(D10): Glow Party landing page — neon hero + countdown + wristband perks |
+| `1808d63` | design(D11) + feat: Parent Registration neon rebuild + Marquee confirm + AI opt-out |
+| (this commit) | docs: STATUS update reflecting D10/D11 + opt-out work |
+
+Key gotcha discovered: Tailwind v3 preflight uses `input[type='text']` selectors (specificity 0,1,1) which beat a plain CSS Module `.input` class (0,1,0). Textareas got the new style; text inputs didn't. Fix: chain the element name (`input.input`) so the rule ties at 0,1,1 and wins on source order. Same gotcha will hit any future surface that styles inputs via CSS Modules — chain the element name preemptively.
 
 ## Pre-event audit findings (2026-04-18)
 
