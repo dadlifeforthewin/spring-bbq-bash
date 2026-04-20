@@ -1,9 +1,15 @@
 'use client'
-import { useRef, useState } from 'react'
-import { StationShell } from './StationShell'
+import { useEffect, useRef, useState } from 'react'
 import PhotoViewfinder, { PhotoViewfinderHandle } from './PhotoViewfinder'
-import { Input } from '@/components/glow/Input'
-import { Button } from '@/components/glow/Button'
+import {
+  PageHead,
+  NeonScanner,
+  SignPanel,
+  Chip,
+  SectionHeading,
+  GlyphGlow,
+  RoamingGlyph,
+} from '@/components/glow'
 
 type Shot = {
   photo_id: string
@@ -19,6 +25,20 @@ export default function RoamingStation() {
   const [volunteerName, setVolunteerName] = useState('')
   const [busy, setBusy] = useState(false)
   const [shots, setShots] = useState<Shot[]>([])
+  const [cameraReady, setCameraReady] = useState(false)
+
+  // Mark camera ready after brief boot window; confirmed on first successful capture
+  useEffect(() => {
+    const t = setTimeout(() => setCameraReady(true), 2000)
+    return () => clearTimeout(t)
+  }, [])
+
+  const uploading = busy
+  const queuedCount = shots.length
+  const lastShot = shots[0]
+  const lastUploadStatus = lastShot?.state === 'done' || lastShot?.state === 'processing'
+    ? lastShot.match_status ?? null
+    : null
 
   async function capture() {
     setBusy(true)
@@ -28,6 +48,7 @@ export default function RoamingStation() {
         setBusy(false)
         return
       }
+      setCameraReady(true)
       const takenAt = new Date().toISOString()
       const placeholderId = `tmp-${Date.now()}`
       setShots((s) => [{ photo_id: placeholderId, taken_at: takenAt, state: 'uploading' as const }, ...s].slice(0, 10))
@@ -80,29 +101,61 @@ export default function RoamingStation() {
   }
 
   return (
-    <StationShell
-      eyebrow="Station · Roaming photographer"
-      title="Shoot candids"
-      subtitle="Claude vision will try to tag kids with matching consent. You just keep shooting."
-    >
-      <Input
-        label="Your name (staff, optional)"
-        value={volunteerName}
-        onChange={(e) => setVolunteerName(e.target.value)}
-        aria-label="volunteer name"
+    <main className="flex flex-col gap-5">
+      <PageHead
+        back={{ href: '/station', label: 'stations' }}
+        title="ROAMING"
+        sub="Shoot freely. We'll sort the matches after the event."
+        right={<Chip tone="uv" glow>QUEUE · {queuedCount}</Chip>}
       />
 
-      <PhotoViewfinder ref={viewfinderRef} facingMode="environment" />
+      <NeonScanner
+        tone="uv"
+        aspect="portrait"
+        hint="Tap to snap · auto-upload"
+        scanning={!uploading}
+        onClick={capture}
+        style={{ cursor: 'pointer' }}
+      >
+        {!cameraReady ? (
+          <GlyphGlow tone="uv" size={96}>
+            <RoamingGlyph size={72} />
+          </GlyphGlow>
+        ) : (
+          <div className="absolute inset-0" onClick={(e) => e.stopPropagation()}>
+            <PhotoViewfinder ref={viewfinderRef} facingMode="environment" />
+          </div>
+        )}
+      </NeonScanner>
 
-      <Button tone="uv" size="xl" fullWidth onClick={capture} disabled={busy} loading={busy}>
-        📸 Shutter
-      </Button>
+      {/* Hidden name input preserved for volunteer attribution */}
+      <input
+        type="text"
+        className="sr-only"
+        aria-label="volunteer name"
+        value={volunteerName}
+        onChange={(e) => setVolunteerName(e.target.value)}
+      />
 
-      {shots.length > 0 && (
-        <section className="space-y-2">
-          <h2 className="text-xs font-semibold uppercase tracking-widest text-mist">Recent shots</h2>
+      {lastUploadStatus && (
+        <SignPanel tone="uv" padding="md">
+          <div className="text-sm text-paper">Sent to queue. Photos sync after the event.</div>
+          <div className="mt-2 flex items-center gap-2">
+            <Chip tone={
+              lastUploadStatus === 'auto' ? 'mint' :
+              lastUploadStatus === 'pending_review' ? 'gold' : 'quiet'
+            }>
+              {lastUploadStatus.toUpperCase()}
+            </Chip>
+          </div>
+        </SignPanel>
+      )}
+
+      <section className="flex flex-col gap-2">
+        <SectionHeading num="LAST 5" title="Recent captures" tone="uv" />
+        {shots.length > 0 && (
           <ul className="space-y-1.5">
-            {shots.map((s) => (
+            {shots.slice(0, 5).map((s) => (
               <li key={s.photo_id} className="rounded-xl border border-ink-hair bg-ink-2/60 px-3 py-2 text-sm">
                 <span className="text-faint tabular-nums">{new Date(s.taken_at).toLocaleTimeString()}</span>{' '}
                 {s.state === 'uploading' && <span className="text-mist">uploading…</span>}
@@ -111,21 +164,21 @@ export default function RoamingStation() {
                 {s.state === 'done' && (
                   <>
                     {s.match_status === 'auto' && (
-                      <span className="text-neon-mint font-semibold">✅ tagged {s.matched_name ?? ''}</span>
+                      <span className="text-neon-mint font-semibold">tagged {s.matched_name ?? ''}</span>
                     )}
                     {s.match_status === 'pending_review' && (
-                      <span className="text-neon-gold font-semibold">🔍 pending review</span>
+                      <span className="text-neon-gold font-semibold">pending review</span>
                     )}
                     {s.match_status === 'unmatched' && (
-                      <span className="text-faint">❓ unmatched</span>
+                      <span className="text-faint">unmatched</span>
                     )}
                   </>
                 )}
               </li>
             ))}
           </ul>
-        </section>
-      )}
-    </StationShell>
+        )}
+      </section>
+    </main>
   )
 }
