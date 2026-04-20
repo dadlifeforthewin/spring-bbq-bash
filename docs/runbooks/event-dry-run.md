@@ -50,11 +50,11 @@ Each step has: what to do, expected result, what to flag if it doesn't match. Nu
 **Expect:** Brief loading state, then redirect to `/register/confirm`.
 **Flag if:** Any validation error appears (the "Something went wrong" red box). Note exact text — submit failures usually surface a Zod issue list.
 
-### Step 6 — Confirmation page renders
-**Do:** Read the confirm page.
-**Expect:** "YOU'RE IN" marquee, per-kid gate-pass card with a **real QR code** (generated client-side from the API's `created[]` response), the edit link, ICS calendar download, Print button, and Apple Wallet placeholder button. Contact email footer shows `brian@attntodetail.ai`.
-**Flag if:** Any QR cell renders blank (means sessionStorage flow broke — check browser console for errors). Apple Wallet button is expected to be a placeholder for now.
-**Open item (separate from dry-run):** the line "Confirmation sent to {email}" still renders even though the registration API itself does not yet call Resend — only the keepsake email uses Resend today. Parents will look for a confirmation email and find nothing. Either wire the register API to send one, or soften that line. Not blocking the dry-run, but worth deciding before Saturday.
+### Step 6 — Confirmation page renders + email arrives
+**Do:** Read the confirm page. Then switch to the burner inbox on your phone.
+**Expect on page:** "YOU'RE IN" marquee, per-kid gate-pass card with a **real QR code** (generated client-side from the API's `created[]` response), the edit link, ICS calendar download, Print button, and Apple Wallet placeholder button. Contact email footer shows `brian@attntodetail.ai`. The line "Confirmation sent to {email}" reflects the email that just fired.
+**Expect in inbox (within ~30s):** An email from `brian@attntodetail.ai` with subject referencing your kids' names. Body has per-kid QR codes rendered inline as images. (Wired via `sendRegistrationConfirmation` in `/api/register`, logged to the `email_sends` table — visible in Supabase if you need to verify.)
+**Flag if:** Any QR cell renders blank on the confirm page (sessionStorage flow broke — check browser console). OR no email arrives within a minute (check Supabase `email_sends` row: `status='failed'` + `error` column reveals Resend issue; `status='sent'` but nothing in inbox = spam filter or wrong address). Apple Wallet button is expected to be a placeholder for now.
 
 ### Step 7 — Get the kids' QR codes for testing
 **Do:** Switch to the **laptop**, open https://spring-bbq-bash.vercel.app/admin in incognito. Log in with `LCAadmin2026$`. Click "Children" in the top nav. Find your fake family. Click into one of the kids — copy the QR code from the URL (the `/admin/children/[id]` route shows full child detail; the QR string is what you'll type into station QR inputs).
