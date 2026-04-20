@@ -1,8 +1,9 @@
 # Kid Profile Rebuild — STATUS
 
-**Branch:** `kid-profile-rebuild` · **Last update:** 2026-04-19 (early hours, from a 2026-04-18 evening session)
-**Live:** https://spring-bbq-bash.vercel.app · **Event:** Saturday, April 25, 2026
+**Branch:** `kid-profile-rebuild` · **Last update:** 2026-04-19 (evening session — Resend live + registration email)
+**Live:** https://spring-bbq-bash.vercel.app · **Event:** Saturday, April 25, 2026 (6 days out)
 **Plan:** `docs/plans/2026-04-16-kid-profile-rebuild-plan.md` · **Spec:** `docs/specs/2026-04-16-kid-profile-rebuild-design.md`
+**Vercel production branch:** `kid-profile-rebuild` (changed from `main` on 2026-04-19 — every push now auto-deploys to prod)
 
 ## Go-live status (2026-04-18 late evening)
 
@@ -30,9 +31,9 @@ Phases 1–7 of the plan are shipped. **Two visual rebuilds are now live**: the 
 
 Ordered by urgency. **#1 is the new P0 (discovered 2026-04-18 during runbook audit).** The first four are non-negotiable; skip any of them and the event has a real problem.
 
-1. ✅ **DONE 2026-04-18 (was P0).** `/register/confirm` now renders real per-kid QR codes from the API response (sessionStorage flow carries `created[]` + `edit_token`). Parents leave registration with a printable gate-pass per child + an edit link. Apple Wallet `.pkpass` generation is still TODO (button is a placeholder); confirmation email still pending Resend setup (#2 below) — current copy says "confirmation sent to {email}" which technically isn't true yet, so soften that line if Resend isn't live by event-week.
-2. **Email delivery live.** Set `RESEND_API_KEY` + `EMAIL_FROM` in Vercel env (and `.env.local`). Complete Resend domain DNS (SPF / DKIM / DMARC). Without this, the keepsake email can't send the morning after. `CRON_SECRET` is already set; the Vercel cron fires at `0 16 * * *` UTC (9 AM Pacific) automatically. **Step-by-step:** `docs/runbooks/resend-setup.md`.
-3. **Full manual dry-run on a real phone.** Test family → `/register` → check-in with jail mugshot → visit 5+ stations → check out → confirm story generates via `/admin/stories` → confirm keepsake email renders in a real burner inbox via the test-send button in `/admin/settings`. **Step-by-step (19 steps, ~30 min):** `docs/runbooks/event-dry-run.md`. Run by Tuesday April 21.
+1. ✅ **DONE 2026-04-18 (was P0).** `/register/confirm` renders real per-kid QR codes. Parents leave registration with a printable gate-pass per child + an edit link. Apple Wallet `.pkpass` generation still a placeholder button.
+2. ✅ **DONE 2026-04-19 (evening).** Resend email pipe live end-to-end. Sending domain `attntodetail.ai` verified at Resend (SPF + DKIM + MX + DMARC, all pass, `p=none` DMARC policy, iCloud landed to inbox with `dmarc=pass`). `RESEND_API_KEY` + `EMAIL_FROM=Brian Leach <brian@attntodetail.ai>` + `CRON_SECRET` all set on Vercel production. **Keepsake email** (StoryEmail.tsx) tested end-to-end, subject + body render clean, date polished to "Saturday, April 25, 2026". **Registration confirmation email** (RegistrationConfirmationEmail.tsx) now wired into `/api/register` — parents get per-kid QR codes + edit link + event info immediately on submit, records to `email_sends`. Not yet stress-tested with a real submit from Brian's burner inbox (see #3).
+3. **Full manual dry-run on a real phone.** Runbook reconciled 2026-04-19 to match shipped state. Test family → `/register` (confirms new confirmation email arrives) → check-in with jail mugshot → visit 5+ stations → check out → confirm story generates via `/admin/stories` (now auto-polls every 10s while pending, plus Refresh button) → confirm keepsake email via `/admin/settings` test-send. **Step-by-step:** `docs/runbooks/event-dry-run.md`. Run by Tuesday April 21.
 4. **Volunteer device setup.** Each station gets a tablet/phone, logged into `/station`, station slug picked (stored in `localStorage`). Print one cheat-sheet per volunteer. **Print-ready:** `docs/runbooks/volunteer-cheatsheet.md`.
 5. **Wristband printing.** Blank QR wristbands pre-printed in batches of ~20 for walk-up registrations (see spec §2 walk-up flow). Confirm the QR decoder reads them at event-lighting.
 
@@ -44,6 +45,23 @@ Ordered by urgency. **#1 is the new P0 (discovered 2026-04-18 during runbook aud
 7. ✅ **DONE 2026-04-18.** `events.reference_story_text` reseeded with a fictional Olivia Bennett story across 7 real seeded stations (~205 words). Migration 0008 applied. Auto-check rules verified (word count, opener mentions child, ≥2 stations in opener+closer, no banned phrases, no timestamps).
 8. Applitools baseline capture for the parent flow + email (enables regression detection post-event).
 9. Swap the teaser-email copy to final voice once the reveal is confirmed okay. Current copy is the "surprise" direction Brian approved.
+
+## What landed in the 2026-04-19 evening session (committed + pushed + live)
+
+Six commits on `kid-profile-rebuild`, all auto-deployed to production:
+
+| SHA | Subject |
+|---|---|
+| `f2f6db0` | `/admin/stories` — 10s auto-poll while any row pending + visible Refresh button (was audit finding from 2026-04-18 runbook pass) |
+| `ff1e539` | Resend runbook rewritten for `attntodetail.ai` (Brian owns DNS, dropped LCA-coordination framing); `.env.example` + `resend.ts` error text updated |
+| `dd9ce80` | Email event_date formats as "Saturday, April 25, 2026" instead of raw `2026-04-25` |
+| `c6b58dc` | `/register/confirm` contact swapped from placeholder `events@lcalincoln.com` → `brian@attntodetail.ai` (3 places + ICS UID); dry-run runbook reconciled with strikethroughs on shipped items |
+| `72bd931` | `/api/register` sends confirmation email with per-kid QR codes + edit link (closes the "Confirmation sent to {email}" truthfulness gap) |
+| `9e53ea8` | `.gitignore`: ignore `.superpowers/` (local brainstorm mockups) |
+
+Key operational outcome: **the email pipeline has carried two successful test sends to iCloud inbox**, authenticated (`dmarc=pass`, `dkim=pass` on both the Resend and SES signatures, `spf=pass`). DMARC is in monitor-only mode (`p=none`) so aggregate reports flow to brian@attntodetail.ai — can tighten to `quarantine` after reports confirm alignment, which also unlocks BIMI.
+
+Also during this session: **Vercel's Production Branch was flipped from `main` to `kid-profile-rebuild`**. Previously every push only created Preview URLs; this had caused the first post-env-var push to silently not-deploy. Now every `git push origin kid-profile-rebuild` auto-deploys to `spring-bbq-bash.vercel.app`. No manual promote step.
 
 ## What landed in the 2026-04-18 evening session (committed + pushed)
 
