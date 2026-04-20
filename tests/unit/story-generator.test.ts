@@ -45,6 +45,9 @@ const mockSb = (dataset: ReturnType<typeof buildDataset>) => {
       if (table === 'guardians') return makeQuery(guardians)
       if (table === 'station_events') return makeQuery(stationEvents)
       if (table === 'photo_tags') return makeQuery(photoTags)
+      // Default: kid has no redemption. The payload test that seeds one
+      // (prize_redemptions) builds its own client locally.
+      if (table === 'prize_redemptions') return makeQuery(null)
       throw new Error(`unexpected table ${table}`)
     }),
   }
@@ -81,6 +84,71 @@ describe('story-generator buildPayload', () => {
     expect(payload.dropoff_type).toBe('both_parents')
     expect(payload.photos_meta).toHaveLength(1)
     expect(payload.photos_meta[0].station).toBe('jail')
+    // When no prize was won, prize_won is null.
+    expect(payload.stats.prize_won).toBeNull()
+  })
+
+  it('includes prize_won when the child has a redemption and adds it to the stats line', async () => {
+    const ds = buildDataset()
+    // Seed a redemption joined to a prize label.
+    const prizeRedemption = { prizes: { label: 'Glow bracelet' } }
+    const customSb = {
+      from: vi.fn((table: string) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const q: any = {}
+        q.select = vi.fn(() => q)
+        q.eq = vi.fn(() => q)
+        q.order = vi.fn(() => q)
+        q.limit = vi.fn(() => q)
+        const pick = () => {
+          if (table === 'children') return ds.childRow
+          if (table === 'events') return ds.eventRow
+          if (table === 'guardians') return ds.guardians
+          if (table === 'station_events') return ds.stationEvents
+          if (table === 'photo_tags') return ds.photoTags
+          if (table === 'prize_redemptions') return prizeRedemption
+          throw new Error(`unexpected table ${table}`)
+        }
+        q.maybeSingle = vi.fn(async () => ({ data: pick(), error: null }))
+        q.then = (resolve: (v: { data: unknown; error: null }) => void) =>
+          resolve({ data: pick(), error: null })
+        return q
+      }),
+    }
+    vi.mocked(serverClient).mockReturnValue(customSb as never)
+
+    const payload = await buildPayload('child-1')
+    expect(payload.stats.prize_won).toBe('Glow bracelet')
+  })
+})
+
+describe('story-generator buildStatsLine', () => {
+  it('appends "won: <label>" when prize_won is present', async () => {
+    const ds = buildDataset()
+    vi.mocked(serverClient).mockReturnValue(mockSb(ds) as never)
+    const { buildStatsLine } = await import('@/lib/story-generator')
+    const line = buildStatsLine({
+      stations_visited: 3,
+      tickets_spent: 9,
+      photos: 2,
+      favorite: { name: 'Cornhole', visits: 2 },
+      prize_won: 'Glow bracelet',
+    })
+    expect(line).toContain('won: Glow bracelet')
+  })
+
+  it('omits the won fragment when prize_won is null', async () => {
+    const ds = buildDataset()
+    vi.mocked(serverClient).mockReturnValue(mockSb(ds) as never)
+    const { buildStatsLine } = await import('@/lib/story-generator')
+    const line = buildStatsLine({
+      stations_visited: 3,
+      tickets_spent: 9,
+      photos: 2,
+      favorite: { name: 'Cornhole', visits: 2 },
+      prize_won: null,
+    })
+    expect(line).not.toContain('won:')
   })
 })
 

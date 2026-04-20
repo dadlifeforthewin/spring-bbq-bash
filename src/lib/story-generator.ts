@@ -32,6 +32,10 @@ export type GeneratorPayload = {
     tickets_spent: number
     photos: number
     favorite: { name: string; visits: number } | null
+    // Prize wheel label from prize_redemptions join. Null when the kid
+    // did not spin the wheel. When present, buildStatsLine appends
+    // `· won: {label}` so it flows into the keepsake email stats line.
+    prize_won: string | null
   }
 }
 
@@ -58,7 +62,7 @@ function stationLabel(slug: string): string {
   return slug.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
 }
 
-function computeStats(timeline: TimelineRow[], photoCount: number) {
+function computeStats(timeline: TimelineRow[], photoCount: number, prizeWon: string | null = null) {
   const visitCounts = new Map<string, number>()
   const ticketsByStation = new Map<string, number>()
   const photosByStation = new Map<string, number>()
@@ -102,6 +106,7 @@ function computeStats(timeline: TimelineRow[], photoCount: number) {
     tickets_spent: ticketsSpent,
     photos: photoCount,
     favorite,
+    prize_won: prizeWon,
   }
 }
 
@@ -137,7 +142,7 @@ function splitBodyAndStats(raw: string): { body: string; stats: string } {
   }
 }
 
-function buildStatsLine(stats: GeneratorPayload['stats']): string {
+export function buildStatsLine(stats: GeneratorPayload['stats']): string {
   const parts = [
     `${stats.stations_visited} stations visited`,
     `${stats.tickets_spent} tickets spent`,
@@ -145,6 +150,9 @@ function buildStatsLine(stats: GeneratorPayload['stats']): string {
   ]
   if (stats.favorite) {
     parts.push(`favorite stop: ${stats.favorite.name} (${stats.favorite.visits} visits)`)
+  }
+  if (stats.prize_won) {
+    parts.push(`won: ${stats.prize_won}`)
   }
   return `By the numbers: ${parts.join(' · ')}`
 }
@@ -177,6 +185,16 @@ export async function buildPayload(childId: string): Promise<GeneratorPayload> {
     .eq('child_id', childId)
     .limit(200)
 
+  // Prize redemption (optional): if the kid spun the wheel, the joined
+  // prize label flows into the stats line of the keepsake email.
+  const { data: redemption } = await sb
+    .from('prize_redemptions')
+    .select('prizes(label)')
+    .eq('child_id', childId)
+    .maybeSingle()
+  const prize_won: string | null =
+    (redemption as { prizes?: { label?: string } | null } | null)?.prizes?.label ?? null
+
   const timeline: TimelineRow[] = (events ?? []).map((e) => ({
     station: e.station,
     event_type: e.event_type,
@@ -202,7 +220,7 @@ export async function buildPayload(childId: string): Promise<GeneratorPayload> {
       }
     })
 
-  const stats = computeStats(timeline, photos_meta.length)
+  const stats = computeStats(timeline, photos_meta.length, prize_won)
 
   // Family last name comes from child row; fall back to primary guardian surname if needed
   const primary = (guardians ?? []).find((g) => g.is_primary)
