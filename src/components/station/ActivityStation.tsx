@@ -1,10 +1,20 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { StationShell } from './StationShell'
 import ChildCard from './ChildCard'
 import { Input, Textarea } from '@/components/glow/Input'
 import { Button } from '@/components/glow/Button'
-import { Card, CardEyebrow, CardTitle } from '@/components/glow/Card'
+import { Chip } from '@/components/glow/Chip'
+import { PageHead } from '@/components/glow/PageHead'
+import { NeonScanner } from '@/components/glow/NeonScanner'
+import { GlyphGlow } from '@/components/glow/GlyphGlow'
+import { SectionHeading } from '@/components/glow/SectionHeading'
+import {
+  DrinksGlyph,
+  JailGlyph,
+  PrizeWheelGlyph,
+  DJGlyph,
+  SparkGlyph,
+} from '@/components/glow/glyphs'
 
 type Lookup = {
   child: {
@@ -25,12 +35,16 @@ type Lookup = {
   primary_parent: { name: string; phone: string | null } | null
 }
 
+type Tone = 'magenta' | 'cyan' | 'uv' | 'gold' | 'mint'
+
 type StationMeta = {
   slug: string
   title: string
   eyebrow: string
-  tone: 'magenta' | 'cyan' | 'uv' | 'gold' | 'mint'
+  tone: Tone
 }
+
+type GlyphComponent = React.ComponentType<{ size?: number }>
 
 const STATION_STORAGE_KEY = 'sbbq_station'
 
@@ -49,8 +63,25 @@ const STATION_META: Record<string, StationMeta> = {
   quiet_corner:      { slug: 'quiet_corner',      title: 'Quiet Room · Movie',eyebrow: 'Free · log the visit',          tone: 'uv'      },
 }
 
+const STATION_GLYPH: Record<string, GlyphComponent> = {
+  drinks:            DrinksGlyph,
+  jail:              JailGlyph,
+  prize_wheel:       PrizeWheelGlyph,
+  dj_shoutout:       DJGlyph,
+  cornhole:          SparkGlyph,
+  face_painting:     SparkGlyph,
+  arts_crafts:       SparkGlyph,
+  video_games:       SparkGlyph,
+  dance_competition: SparkGlyph,
+  pizza:             SparkGlyph,
+  cake_walk:         SparkGlyph,
+  quiet_corner:      SparkGlyph,
+}
+
 const METERED = new Set(['drinks', 'jail'])
 const ONE_TIME = new Set(['prize_wheel', 'dj_shoutout'])
+
+type LogEntry = { name: string; label: string; ts: string }
 
 export default function ActivityStation() {
   const [slug, setSlug] = useState<string | null>(null)
@@ -60,6 +91,7 @@ export default function ActivityStation() {
   const [lookupError, setLookupError] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+  const [log, setLog] = useState<LogEntry[]>([])
 
   // Station-specific form state
   const [jailAction, setJailAction] = useState<'send' | 'release'>('send')
@@ -121,27 +153,38 @@ export default function ActivityStation() {
         setActionError(body.error ?? 'Activity failed')
         return
       }
+
+      let successMsg: string
       // Update local state with new balances so the UI reflects the change
       if (slug === 'drinks') {
         setData({ ...data, child: { ...data.child, drink_tickets_remaining: body.balance.drink_tickets } })
-        setSuccess(`Drink redeemed — ${body.balance.drink_tickets} left.`)
+        successMsg = `Drink redeemed — ${body.balance.drink_tickets} left.`
+        setSuccess(successMsg)
       } else if (slug === 'jail') {
         setData({ ...data, child: { ...data.child, jail_tickets_remaining: body.balance.jail_tickets } })
-        setSuccess(
-          body.action === 'send'
-            ? `Sent to jail — ${body.balance.jail_tickets} left.`
-            : `Pass redeemed — ${body.balance.jail_tickets} left.`,
-        )
+        successMsg = body.action === 'send'
+          ? `Sent to jail — ${body.balance.jail_tickets} left.`
+          : `Pass redeemed — ${body.balance.jail_tickets} left.`
+        setSuccess(successMsg)
       } else if (slug === 'prize_wheel') {
         setData({ ...data, child: { ...data.child, prize_wheel_used_at: body.used_at } })
-        setSuccess('Prize wheel spun. One per kid — done for the night.')
+        successMsg = 'Prize wheel spun. One per kid — done for the night.'
+        setSuccess(successMsg)
       } else if (slug === 'dj_shoutout') {
         setData({ ...data, child: { ...data.child, dj_shoutout_used_at: body.used_at } })
-        setSuccess(`DJ shoutout queued: "${songRequest}".`)
+        successMsg = `DJ shoutout queued: "${songRequest}".`
+        setSuccess(successMsg)
         setSongRequest('')
       } else {
-        setSuccess(`Visit logged — ${data.child.first_name} was here.`)
+        successMsg = `Visit logged — ${data.child.first_name} was here.`
+        setSuccess(successMsg)
       }
+
+      // Append to local session log (cap at 10)
+      setLog((prev) => [
+        { name: `${data.child.first_name} ${data.child.last_name}`, label: successMsg, ts: new Date().toLocaleTimeString() },
+        ...prev,
+      ].slice(0, 10))
     } finally {
       setBusy(false)
     }
@@ -159,25 +202,26 @@ export default function ActivityStation() {
 
   if (!slug || !meta) {
     return (
-      <StationShell eyebrow="Activity" title="No station selected">
-        <Card tone="glow-gold" padded>
-          <CardEyebrow>Heads up</CardEyebrow>
-          <CardTitle className="font-sans text-sm font-normal">
-            Pick a station from the picker first so the app knows which activity
-            to log.
-          </CardTitle>
-          <div className="mt-4">
-            <a
-              href="/station"
-              className="inline-flex items-center rounded-full border border-neon-cyan/60 px-4 py-2 text-sm font-bold text-neon-cyan hover:shadow-glow-cyan transition"
-            >
-              → Pick a station
-            </a>
-          </div>
-        </Card>
-      </StationShell>
+      <main className="flex flex-col gap-5">
+        <PageHead
+          back={{ href: '/station', label: 'Stations' }}
+          title="NO STATION"
+          sub="Pick a station from the picker first so the app knows which activity to log."
+        />
+        <div className="rounded-2xl border border-neon-gold/40 bg-ink-2/70 p-5 space-y-3">
+          <p className="text-sm text-mist">No station is selected for this device.</p>
+          <a
+            href="/station"
+            className="inline-flex items-center rounded-full border border-neon-cyan/60 px-4 py-2 text-sm font-bold text-neon-cyan hover:shadow-glow-cyan transition"
+          >
+            Pick a station →
+          </a>
+        </div>
+      </main>
     )
   }
+
+  const Glyph = STATION_GLYPH[slug] ?? SparkGlyph
 
   const checkedOut = data?.child.checked_out_at
   const notCheckedIn = data && !data.child.checked_in_at
@@ -209,137 +253,180 @@ export default function ActivityStation() {
     return `Log visit`
   })()
 
+  // Chip label summarising redemption count for metered/one-time slugs
+  const redeemedLabel = (() => {
+    if (!data) return meta.eyebrow
+    if (slug === 'drinks') return `${data.child.drink_tickets_remaining} left`
+    if (slug === 'jail') return `${data.child.jail_tickets_remaining} left`
+    if (slug === 'prize_wheel') return data.child.prize_wheel_used_at ? 'used' : '1 spin'
+    if (slug === 'dj_shoutout') return data.child.dj_shoutout_used_at ? 'used' : '1 request'
+    return meta.eyebrow
+  })()
+
   return (
-    <StationShell eyebrow={meta.eyebrow} title={meta.title}>
-      <form onSubmit={doLookup} className="flex gap-2">
-        <Input
-          type="text"
-          value={qr}
-          onChange={(e) => setQr(e.target.value)}
-          placeholder="Scan or paste QR"
-          aria-label="QR code"
-          className="flex-1"
-        />
-        <Button type="submit" tone="ghost" size="md" loading={busy}>
-          Look up
-        </Button>
-      </form>
+    <main className="flex flex-col gap-5">
+      <PageHead
+        back={{ href: '/station', label: 'Stations' }}
+        title={meta.title.toUpperCase()}
+        sub={meta.eyebrow}
+        right={<Chip tone={meta.tone} glow>{redeemedLabel}</Chip>}
+      />
 
-      {lookupError && (
-        <p className="rounded-xl border border-danger/60 bg-danger/10 px-3 py-2 text-sm text-danger">{lookupError}</p>
-      )}
+      <div className="flex justify-center py-2">
+        <GlyphGlow tone={meta.tone} size={140}>
+          <Glyph size={120} />
+        </GlyphGlow>
+      </div>
 
-      {data && (
-        <div className="space-y-4">
-          <ChildCard
-            child={data.child}
-            primary_parent={data.primary_parent ?? { name: '—', phone: null }}
-          />
-
-          {checkedOut && (
-            <p className="rounded-xl border border-warn/60 bg-warn/10 px-3 py-2 text-sm text-warn">
-              Already checked out at {new Date(data.child.checked_out_at!).toLocaleTimeString()}.
-            </p>
-          )}
-          {notCheckedIn && !checkedOut && (
-            <p className="rounded-xl border border-warn/60 bg-warn/10 px-3 py-2 text-sm text-warn">
-              Not checked in yet — send them to the check-in station first.
-            </p>
-          )}
-          {alreadyOneTime && !notCheckedIn && !checkedOut && (
-            <p className="rounded-xl border border-warn/60 bg-warn/10 px-3 py-2 text-sm text-warn">
-              Already used tonight — one per kid.
-            </p>
-          )}
-          {meterExhausted && !notCheckedIn && !checkedOut && (
-            <p className="rounded-xl border border-danger/60 bg-danger/10 px-3 py-2 text-sm text-danger">
-              No {slug === 'drinks' ? 'drink' : 'jail'} tickets left on this wristband.
-            </p>
-          )}
-
-          {!checkedOut && !notCheckedIn && !alreadyOneTime && !meterExhausted && (
-            <div className="space-y-4">
-              {slug === 'jail' && (
-                <fieldset className="space-y-2 rounded-2xl border border-ink-hair bg-ink-2/70 p-4">
-                  <legend className="text-xs font-semibold uppercase tracking-widest text-mist">
-                    Which way?
-                  </legend>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setJailAction('send')}
-                      aria-pressed={jailAction === 'send'}
-                      className={`rounded-xl border-2 px-3 py-3 text-sm font-bold transition ${
-                        jailAction === 'send'
-                          ? 'border-neon-magenta bg-neon-magenta/10 text-neon-magenta shadow-glow-magenta'
-                          : 'border-ink-hair bg-ink-2 text-mist hover:border-neon-magenta/50'
-                      }`}
-                    >
-                      🚨 Send to jail
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setJailAction('release')}
-                      aria-pressed={jailAction === 'release'}
-                      className={`rounded-xl border-2 px-3 py-3 text-sm font-bold transition ${
-                        jailAction === 'release'
-                          ? 'border-neon-cyan bg-neon-cyan/10 text-neon-cyan shadow-glow-cyan'
-                          : 'border-ink-hair bg-ink-2 text-mist hover:border-neon-cyan/50'
-                      }`}
-                    >
-                      🗝️ Use pass
-                    </button>
-                  </div>
-                </fieldset>
-              )}
-
-              {slug === 'dj_shoutout' && (
-                <Textarea
-                  label="Song request (kid-appropriate, please)"
-                  rows={2}
-                  value={songRequest}
-                  onChange={(e) => setSongRequest(e.target.value)}
-                  placeholder="e.g. Mr. Brightside"
-                  hint="Shown to the DJ. Keep it clean."
-                />
-              )}
-
+      <NeonScanner tone={meta.tone} aspect="square" hint="Scan wristband" scanning={!data}>
+        <div className="flex flex-col items-center gap-4 w-full px-4">
+          {!data ? (
+            <form onSubmit={doLookup} className="flex flex-col gap-3 w-full">
               <Input
-                label="Your name (staff, optional)"
-                value={volunteer}
-                onChange={(e) => setVolunteer(e.target.value)}
-                aria-label="volunteer name"
+                type="text"
+                value={qr}
+                onChange={(e) => setQr(e.target.value)}
+                placeholder="Scan or paste QR"
+                aria-label="QR code"
+              />
+              <Button type="submit" tone={meta.tone} size="md" loading={busy} fullWidth>
+                Look up
+              </Button>
+              {lookupError && (
+                <p className="rounded-xl border border-danger/60 bg-danger/10 px-3 py-2 text-sm text-danger text-center">{lookupError}</p>
+              )}
+            </form>
+          ) : (
+            <div className="w-full space-y-3">
+              <ChildCard
+                child={data.child}
+                primary_parent={data.primary_parent ?? { name: '—', phone: null }}
               />
 
-              <Button
-                type="button"
-                tone={meta.tone}
-                size="xl"
-                fullWidth
-                disabled={ctaDisabled}
-                loading={busy}
-                onClick={doActivity}
-              >
-                {ctaLabel}
-              </Button>
+              {checkedOut && (
+                <p className="rounded-xl border border-warn/60 bg-warn/10 px-3 py-2 text-sm text-warn">
+                  Already checked out at {new Date(data.child.checked_out_at!).toLocaleTimeString()}.
+                </p>
+              )}
+              {notCheckedIn && !checkedOut && (
+                <p className="rounded-xl border border-warn/60 bg-warn/10 px-3 py-2 text-sm text-warn">
+                  Not checked in yet — send them to the check-in station first.
+                </p>
+              )}
+              {alreadyOneTime && !notCheckedIn && !checkedOut && (
+                <p className="rounded-xl border border-warn/60 bg-warn/10 px-3 py-2 text-sm text-warn">
+                  Already used tonight — one per kid.
+                </p>
+              )}
+              {meterExhausted && !notCheckedIn && !checkedOut && (
+                <p className="rounded-xl border border-danger/60 bg-danger/10 px-3 py-2 text-sm text-danger">
+                  No {slug === 'drinks' ? 'drink' : 'jail'} tickets left on this wristband.
+                </p>
+              )}
+
+              {!checkedOut && !notCheckedIn && !alreadyOneTime && !meterExhausted && (
+                <div className="space-y-3">
+                  {slug === 'jail' && (
+                    <fieldset className="space-y-2 rounded-2xl border border-ink-hair bg-ink-2/70 p-4">
+                      <legend className="text-xs font-semibold uppercase tracking-widest text-mist">
+                        Which way?
+                      </legend>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setJailAction('send')}
+                          aria-pressed={jailAction === 'send'}
+                          className={`rounded-xl border-2 px-3 py-3 text-sm font-bold transition ${
+                            jailAction === 'send'
+                              ? 'border-neon-magenta bg-neon-magenta/10 text-neon-magenta shadow-glow-magenta'
+                              : 'border-ink-hair bg-ink-2 text-mist hover:border-neon-magenta/50'
+                          }`}
+                        >
+                          🚨 Send to jail
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setJailAction('release')}
+                          aria-pressed={jailAction === 'release'}
+                          className={`rounded-xl border-2 px-3 py-3 text-sm font-bold transition ${
+                            jailAction === 'release'
+                              ? 'border-neon-cyan bg-neon-cyan/10 text-neon-cyan shadow-glow-cyan'
+                              : 'border-ink-hair bg-ink-2 text-mist hover:border-neon-cyan/50'
+                          }`}
+                        >
+                          🗝️ Use pass
+                        </button>
+                      </div>
+                    </fieldset>
+                  )}
+
+                  {slug === 'dj_shoutout' && (
+                    <Textarea
+                      label="Song request (kid-appropriate, please)"
+                      rows={2}
+                      value={songRequest}
+                      onChange={(e) => setSongRequest(e.target.value)}
+                      placeholder="e.g. Mr. Brightside"
+                      hint="Shown to the DJ. Keep it clean."
+                    />
+                  )}
+
+                  <Input
+                    label="Your name (staff, optional)"
+                    value={volunteer}
+                    onChange={(e) => setVolunteer(e.target.value)}
+                    aria-label="volunteer name"
+                  />
+
+                  <Button
+                    type="button"
+                    tone={meta.tone}
+                    size="xl"
+                    fullWidth
+                    disabled={ctaDisabled}
+                    loading={busy}
+                    onClick={doActivity}
+                  >
+                    {ctaLabel}
+                  </Button>
+                </div>
+              )}
+
+              {actionError && (
+                <p className="rounded-xl border border-danger/60 bg-danger/10 px-3 py-2 text-sm text-danger">{actionError}</p>
+              )}
+              {success && (
+                <p className="rounded-xl border border-neon-mint/60 bg-neon-mint/10 px-3 py-2 text-sm text-neon-mint shadow-glow-mint motion-safe:animate-rise">
+                  ✨ {success}
+                </p>
+              )}
+              {(success || actionError) && (
+                <Button tone="ghost" size="md" fullWidth onClick={reset}>
+                  Scan next wristband
+                </Button>
+              )}
             </div>
           )}
-
-          {actionError && (
-            <p className="rounded-xl border border-danger/60 bg-danger/10 px-3 py-2 text-sm text-danger">{actionError}</p>
-          )}
-          {success && (
-            <p className="rounded-xl border border-neon-mint/60 bg-neon-mint/10 px-3 py-2 text-sm text-neon-mint shadow-glow-mint animate-rise">
-              ✨ {success}
-            </p>
-          )}
-          {(success || actionError) && (
-            <Button tone="ghost" size="md" fullWidth onClick={reset}>
-              Scan next wristband
-            </Button>
-          )}
         </div>
+      </NeonScanner>
+
+      {log.length > 0 && (
+        <section className="flex flex-col gap-2">
+          <SectionHeading num="LIVE" title="Last 10 redemptions" tone={meta.tone} />
+          <ul className="space-y-1.5">
+            {log.map((entry, i) => (
+              <li
+                key={i}
+                className="flex items-center justify-between gap-3 rounded-xl border border-ink-hair bg-ink-2/50 px-3 py-2"
+              >
+                <span className="font-semibold text-paper text-sm truncate">{entry.name}</span>
+                <span className="text-xs text-mist shrink-0">{entry.label}</span>
+                <span className="text-[10px] text-faint shrink-0 font-mono">{entry.ts}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
-    </StationShell>
+    </main>
   )
 }
