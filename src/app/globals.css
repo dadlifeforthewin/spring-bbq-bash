@@ -177,3 +177,9 @@ label { @apply block text-sm text-white/70 mb-1; }
   body { background: white; color: black; }
   .no-print { display: none !important; }
 }
+
+/* Safe-area utilities — used by station/admin layouts to respect iOS home indicator */
+@layer utilities {
+  .safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
+  .pb-safe-20 { padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px)); }
+}
