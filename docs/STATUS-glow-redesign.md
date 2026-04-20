@@ -1,28 +1,31 @@
 # Glow Redesign — STATUS
 
-**Branch:** `glow-redesign` (HEAD `3973796`) · **Last update:** 2026-04-20 (evening, Phase 5.5 shipped + simplified cleanup + merge-ready)
+**Branch:** `glow-redesign` merged into `kid-profile-rebuild` at `3ba4b0b` on 2026-04-20 · **Last update:** 2026-04-20 (Mon, deploy pushed)
 **Event:** Saturday, April 25, 2026 (5 days out) · **Dry-run:** Tuesday April 21 (tomorrow)
 **Spec:** `docs/specs/2026-04-19-station-admin-glow-redesign-design.md`
 **Plan:** `docs/plans/2026-04-19-glow-redesign-plan.md`
 **Phase 5.5 plan addendum:** `docs/plans/2026-04-20-phase-5.5-features-plan.md`
 **Phase 5.5 reference (new features):** `docs/design/cleanup-crew-reference.md`
-**Not auto-deployed** — Vercel production branch is `kid-profile-rebuild`, not this one.
+**Auto-deploys** via `kid-profile-rebuild` → `spring-bbq-bash.vercel.app`.
 
 ---
 
-## 🔜 NEXT SESSION — Deploy + merge
+## ✅ DEPLOYED 2026-04-20 (Monday)
 
-Phase 5.5 implementation + visual QA complete. Brian approved all 8 reviewed screenshots (6 prize_wheel + 2 simplified cleanup) on 2026-04-20 evening. Cleanup was **simplified post-review** to a toggle-only checklist (no lock mechanism) — see memory + STATUS §Phase 5.5 row 5.5.7.
+Phase 5 + 5.5 shipped to prod. Full sequence executed:
 
-1. **Read this file first** (you're reading it).
-2. **Pull:** `/usr/bin/git pull origin glow-redesign` (expect HEAD `62dcb65` or later).
-3. **Baseline:** `npm run typecheck && npm run test -- --run` — expect clean + 115/115.
-4. **Apply migrations to remote:** `supabase db push` to land 0010_prizes → 0011_cleanup → 0012_stations_seed_phase_5_5 → 0013_rls_phase_5_5 (in order, idempotent).
-5. **Populate `/admin/prizes`** pre-event — table ships empty; station shows admin hint if unpopulated.
-6. **Remove `/dev/glow` showcase route** before merging into any auto-deployed branch.
-7. **Merge to `kid-profile-rebuild`** after the above three.
+1. ✅ Remote Supabase migrations 0010 → 0013 applied (all idempotent, no data loss).
+2. ✅ `/dev/glow` showcase route deleted (`5e0e25c`) and pushed to `glow-redesign`.
+3. ✅ `glow-redesign` merged `--no-ff` into `kid-profile-rebuild` at `3ba4b0b` — 45 commits + 1 merge commit; typecheck clean, 115/115 tests green pre-push.
+4. ✅ Pushed to `origin/kid-profile-rebuild` (Vercel prod branch).
 
-No more cleanup-crew work pending — Brian's decision to strip the lock mechanism stands; do NOT re-propose it.
+## 🔜 Still pending before Saturday
+
+1. **Brian populates `/admin/prizes`** — prize catalog ships empty; station page shows admin hint until rows exist. Needed before the event, but station still renders.
+2. **Dry-run tomorrow (Tue Apr 21)** — exercise prize_wheel + cleanup in the live environment per `docs/runbooks/event-dry-run.md`.
+3. **Admin Phases 6–8 (polish pass)** — see `docs/plans/2026-04-19-glow-redesign-plan.md`. Not blocking event; admin surfaces still render on pre-rebuild styling and work functionally.
+
+Cleanup-crew lock mechanism stays removed — do NOT re-propose it.
 
 ## Phase 5.5 — SHIPPED 2026-04-20 ✅
 
