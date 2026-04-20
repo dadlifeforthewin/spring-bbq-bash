@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { registrationSchema, walkupSchema } from '@/lib/validators'
 import { serverClient } from '@/lib/supabase'
 import { signToken } from '@/lib/magic-link'
+import { sendRegistrationConfirmation } from '@/lib/registration-email'
 
 export async function POST(req: NextRequest) {
   const ip = req.headers.get('x-forwarded-for') ?? req.headers.get('x-real-ip') ?? null
@@ -21,6 +22,14 @@ export async function POST(req: NextRequest) {
   if (!eventRow) return Response.json({ error: 'no event configured' }, { status: 500 })
 
   const created: { child_id: string; qr_code: string }[] = []
+  const emailChildren: {
+    child_id: string
+    qr_code: string
+    first_name: string
+    last_name: string
+    age: number | null
+    grade: string | null
+  }[] = []
 
   for (const child of parsed.data.children) {
     const insertRow: Record<string, unknown> = {
@@ -93,6 +102,14 @@ export async function POST(req: NextRequest) {
     }
 
     created.push({ child_id: created_child.id, qr_code: created_child.qr_code })
+    emailChildren.push({
+      child_id: created_child.id,
+      qr_code: created_child.qr_code,
+      first_name: child.first_name,
+      last_name: child.last_name,
+      age: child.age ?? null,
+      grade: child.grade || null,
+    })
   }
 
   // Magic-link token scoped to primary parent email (covers the whole family)
@@ -101,12 +118,23 @@ export async function POST(req: NextRequest) {
     60 * 60 * 24 * 30 // 30 days
   )
 
-  // NOTE: Resend sending wired in Phase 7. For now, log the payload the email would contain.
-  console.log('[registration] confirmation email payload:', {
-    to: parsed.data.primary_parent.email,
-    children: created,
-    edit_url: `${process.env.NEXT_PUBLIC_SITE_URL ?? (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '')}/register/edit/${editToken}`,
-  })
+  // Send the confirmation email before returning so the user sees the
+  // redirect only after delivery is attempted. Failures are recorded to
+  // `email_sends.status = 'failed'` but do not block registration — the
+  // confirm page also renders the QR codes client-side as a fallback.
+  try {
+    const sendResult = await sendRegistrationConfirmation({
+      to: parsed.data.primary_parent.email,
+      primary_parent_name: parsed.data.primary_parent.name,
+      edit_token: editToken,
+      children: emailChildren,
+    })
+    if (!sendResult.ok) {
+      console.error('[registration] confirmation email failed:', sendResult.error)
+    }
+  } catch (e) {
+    console.error('[registration] confirmation email threw:', e)
+  }
 
   return Response.json({ ok: true, created, edit_token: editToken })
 }
