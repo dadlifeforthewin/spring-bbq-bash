@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
+import { Button, Chip, GlyphGlow, PageHead, PhotoGlyph } from '@/components/glow'
 
 type Photo = {
   id: string
@@ -10,9 +11,22 @@ type Photo = {
   capture_mode: string
 }
 
+type CaptureFilter = 'all' | 'station_scan' | 'roaming_vision'
+
+const CAPTURE_FILTERS: { key: CaptureFilter; label: string }[] = [
+  { key: 'all', label: 'All modes' },
+  { key: 'station_scan', label: 'Station scan' },
+  { key: 'roaming_vision', label: 'Roaming vision' },
+]
+
+const CAPTURE_TONE: Record<string, 'cyan' | 'uv' | 'gold'> = {
+  station_scan: 'cyan',
+  roaming_vision: 'uv',
+}
+
 export default function PhotoGallery() {
   const [photos, setPhotos] = useState<Photo[]>([])
-  const [captureMode, setCaptureMode] = useState<'all' | 'station_scan' | 'roaming_vision'>('all')
+  const [captureMode, setCaptureMode] = useState<CaptureFilter>('all')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -45,55 +59,126 @@ export default function PhotoGallery() {
   }
 
   return (
-    <div className="space-y-4">
-      <header>
-        <h1 className="text-3xl font-black">Photos</h1>
-        <p className="text-slate-500">Signed URLs expire every hour. Delete removes the image from Storage too.</p>
-      </header>
+    <div className="flex flex-col gap-5">
+      <PageHead
+        title="Photos"
+        sub="Signed URLs expire every hour. Delete removes the image from Storage too."
+        right={
+          <Chip tone="cyan" glow>
+            TOTAL · {photos.length}
+          </Chip>
+        }
+      />
 
-      <div className="flex gap-3">
-        <select value={captureMode} onChange={(e) => setCaptureMode(e.target.value as typeof captureMode)}
-          aria-label="filter capture mode"
-          className="rounded border px-3 py-2">
-          <option value="all">All modes</option>
-          <option value="station_scan">Station scan</option>
-          <option value="roaming_vision">Roaming vision</option>
-        </select>
-        <button type="button" onClick={load} disabled={busy}
-          className="rounded bg-slate-900 px-3 py-2 text-sm font-bold text-white disabled:opacity-50">
-          Refresh
-        </button>
+      <div className="flex flex-wrap items-center gap-2">
+        {CAPTURE_FILTERS.map((f) => {
+          const active = captureMode === f.key
+          return (
+            <Chip
+              key={f.key}
+              tone={active ? 'cyan' : 'quiet'}
+              glow={active}
+              onClick={() => setCaptureMode(f.key)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  setCaptureMode(f.key)
+                }
+              }}
+              className="cursor-pointer select-none"
+            >
+              {f.label}
+            </Chip>
+          )
+        })}
+        <div className="ml-auto">
+          <Button tone="ghost" size="sm" onClick={load} disabled={busy}>
+            Refresh
+          </Button>
+        </div>
       </div>
 
-      {error && <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+      {error && (
+        <p className="rounded-xl border border-danger/60 bg-danger/10 px-3 py-2 text-sm text-danger">
+          {error}
+        </p>
+      )}
 
       {photos.length === 0 ? (
-        <p className="text-slate-500">No photos yet.</p>
+        <p className="text-mist text-sm [font-family:var(--font-mono),JetBrains_Mono,monospace] uppercase tracking-[0.12em]">
+          {busy ? 'Loading…' : 'No photos yet.'}
+        </p>
       ) : (
-        <ul className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
-          {photos.map((p) => (
-            <li key={p.id} className="overflow-hidden rounded border border-slate-200 bg-white">
-              {p.signed_url ? (
-                <a href={p.signed_url} target="_blank" rel="noreferrer">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={p.signed_url} alt="" className="h-48 w-full object-cover" />
-                </a>
-              ) : (
-                <div className="flex h-48 items-center justify-center bg-slate-100 text-slate-400">No preview</div>
-              )}
-              <div className="space-y-2 p-3 text-xs text-slate-600">
-                <div>
-                  {new Date(p.taken_at).toLocaleString()}
-                  {p.volunteer_name && ` · ${p.volunteer_name}`}
+        <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          {photos.map((p) => {
+            const tone = CAPTURE_TONE[p.capture_mode] ?? 'gold'
+            const captureLabel = p.capture_mode.replace(/_/g, ' ')
+            return (
+              <li key={p.id}>
+                <div className="flex flex-col gap-2 rounded-xl border border-ink-hair bg-ink-2/60 p-1.5">
+                  <div
+                    className={`relative overflow-hidden rounded-lg aspect-square border bg-ink/60 ${
+                      tone === 'cyan'
+                        ? 'border-neon-cyan/40'
+                        : tone === 'uv'
+                        ? 'border-neon-uv/40'
+                        : 'border-neon-gold/40'
+                    }`}
+                  >
+                    {p.signed_url ? (
+                      <a
+                        href={p.signed_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="block h-full w-full"
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={p.signed_url} alt="" className="h-full w-full object-cover" />
+                      </a>
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center">
+                        <GlyphGlow tone={tone} size={72}>
+                          <PhotoGlyph size={72} />
+                        </GlyphGlow>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-between gap-2 px-1.5 pt-0.5">
+                    <span className="text-[10px] uppercase tracking-[0.14em] text-mist [font-family:var(--font-mono),JetBrains_Mono,monospace] truncate">
+                      {new Date(p.taken_at).toLocaleDateString(undefined, {
+                        month: 'short',
+                        day: 'numeric',
+                      })}
+                      {' · '}
+                      {new Date(p.taken_at).toLocaleTimeString(undefined, {
+                        hour: 'numeric',
+                        minute: '2-digit',
+                      })}
+                    </span>
+                    <Chip tone={tone}>{captureLabel}</Chip>
+                  </div>
+
+                  {p.volunteer_name && (
+                    <p className="px-1.5 text-[11px] text-mist truncate">by {p.volunteer_name}</p>
+                  )}
+
+                  <div className="flex justify-end px-1 pb-1">
+                    <Button
+                      tone="danger"
+                      size="sm"
+                      onClick={() => deletePhoto(p.id)}
+                      disabled={busy}
+                    >
+                      Delete
+                    </Button>
+                  </div>
                 </div>
-                <div className="capitalize">{p.capture_mode.replace(/_/g, ' ')}</div>
-                <button type="button" onClick={() => deletePhoto(p.id)}
-                  className="rounded bg-red-600 px-2 py-1 text-xs font-bold text-white">
-                  Delete
-                </button>
-              </div>
-            </li>
-          ))}
+              </li>
+            )
+          })}
         </ul>
       )}
     </div>
