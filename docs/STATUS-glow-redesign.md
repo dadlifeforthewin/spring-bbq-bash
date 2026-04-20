@@ -1,6 +1,6 @@
 # Glow Redesign — STATUS
 
-**Branch:** `glow-redesign` (HEAD `cf10895`) · **Last update:** 2026-04-20 (late afternoon, Phase 5.5 shipped + merge-ready)
+**Branch:** `glow-redesign` (HEAD `3973796`) · **Last update:** 2026-04-20 (evening, Phase 5.5 shipped + simplified cleanup + merge-ready)
 **Event:** Saturday, April 25, 2026 (5 days out) · **Dry-run:** Tuesday April 21 (tomorrow)
 **Spec:** `docs/specs/2026-04-19-station-admin-glow-redesign-design.md`
 **Plan:** `docs/plans/2026-04-19-glow-redesign-plan.md`
@@ -32,15 +32,15 @@ Phase 5.5 implementation complete, merge-ready pending (a) Brian's visual walk-t
 | 5.5.3 | `dae2d46` | `/admin/prizes` CRUD page + API routes (GET/POST + PATCH/DELETE soft-delete) |
 | 5.5.4 | `609059b` → `06ea742` | `/station/prize_wheel` state-machine page (8 states, 2s affirmation, rescan [Change]) + `prize-wheel/{prizes,lookup,redeem}` endpoints + story-generator `prize_won` extension + UPSERT race fix |
 | 5.5.6 | `ee4623b` | `/admin/cleanup` CRUD page + API routes (mirror of prizes) |
-| 5.5.7 | `0011dbc` | `/station/cleanup` toggle list + close-out flow + `cleanup/{state,toggle,lock}` endpoints |
+| 5.5.7 | `0011dbc` → `108e073` → `bb8940b` → `3973796` | `/station/cleanup` — initial toggle list + close-out flow → banner move → layout clearance fix → **simplified to toggle-only (lock mechanism removed per Brian's decision — simple is better)**. `cleanup_locks` table remains in schema as dead storage (harmless); `/api/stations/cleanup/lock` endpoint deleted. PageHead subtitle: "Check items as you finish. Toggle off if something was marked by mistake." |
 | 5.5.8 | `13d4c92` | Migration `0012_stations_seed_phase_5_5.sql` + StationPicker ROUTING (prize_wheel→/station/prize_wheel, +cleanup entry, 8 slugs use dedicated glyphs, SparkGlyph stays as FALLBACK) + AdminShell nav links (Catalog, Prizes, Cleanup) |
 | 5.5.10 | `cf10895` | Final-review cleanup: `0013_rls_phase_5_5.sql` (RLS enabled on all 5 Phase 5.5 tables, service-role only per 0003 pattern) + dead prize_wheel branch deleted from `/api/stations/activity/route.ts` |
 
-**Tests:** 67/67 → 118/118 (+51). Typecheck clean. Every task received spec-compliance + code-quality review via `superpowers:subagent-driven-development`; final cross-task review confirmed merge-readiness.
+**Tests:** 67/67 → 115/115 (+48 net after lock-test removal; earlier peak 118). Typecheck clean. Every task received spec-compliance + code-quality review via `superpowers:subagent-driven-development`; final cross-task review confirmed merge-readiness. Controller self-reviewed all visual output before Brian handoff (per `feedback_self_review_before_presenting.md`).
 
-**Visual inspection captured** (at 375×812 mobile) saved to `/tmp`:
-- `/tmp/prize-wheel-{1..6}-*.png` — 6 states (scanner idle, chip grid, affirmation, already-redeemed, update-mode w/ CURRENT marker, empty-catalog)
-- `/tmp/cleanup-{1..5}-*.png` — 5 states (initial 0/7, 3/7 mid, 7/7 + enabled CLOSE OUT, post-lock banner, re-toggled-off re-enable flow)
+**Visual inspection captured** (at 375×812 mobile viewport — `fullPage: false` for honest phone UX) saved to `/tmp`:
+- `/tmp/prize-wheel-{1..6}-*.png` — 6 states (scanner idle, chip grid, affirmation, already-redeemed, update-mode w/ CURRENT marker, empty-catalog). Brian-approved.
+- `/tmp/cleanup-v4-1-some-done-top.png` and `/tmp/cleanup-v4-2-all-done-bottom.png` — simplified 2-state flow after lock removal. Brian-approved.
 - StationPicker + AdminShell not screen-captured (volunteer password gate + env-safety rule; coverage via component tests)
 
 ## Deploy / operational notes
