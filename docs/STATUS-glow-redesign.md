@@ -10,16 +10,19 @@
 
 ---
 
-## 🔜 NEXT SESSION — Brian visual review + deploy
+## 🔜 NEXT SESSION — Deploy + merge
 
-Phase 5.5 implementation complete, merge-ready pending (a) Brian's visual walk-through and (b) migrations pushed to remote Supabase.
+Phase 5.5 implementation + visual QA complete. Brian approved all 8 reviewed screenshots (6 prize_wheel + 2 simplified cleanup) on 2026-04-20 evening. Cleanup was **simplified post-review** to a toggle-only checklist (no lock mechanism) — see memory + STATUS §Phase 5.5 row 5.5.7.
 
 1. **Read this file first** (you're reading it).
-2. **Pull:** `/usr/bin/git pull origin glow-redesign` (expect HEAD at `cf10895` or later).
-3. **Baseline:** `npm run typecheck && npm run test -- --run` — expect clean + 118/118.
-4. **Apply migrations to remote:** `supabase db push` to land 0010_prizes, 0011_cleanup, 0012_stations_seed_phase_5_5, 0013_rls_phase_5_5 (in order, idempotent).
-5. **Visual walk-through** — /station (picker with cleanup tile + 9 new glyphs), /station/prize_wheel (scan + chip grid + affirmation + rescan Change), /station/cleanup (toggle list + close-out + locked banner), /admin/prizes (CRUD), /admin/cleanup (CRUD), /admin (nav has Catalog/Prizes/Cleanup links).
-6. **After walk-through** — merge to `kid-profile-rebuild` (still need to handle `/dev/glow` dev route removal before that merge lands on any auto-deployed branch, and a volunteer-accessible password for dry-run).
+2. **Pull:** `/usr/bin/git pull origin glow-redesign` (expect HEAD `62dcb65` or later).
+3. **Baseline:** `npm run typecheck && npm run test -- --run` — expect clean + 115/115.
+4. **Apply migrations to remote:** `supabase db push` to land 0010_prizes → 0011_cleanup → 0012_stations_seed_phase_5_5 → 0013_rls_phase_5_5 (in order, idempotent).
+5. **Populate `/admin/prizes`** pre-event — table ships empty; station shows admin hint if unpopulated.
+6. **Remove `/dev/glow` showcase route** before merging into any auto-deployed branch.
+7. **Merge to `kid-profile-rebuild`** after the above three.
+
+No more cleanup-crew work pending — Brian's decision to strip the lock mechanism stands; do NOT re-propose it.
 
 ## Phase 5.5 — SHIPPED 2026-04-20 ✅
 
