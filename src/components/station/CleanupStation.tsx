@@ -206,6 +206,20 @@ export default function CleanupStation() {
       {/* Dashed hairline divider below the head */}
       <div aria-hidden className="border-t border-dashed border-ink-hair/60" />
 
+      {locked && (
+        <SignPanel tone="gold" data-testid="cleanup-locked-banner">
+          <div className="space-y-1">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-neon-gold [font-family:var(--font-mono),JetBrains_Mono,monospace]">
+              Closeout confirmed
+            </div>
+            <p className="font-display text-2xl font-bold text-paper leading-tight">NIGHT LOCKED</p>
+            {lockedAt && (
+              <p className="text-xs text-mist">Locked at {fmtTime(lockedAt)}</p>
+            )}
+          </div>
+        </SignPanel>
+      )}
+
       {loaded && tasks.length === 0 ? (
         <SignPanel tone="gold">
           <div className="space-y-2">
@@ -252,20 +266,6 @@ export default function CleanupStation() {
               Heads up
             </div>
             <p className="text-sm text-paper">{error}</p>
-          </div>
-        </SignPanel>
-      )}
-
-      {locked && (
-        <SignPanel tone="gold" data-testid="cleanup-locked-banner">
-          <div className="space-y-1">
-            <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-neon-gold [font-family:var(--font-mono),JetBrains_Mono,monospace]">
-              Closeout confirmed
-            </div>
-            <p className="font-display text-2xl font-bold text-paper leading-tight">NIGHT LOCKED</p>
-            {lockedAt && (
-              <p className="text-xs text-mist">Locked at {fmtTime(lockedAt)}</p>
-            )}
           </div>
         </SignPanel>
       )}
