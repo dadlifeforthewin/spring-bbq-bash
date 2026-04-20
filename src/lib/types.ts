@@ -202,3 +202,20 @@ export type AuditLog = {
   ip_address: string | null
   created_at: string
 }
+
+export type Prize = {
+  id: string
+  label: string
+  sub: string | null
+  sort_order: number
+  active: boolean
+  created_at: string
+}
+
+export type PrizeRedemption = {
+  id: string
+  child_id: string
+  prize_id: string
+  volunteer_name: string | null
+  updated_at: string
+}
