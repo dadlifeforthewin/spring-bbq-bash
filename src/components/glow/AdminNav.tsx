@@ -1,7 +1,16 @@
 import Link from 'next/link'
 import { clsx } from './clsx'
 
-export type AdminNavKey = 'dashboard' | 'children' | 'stories' | 'photos' | 'stations' | 'bulk' | 'settings'
+export type AdminNavKey =
+  | 'dashboard'
+  | 'children'
+  | 'stories'
+  | 'photos'
+  | 'stations'
+  | 'prizes'
+  | 'cleanup'
+  | 'bulk'
+  | 'settings'
 
 type Props = {
   active: AdminNavKey
@@ -14,6 +23,8 @@ const LINKS: { key: AdminNavKey; href: string; label: string }[] = [
   { key: 'stories',   href: '/admin/stories',   label: 'Stories' },
   { key: 'photos',    href: '/admin/photos',    label: 'Photos' },
   { key: 'stations',  href: '/admin/stations',  label: 'Stations' },
+  { key: 'prizes',    href: '/admin/prizes',    label: 'Prizes' },
+  { key: 'cleanup',   href: '/admin/cleanup',   label: 'Cleanup' },
   { key: 'bulk',      href: '/admin/bulk',      label: 'Bulk' },
   { key: 'settings',  href: '/admin/settings',  label: 'Settings' },
 ]
