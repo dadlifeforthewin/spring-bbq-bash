@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import { Button, Checkbox, Input, PageHead, SectionHeading, SignPanel } from '@/components/glow'
 
 export default function BulkBalance() {
   const [balance, setBalance] = useState('10')
@@ -34,36 +35,32 @@ export default function BulkBalance() {
 
   return (
     <div className="space-y-4">
-      <header>
-        <h1 className="text-3xl font-black">Bulk actions</h1>
-        <p className="text-slate-500">One-shot operations across every registered child.</p>
-      </header>
+      <PageHead title="Bulk actions" sub="One-shot operations across every registered child." />
 
-      <section className="space-y-3 rounded border border-slate-200 bg-white p-4">
-        <h2 className="text-lg font-bold">Set initial ticket balance</h2>
-        <p className="text-sm text-slate-600">
+      <section className="space-y-3 rounded-2xl border border-ink-hair bg-ink-2/70 backdrop-blur-sm p-5">
+        <SectionHeading num="01" title="Set initial ticket balance" tone="cyan" />
+        <p className="text-sm text-mist">
           Overwrites the ticket balance for every matching child and writes a comp reload row so the audit
           trail + stats reflect the top-up.
         </p>
         <div className="flex items-end gap-3">
           <label className="block"><span className="block text-sm">New balance</span>
-            <input type="number" min={0} max={100} value={balance}
+            <Input type="number" min={0} max={100} value={balance}
               onChange={(e) => setBalance(e.target.value)}
               aria-label="new balance"
-              className="w-32 rounded border px-3 py-2" /></label>
-          <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" checked={onlyNotCheckedIn}
-              onChange={(e) => setOnlyNotCheckedIn(e.target.checked)} />
-            Only not-yet-checked-in kids
-          </label>
+              className="w-32" /></label>
+          <Checkbox
+            label="Only not-yet-checked-in kids"
+            checked={onlyNotCheckedIn}
+            onChange={(e) => setOnlyNotCheckedIn(e.target.checked)}
+          />
         </div>
-        <button type="button" onClick={() => setConfirming(true)} disabled={busy}
-          className="rounded bg-fuchsia-600 px-6 py-2 font-bold text-white disabled:opacity-50">
+        <Button type="button" tone="magenta" size="lg" onClick={() => setConfirming(true)} disabled={busy}>
           Apply…
-        </button>
-        {error && <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+        </Button>
+        {error && <p className="rounded-xl border border-danger/60 bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}
         {result && (
-          <p className="rounded bg-green-50 px-3 py-2 text-sm text-green-700">
+          <p className="rounded-xl border border-neon-mint/60 bg-neon-mint/10 px-3 py-2 text-sm text-neon-mint">
             Updated {result.updated} {result.updated === 1 ? 'child' : 'children'}.
           </p>
         )}
@@ -71,23 +68,21 @@ export default function BulkBalance() {
 
       {confirming && (
         <div role="dialog" aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 p-4">
-          <div className="w-full max-w-sm space-y-4 rounded-lg bg-white p-5">
-            <h3 className="text-xl font-bold">Confirm bulk update</h3>
-            <p>
+          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/80 backdrop-blur-sm p-4">
+          <SignPanel tone="magenta" padding="lg" className="w-full max-w-sm space-y-4">
+            <h3 className="font-display text-xl font-bold text-paper">Confirm bulk update</h3>
+            <p className="text-paper">
               Set ticket balance to <strong>{balance}</strong> for{' '}
               {onlyNotCheckedIn ? 'every not-yet-checked-in' : 'every'} child.
             </p>
-            <p className="text-sm text-slate-500">This cannot be undone in one click — you&apos;d have to fix children individually.</p>
+            <p className="text-sm text-mist">This cannot be undone in one click — you&apos;d have to fix children individually.</p>
             <div className="flex gap-2">
-              <button type="button" onClick={() => setConfirming(false)}
-                className="flex-1 rounded bg-slate-200 py-2 font-bold">Cancel</button>
-              <button type="button" onClick={run} disabled={busy}
-                className="flex-1 rounded bg-fuchsia-600 py-2 font-bold text-white disabled:opacity-50">
-                {busy ? 'Working…' : 'Confirm'}
-              </button>
+              <Button type="button" tone="ghost" fullWidth onClick={() => setConfirming(false)}>Cancel</Button>
+              <Button type="button" tone="magenta" fullWidth loading={busy} disabled={busy} onClick={run}>
+                Confirm
+              </Button>
             </div>
-          </div>
+          </SignPanel>
         </div>
       )}
     </div>

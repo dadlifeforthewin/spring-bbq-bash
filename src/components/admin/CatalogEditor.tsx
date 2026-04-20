@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
+import { Button, Input, PageHead, SectionHeading, Select } from '@/components/glow'
 
 type Station = { slug: string; name: string; sort_order: number }
 type Item = {
@@ -10,6 +11,9 @@ type Item = {
   sort_order: number
   active: boolean
 }
+
+const STATION_TONES = ['cyan', 'uv', 'gold', 'mint', 'magenta'] as const
+type StationTone = (typeof STATION_TONES)[number]
 
 export default function CatalogEditor() {
   const [stations, setStations] = useState<Station[]>([])
@@ -100,98 +104,99 @@ export default function CatalogEditor() {
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-3xl font-black">Stations &amp; catalog</h1>
-        <p className="text-slate-500">
-          Edit ticket prices and item names. Station devices pick up changes on next page refresh.
-        </p>
-      </header>
+      <PageHead
+        title="Stations & catalog"
+        sub="Edit ticket prices and item names. Station devices pick up changes on next page refresh."
+      />
 
-      {error && <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+      {error && <p className="rounded-xl border border-danger/60 bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}
 
-      <section className="space-y-3 rounded border border-slate-200 bg-white p-4">
-        <h2 className="text-lg font-bold">Add item</h2>
+      <section className="space-y-3 rounded-2xl border border-ink-hair bg-ink-2/70 backdrop-blur-sm p-5">
+        <SectionHeading num="01" title="Add item" tone="cyan" />
         <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
-          <select value={newItem.station_slug}
+          <Select value={newItem.station_slug}
             onChange={(e) => setNewItem({ ...newItem, station_slug: e.target.value })}
-            aria-label="new item station"
-            className="rounded border px-3 py-2">
+            aria-label="new item station">
             {stations.map((s) => (
               <option key={s.slug} value={s.slug}>{s.name}</option>
             ))}
-          </select>
-          <input value={newItem.name} onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
+          </Select>
+          <Input value={newItem.name} onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
             placeholder="Item name" aria-label="new item name"
-            className="col-span-2 rounded border px-3 py-2" />
-          <input type="number" min={0} max={50} value={newItem.ticket_cost}
+            className="col-span-2" />
+          <Input type="number" min={0} max={50} value={newItem.ticket_cost}
             onChange={(e) => setNewItem({ ...newItem, ticket_cost: e.target.value })}
-            placeholder="Ticket cost" aria-label="new item ticket cost"
-            className="rounded border px-3 py-2" />
-          <button type="button" onClick={createItem} disabled={busy || !newItem.name}
-            className="rounded bg-fuchsia-600 px-3 py-2 font-bold text-white disabled:opacity-50">
+            placeholder="Ticket cost" aria-label="new item ticket cost" />
+          <Button type="button" tone="magenta" size="lg" onClick={createItem}
+            loading={busy} disabled={busy || !newItem.name}>
             Add
-          </button>
+          </Button>
         </div>
       </section>
 
-      {stations.map((station) => (
-        <section key={station.slug} className="space-y-2 rounded border border-slate-200 bg-white p-4">
-          <h3 className="text-lg font-bold capitalize">{station.name}</h3>
-          {!grouped[station.slug] || grouped[station.slug].length === 0 ? (
-            <p className="text-sm text-slate-500">No items yet.</p>
-          ) : (
-            <table className="w-full text-sm">
-              <thead className="text-left text-xs uppercase text-slate-500">
-                <tr>
-                  <th className="py-1">Name</th>
-                  <th className="py-1">🎟</th>
-                  <th className="py-1">Order</th>
-                  <th className="py-1">Active</th>
-                  <th className="py-1"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {grouped[station.slug].map((it) => (
-                  <tr key={it.id} className="border-t border-slate-100">
-                    <td className="py-1 pr-2">
-                      <input defaultValue={it.name} aria-label={`name-${it.id}`}
-                        onBlur={(e) => e.target.value !== it.name && patchItem(it.id, { name: e.target.value })}
-                        className="w-full rounded border px-2 py-1" />
-                    </td>
-                    <td className="py-1 pr-2">
-                      <input type="number" min={0} max={50} defaultValue={it.ticket_cost}
-                        aria-label={`cost-${it.id}`}
-                        onBlur={(e) => {
-                          const n = Number(e.target.value) || 0
-                          if (n !== it.ticket_cost) patchItem(it.id, { ticket_cost: n })
-                        }}
-                        className="w-20 rounded border px-2 py-1" />
-                    </td>
-                    <td className="py-1 pr-2">
-                      <input type="number" min={0} defaultValue={it.sort_order}
-                        aria-label={`sort-${it.id}`}
-                        onBlur={(e) => {
-                          const n = Number(e.target.value) || 0
-                          if (n !== it.sort_order) patchItem(it.id, { sort_order: n })
-                        }}
-                        className="w-20 rounded border px-2 py-1" />
-                    </td>
-                    <td className="py-1 pr-2">
-                      <input type="checkbox" checked={it.active}
-                        aria-label={`active-${it.id}`}
-                        onChange={(e) => patchItem(it.id, { active: e.target.checked })} />
-                    </td>
-                    <td className="py-1 text-right">
-                      <button type="button" onClick={() => deleteItem(it.id)}
-                        className="text-sm text-red-600">Delete</button>
-                    </td>
+      {stations.map((station, idx) => {
+        const num = String(idx + 2).padStart(2, '0')
+        const tone: StationTone = STATION_TONES[(idx + 1) % STATION_TONES.length]
+        return (
+          <section key={station.slug} className="space-y-2 rounded-2xl border border-ink-hair bg-ink-2/70 backdrop-blur-sm p-5">
+            <SectionHeading num={num} title={station.name.charAt(0).toUpperCase() + station.name.slice(1)} tone={tone} />
+            {!grouped[station.slug] || grouped[station.slug].length === 0 ? (
+              <p className="text-sm text-mist">No items yet.</p>
+            ) : (
+              <table className="w-full text-sm">
+                <thead className="text-left text-xs uppercase text-mist">
+                  <tr>
+                    <th className="py-1">Name</th>
+                    <th className="py-1">🎟</th>
+                    <th className="py-1">Order</th>
+                    <th className="py-1">Active</th>
+                    <th className="py-1"></th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </section>
-      ))}
+                </thead>
+                <tbody>
+                  {grouped[station.slug].map((it) => (
+                    <tr key={it.id} className="border-t border-ink-hair/40">
+                      <td className="py-1 pr-2">
+                        <Input defaultValue={it.name} aria-label={`name-${it.id}`}
+                          onBlur={(e) => e.target.value !== it.name && patchItem(it.id, { name: e.target.value })}
+                          className="h-9 px-3 text-sm" />
+                      </td>
+                      <td className="py-1 pr-2">
+                        <Input type="number" min={0} max={50} defaultValue={it.ticket_cost}
+                          aria-label={`cost-${it.id}`}
+                          onBlur={(e) => {
+                            const n = Number(e.target.value) || 0
+                            if (n !== it.ticket_cost) patchItem(it.id, { ticket_cost: n })
+                          }}
+                          className="h-9 w-20 px-3 text-sm" />
+                      </td>
+                      <td className="py-1 pr-2">
+                        <Input type="number" min={0} defaultValue={it.sort_order}
+                          aria-label={`sort-${it.id}`}
+                          onBlur={(e) => {
+                            const n = Number(e.target.value) || 0
+                            if (n !== it.sort_order) patchItem(it.id, { sort_order: n })
+                          }}
+                          className="h-9 w-20 px-3 text-sm" />
+                      </td>
+                      <td className="py-1 pr-2">
+                        <input type="checkbox" checked={it.active}
+                          aria-label={`active-${it.id}`}
+                          onChange={(e) => patchItem(it.id, { active: e.target.checked })} />
+                      </td>
+                      <td className="py-1 text-right">
+                        <Button type="button" tone="danger" size="sm" onClick={() => deleteItem(it.id)}>
+                          Delete
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </section>
+        )
+      })}
     </div>
   )
 }
