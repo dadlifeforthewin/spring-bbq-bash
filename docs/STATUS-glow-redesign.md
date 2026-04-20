@@ -1,51 +1,64 @@
 # Glow Redesign — STATUS
 
-**Branch:** `glow-redesign` (HEAD `fa9daca`) · **Last update:** 2026-04-20 (midday, Phase 5 shipped, Phase 5.5 queued)
+**Branch:** `glow-redesign` (HEAD `cf10895`) · **Last update:** 2026-04-20 (late afternoon, Phase 5.5 shipped + merge-ready)
 **Event:** Saturday, April 25, 2026 (5 days out) · **Dry-run:** Tuesday April 21 (tomorrow)
 **Spec:** `docs/specs/2026-04-19-station-admin-glow-redesign-design.md`
 **Plan:** `docs/plans/2026-04-19-glow-redesign-plan.md`
+**Phase 5.5 plan addendum:** `docs/plans/2026-04-20-phase-5.5-features-plan.md`
 **Phase 5.5 reference (new features):** `docs/design/cleanup-crew-reference.md`
 **Not auto-deployed** — Vercel production branch is `kid-profile-rebuild`, not this one.
 
 ---
 
-## 🔜 NEXT SESSION — Resume Phase 5.5 (new features: prize_wheel + cleanup crew)
+## 🔜 NEXT SESSION — Brian visual review + deploy
 
-Brian paused here to refresh Claude. On resume:
+Phase 5.5 implementation complete, merge-ready pending (a) Brian's visual walk-through and (b) migrations pushed to remote Supabase.
 
 1. **Read this file first** (you're reading it).
-2. **Pull:** `/usr/bin/git pull origin glow-redesign` (expect HEAD at `fa9daca` or later).
-3. **Baseline:** `npm run typecheck && npm run test -- --run` — expect clean + 67/67.
-4. **Start with Task 5.5.1** — write `docs/plans/2026-04-20-phase-5.5-features-plan.md` (detailed task breakdown with DB schemas, API contracts, UI specs, seed data). This plan document is the durable record of the sub-tasks listed below.
-5. **Then execute Tasks 5.5.2 → 5.5.9 sequentially** (features depend on migrations; admin CRUD depends on tables; station pages depend on admin CRUD being usable). Some Phase 5.5 sub-tasks CAN run in parallel worktrees (e.g., prize_wheel migration vs. cleanup migration), but plan them in the addendum first.
+2. **Pull:** `/usr/bin/git pull origin glow-redesign` (expect HEAD at `cf10895` or later).
+3. **Baseline:** `npm run typecheck && npm run test -- --run` — expect clean + 118/118.
+4. **Apply migrations to remote:** `supabase db push` to land 0010_prizes, 0011_cleanup, 0012_stations_seed_phase_5_5, 0013_rls_phase_5_5 (in order, idempotent).
+5. **Visual walk-through** — /station (picker with cleanup tile + 9 new glyphs), /station/prize_wheel (scan + chip grid + affirmation + rescan Change), /station/cleanup (toggle list + close-out + locked banner), /admin/prizes (CRUD), /admin/cleanup (CRUD), /admin (nav has Catalog/Prizes/Cleanup links).
+6. **After walk-through** — merge to `kid-profile-rebuild` (still need to handle `/dev/glow` dev route removal before that merge lands on any auto-deployed branch, and a volunteer-accessible password for dry-run).
 
-### Phase 5.5 task backlog (durable — re-create in session task list on resume)
+## Phase 5.5 — SHIPPED 2026-04-20 ✅
 
-| # | Task | Depends on |
+| Task | Commit | Scope |
 |---|---|---|
-| 5.5.1 | Write Phase 5.5 plan addendum at `docs/plans/2026-04-20-phase-5.5-features-plan.md` — full TDD breakdown w/ DB schemas, API contracts, UI specs, seed data for prize_wheel and cleanup features. References `docs/design/cleanup-crew-reference.md` | — |
-| 5.5.2 | Supabase migration: `prizes` table (id, label, sub, sort_order, active, created_at). Seed starter list. Regenerate types. | 5.5.1 |
-| 5.5.3 | `/admin/prizes` CRUD page — list + create + edit + deactivate + reorder. Year-over-year reuse. | 5.5.2 |
-| 5.5.4 | `/station/prize_wheel` station page — scan wristband → Chip grid of active prizes → tap prize → log redemption. Gold tone. PageHead + NeonScanner. | 5.5.2 |
-| 5.5.5 | Supabase migrations: `cleanup_tasks` + `cleanup_completions` + `cleanup_locks` per schema draft in `docs/design/cleanup-crew-reference.md`. Seed 7 example tasks from the reference. | — |
-| 5.5.6 | `/admin/cleanup` CRUD page — list + create + edit + reorder + deactivate. | 5.5.5 |
-| 5.5.7 | `/station/cleanup` toggles + close-out button per `docs/design/cleanup-crew-reference.md`. Gold tone. N/M DONE chip. CLOSE OUT enabled when remaining=0 → POSTs `cleanup_locks` row. Toggles stay tappable after close-out. | 5.5.5 |
-| 5.5.8 | Seed rows into `stations` table: `(slug=cleanup, name=Cleanup Crew)` and `(slug=prize_wheel, name=Prize Wheel)`. Confirm picker renders both tiles with correct tone+glyph via StationPicker's ROUTING map. | 5.5.3, 5.5.4, 5.5.6, 5.5.7 |
-| 5.5.9 | Design 8 dedicated SVG glyphs replacing SparkGlyph fallback on cornhole, face_painting, arts_crafts, video_games, dance_competition, pizza, cake_walk, quiet_corner. Phase 4 stroke-based style, 100×100 viewBox, `strokeWidth=3`. Update picker ROUTING map. | — (can parallel with anything) |
+| 5.5.1 | `e3dd999` | Plan addendum + cleanup-crew-reference doc |
+| 5.5.2 | `7a79477` | Migration `0010_prizes.sql` + `Prize`/`PrizeRedemption` types |
+| 5.5.5 | `5e9a9f3` → `5029ef5` | Migrations `0011_cleanup.sql` (cleanup_tasks/completions/locks) + Station type + 7 seed tasks + FK cascade→restrict fix |
+| 5.5.9 | `a16169e` | 9 new SVG glyphs (cornhole, face_painting, arts_crafts, video_games, dance_competition, pizza, cake_walk, quiet_corner, cleanup) + barrel resorted |
+| 5.5.3 | `dae2d46` | `/admin/prizes` CRUD page + API routes (GET/POST + PATCH/DELETE soft-delete) |
+| 5.5.4 | `609059b` → `06ea742` | `/station/prize_wheel` state-machine page (8 states, 2s affirmation, rescan [Change]) + `prize-wheel/{prizes,lookup,redeem}` endpoints + story-generator `prize_won` extension + UPSERT race fix |
+| 5.5.6 | `ee4623b` | `/admin/cleanup` CRUD page + API routes (mirror of prizes) |
+| 5.5.7 | `0011dbc` | `/station/cleanup` toggle list + close-out flow + `cleanup/{state,toggle,lock}` endpoints |
+| 5.5.8 | `13d4c92` | Migration `0012_stations_seed_phase_5_5.sql` + StationPicker ROUTING (prize_wheel→/station/prize_wheel, +cleanup entry, 8 slugs use dedicated glyphs, SparkGlyph stays as FALLBACK) + AdminShell nav links (Catalog, Prizes, Cleanup) |
+| 5.5.10 | `cf10895` | Final-review cleanup: `0013_rls_phase_5_5.sql` (RLS enabled on all 5 Phase 5.5 tables, service-role only per 0003 pattern) + dead prize_wheel branch deleted from `/api/stations/activity/route.ts` |
 
-### Locked decisions from 2026-04-20 session (do NOT re-ask)
+**Tests:** 67/67 → 118/118 (+51). Typecheck clean. Every task received spec-compliance + code-quality review via `superpowers:subagent-driven-development`; final cross-task review confirmed merge-readiness.
 
-- **Prize wheel mechanics:** spun at check-in; this is a logging-only volunteer flow (scan → pick prize → log).
-- **Prize list:** admin CRUD (year-over-year reuse), NOT hardcoded.
-- **Cleanup tone:** **gold** (shares with prize_wheel — never colocated on same page).
-- **Cleanup close-out:** `cleanup_locks` row POSTed when all items done; individual item toggles stay tappable after close-out (for early-cleanup volunteers who miscounted).
-- **Cleanup admin:** full CRUD — tasks are year-over-year reusable.
-- **Reloads:** deprecated. No re-upping tickets. Hard caps: 2 drinks + 3 jail tickets per kid.
-- **Picker:** DB-driven. ROUTING map in `src/components/station/StationPicker.tsx` already has fallback for unknown slugs; 5.5.8 needs to extend it with explicit entries for `cleanup` and `prize_wheel` once new DB rows exist.
+**Visual inspection captured** (at 375×812 mobile) saved to `/tmp`:
+- `/tmp/prize-wheel-{1..6}-*.png` — 6 states (scanner idle, chip grid, affirmation, already-redeemed, update-mode w/ CURRENT marker, empty-catalog)
+- `/tmp/cleanup-{1..5}-*.png` — 5 states (initial 0/7, 3/7 mid, 7/7 + enabled CLOSE OUT, post-lock banner, re-toggled-off re-enable flow)
+- StationPicker + AdminShell not screen-captured (volunteer password gate + env-safety rule; coverage via component tests)
 
-### What NOT to touch
+## Deploy / operational notes
 
-- Phase 6–8 (admin shell, dashboard, photos queue, stories, bulk, catalog, settings) is post-Phase-5.5 work. Stay scoped.
+- **Remote Supabase needs 4 new migrations applied** in order: 0010, 0011, 0012, 0013. All idempotent (ON CONFLICT) or additive. Run `supabase db push`.
+- **No new env vars.** All routes use existing `isAdminAuthed()` / `isVolunteerAuthed()` cookies.
+- **Prize catalog is empty on fresh DB.** Brian populates via `/admin/prizes` pre-event so the chip grid has entries; station page has an `empty_catalog` state with admin hint if anyone opens it before prizes are seeded.
+- **Cleanup tasks have 7 seed rows** (0011 migration). Admin can edit pre-event.
+- **Admin nav link for Catalog** was added as a bonus backfill (pre-existing gap — CatalogEditor was reachable only by direct URL before 5.5.8).
+
+## Phase 5.5 follow-ups routed to later phases (not blocking merge)
+
+- Response-shape consolidation (`{ prize }` vs `{ task }`) — refactor opportunity when a 3rd CRUD pattern lands
+- Generic `CatalogEditor<T>` to dedupe PrizesEditor + CleanupEditor scaffolding (~150 LOC reclaim)
+- Component-test assertions are mock-call-heavy; shift to observable-behavior assertions
+- Weak glyph-identity test in StationPicker (asserts svg exists, not glyph identity) — add `data-glyph` attributes when convenient
+- CleanupStation doesn't apply server's canonical `remaining` on toggle response — noted but acceptable at volunteer-count traffic
+- `prize_wheel` route uses underscore instead of kebab-case (inconsistent with `/station/check-in` convention); matches DB slug so rename ripples if changed
 
 ## Why this branch exists
 
@@ -88,13 +101,12 @@ Parent-facing surfaces (`/`, `/register`, `/register/confirm`) are already at D1
 
 | Phase | Scope | Risk |
 |---|---|---|
-| 5.5 (new — not in original plan) | prize_wheel station + cleanup crew station + admin CRUD for both. Reference: `docs/design/cleanup-crew-reference.md`. 8 sub-tasks tracked. | Medium — new DB tables + migrations |
 | 6 | Admin shell layout + dashboard | Medium |
 | 7 | Admin photos-queue + stories list + stories editor | Medium |
 | 8 | Admin polish-only (children list, child editor, bulk, catalog, settings) | Low — primitive swaps |
 | 9 | QA gate (typecheck, full E2E, Applitools, motion review, scrub greps, screenshots) | — |
 
-**Merge strategy:** Phase 5 shipped before Tuesday dry-run ✓. Phase 5.5 features (prize_wheel + cleanup) targeted for Wed–Thu, post-dry-run. Admin Phases 6–8 remain post-dry-run; if they slip, admin stays on current styling for event night (still a working command center).
+**Merge strategy:** Phase 5 shipped before Tuesday dry-run ✓. Phase 5.5 shipped same day, merge-ready pending Brian's walk-through + migration apply ✓. Admin Phases 6–8 remain post-dry-run; if they slip, admin stays on current styling for event night (still a working command center).
 
 ## How to resume
 
