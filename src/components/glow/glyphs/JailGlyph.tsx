@@ -1,0 +1,12 @@
+export function JailGlyph({ size = 80 }: { size?: number }) {
+  return (
+    <svg viewBox="0 0 100 100" width={size} height={size} fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <rect x={14} y={20} width={72} height={60} rx={6} />
+      <line x1={30} y1={26} x2={30} y2={74} />
+      <line x1={42} y1={26} x2={42} y2={74} />
+      <line x1={54} y1={26} x2={54} y2={74} />
+      <line x1={66} y1={26} x2={66} y2={74} />
+      <circle cx={50} cy={86} r={3} fill="currentColor" stroke="none" />
+    </svg>
+  )
+}
