@@ -5,15 +5,24 @@ import { GlyphGlow } from '@/components/glow/GlyphGlow'
 import { NeonWordmark } from '@/components/glow/NeonWordmark'
 import { SignPanel } from '@/components/glow/SignPanel'
 import {
+  ArtsCraftsGlyph,
+  CakeWalkGlyph,
   CheckInGlyph,
   CheckOutGlyph,
-  DrinksGlyph,
-  JailGlyph,
-  PrizeWheelGlyph,
+  CleanupGlyph,
+  CornholeGlyph,
+  DanceCompetitionGlyph,
   DJGlyph,
+  DrinksGlyph,
+  FacePaintingGlyph,
+  JailGlyph,
   PhotoGlyph,
+  PizzaGlyph,
+  PrizeWheelGlyph,
+  QuietCornerGlyph,
   RoamingGlyph,
   SparkGlyph,
+  VideoGamesGlyph,
 } from '@/components/glow/glyphs'
 
 type Station = { slug: string; name: string }
@@ -28,21 +37,22 @@ const ROUTING: Record<string, { tone: Tone; Glyph: GlyphComponent; sub: string; 
   check_out:         { tone: 'mint',    Glyph: CheckOutGlyph,   sub: 'Pickup-code gate',       route: '/station/check-out' },
   drinks:            { tone: 'cyan',    Glyph: DrinksGlyph,     sub: '2 tickets per kid',      route: '/station/activity' },
   jail:              { tone: 'magenta', Glyph: JailGlyph,       sub: 'Send / free · 3 ea',     route: '/station/activity' },
-  prize_wheel:       { tone: 'gold',    Glyph: PrizeWheelGlyph, sub: 'Logged at check-in',     route: '/station/activity' },
-  dj_shoutout:       { tone: 'uv',      Glyph: DJGlyph,         sub: '1 song per kid',         route: '/station/activity' },
-  photo:             { tone: 'magenta', Glyph: PhotoGlyph,      sub: 'Consent-gated',          route: '/station/photo' },
-  roaming:           { tone: 'uv',      Glyph: RoamingGlyph,    sub: 'Auto-tag vision',        route: '/station/roaming' },
-  cornhole:          { tone: 'magenta', Glyph: SparkGlyph,      sub: 'Log the visit',          route: '/station/activity' },
-  face_painting:     { tone: 'uv',      Glyph: SparkGlyph,      sub: 'Log the visit',          route: '/station/activity' },
-  arts_crafts:       { tone: 'gold',    Glyph: SparkGlyph,      sub: 'Log the visit',          route: '/station/activity' },
-  video_games:       { tone: 'cyan',    Glyph: SparkGlyph,      sub: 'Log the visit',          route: '/station/activity' },
-  dance_competition: { tone: 'magenta', Glyph: SparkGlyph,      sub: 'Log the visit',          route: '/station/activity' },
-  pizza:             { tone: 'gold',    Glyph: SparkGlyph,      sub: 'Log the visit',          route: '/station/activity' },
-  cake_walk:         { tone: 'magenta', Glyph: SparkGlyph,      sub: 'Log the visit',          route: '/station/activity' },
-  quiet_corner:      { tone: 'uv',      Glyph: SparkGlyph,      sub: 'Log the visit',          route: '/station/activity' },
+  prize_wheel:       { tone: 'gold',    Glyph: PrizeWheelGlyph,       sub: 'Tap prize won',          route: '/station/prize_wheel' },
+  dj_shoutout:       { tone: 'uv',      Glyph: DJGlyph,                sub: '1 song per kid',         route: '/station/activity' },
+  photo:             { tone: 'magenta', Glyph: PhotoGlyph,             sub: 'Consent-gated',          route: '/station/photo' },
+  roaming:           { tone: 'uv',      Glyph: RoamingGlyph,           sub: 'Auto-tag vision',        route: '/station/roaming' },
+  cornhole:          { tone: 'cyan',    Glyph: CornholeGlyph,          sub: 'Log the visit',          route: '/station/activity' },
+  face_painting:     { tone: 'magenta', Glyph: FacePaintingGlyph,      sub: 'Log the visit',          route: '/station/activity' },
+  arts_crafts:       { tone: 'uv',      Glyph: ArtsCraftsGlyph,        sub: 'Log the visit',          route: '/station/activity' },
+  video_games:       { tone: 'uv',      Glyph: VideoGamesGlyph,        sub: 'Log the visit',          route: '/station/activity' },
+  dance_competition: { tone: 'magenta', Glyph: DanceCompetitionGlyph,  sub: 'Log the visit',          route: '/station/activity' },
+  pizza:             { tone: 'gold',    Glyph: PizzaGlyph,             sub: 'Log the visit',          route: '/station/activity' },
+  cake_walk:         { tone: 'mint',    Glyph: CakeWalkGlyph,          sub: 'Log the visit',          route: '/station/activity' },
+  quiet_corner:      { tone: 'cyan',    Glyph: QuietCornerGlyph,       sub: 'Log the visit',          route: '/station/activity' },
+  cleanup:           { tone: 'gold',    Glyph: CleanupGlyph,           sub: 'End-of-night checklist', route: '/station/cleanup' },
 }
 
-// Fallback for slugs not yet in the map (e.g. cleanup, prize_wheel-2 seeded in Phase 5.5)
+// Fallback for slugs not yet in the map (unknown / future stations)
 const FALLBACK = { tone: 'cyan' as Tone, Glyph: SparkGlyph, sub: 'Log the visit', route: '/station/activity' }
 
 function routeFor(slug: string): string {
