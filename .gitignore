@@ -33,6 +33,9 @@ next-env.d.ts
 /supabase/.temp/
 /supabase/.branches/
 
+# brainstorm companion (local mockups, not for repo)
+.superpowers/
+
 # misc
 .DS_Store
 *.pem
