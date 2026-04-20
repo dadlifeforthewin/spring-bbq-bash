@@ -1,9 +1,15 @@
 'use client'
 import { useState } from 'react'
-import { StationShell } from './StationShell'
 import ChildCard from './ChildCard'
 import { Input } from '@/components/glow/Input'
 import { Button } from '@/components/glow/Button'
+import {
+  PageHead,
+  NeonScanner,
+  SignPanel,
+  Chip,
+  SectionHeading,
+} from '@/components/glow'
 
 type Lookup = {
   child: {
@@ -28,6 +34,8 @@ type Lookup = {
 
 type PickupOption = { name: string; relationship: string | null; kind: 'primary' | 'secondary' | 'approved' }
 
+type RecentPickup = { childName: string; pickedUpBy: string; time: string }
+
 export default function CheckOutStation() {
   const [qr, setQr] = useState('')
   const [data, setData] = useState<Lookup | null>(null)
@@ -37,6 +45,7 @@ export default function CheckOutStation() {
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [recentPickups, setRecentPickups] = useState<RecentPickup[]>([])
 
   async function doLookup(e?: React.FormEvent) {
     e?.preventDefault()
@@ -76,6 +85,14 @@ export default function CheckOutStation() {
         setSubmitError(body.error ?? 'Check-out failed')
         return
       }
+      setRecentPickups((prev) => [
+        {
+          childName: `${data.child.first_name} ${data.child.last_name}`,
+          pickedUpBy: selected.name,
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        },
+        ...prev,
+      ])
       setSuccess(true)
     } finally {
       setBusy(false)
@@ -101,107 +118,132 @@ export default function CheckOutStation() {
     : []
 
   return (
-    <StationShell
-      eyebrow="Station · Check-out"
-      title="Send them home safely"
-      subtitle="Scan the wristband, confirm who&apos;s picking up, type your name."
-    >
-      <form onSubmit={doLookup} className="flex gap-2">
-        <Input
-          type="text"
-          value={qr}
-          onChange={(e) => setQr(e.target.value)}
-          placeholder="Scan or paste QR"
-          aria-label="QR code"
-          className="flex-1"
-        />
-        <Button type="submit" tone="ghost" size="md" loading={busy}>Look up</Button>
-      </form>
+    <main className="flex flex-col gap-5">
+      <PageHead
+        back={{ href: '/station', label: 'stations' }}
+        title="CHECK-OUT STATION"
+        sub="Scan the wristband and match the 4-digit pickup code."
+        right={<Chip tone="mint" glow>OUT · {recentPickups.length}</Chip>}
+      />
 
-      {lookupError && (
-        <p className="rounded-xl border border-danger/60 bg-danger/10 px-3 py-2 text-sm text-danger">{lookupError}</p>
-      )}
-
-      {data && (
-        <div className="space-y-4">
-          <ChildCard child={data.child} primary_parent={data.primary_parent ?? { name: '—', phone: null }} />
-
-          {data.child.checked_out_at ? (
-            <p className="rounded-xl border border-warn/60 bg-warn/10 px-3 py-2 text-sm text-warn">
-              Already checked out at {new Date(data.child.checked_out_at).toLocaleTimeString()}.
-            </p>
-          ) : !data.child.checked_in_at ? (
-            <p className="rounded-xl border border-warn/60 bg-warn/10 px-3 py-2 text-sm text-warn">
-              This kid isn&apos;t checked in yet — send them to check-in first.
-            </p>
-          ) : (
-            <>
-              <fieldset className="space-y-2 rounded-2xl border border-ink-hair bg-ink-2/70 p-4">
-                <legend className="text-xs font-semibold uppercase tracking-widest text-mist">
-                  Who&apos;s picking up?
-                </legend>
-                <div className="grid gap-2">
-                  {options.map((o) => {
-                    const active = selected?.name === o.name && selected?.kind === o.kind
-                    return (
-                      <button
-                        key={`${o.kind}:${o.name}`}
-                        type="button"
-                        onClick={() => setSelected(o)}
-                        aria-pressed={active}
-                        className={`rounded-xl border-2 px-4 py-3 text-left transition ${
-                          active
-                            ? 'border-neon-magenta bg-neon-magenta/10 shadow-glow-magenta'
-                            : 'border-ink-hair bg-ink-2 hover:border-neon-magenta/40'
-                        }`}
-                      >
-                        <div className={`text-sm font-semibold ${active ? 'text-neon-magenta' : 'text-paper'}`}>{o.name}</div>
-                        {o.relationship && <div className="text-xs text-faint mt-0.5">{o.relationship}</div>}
-                      </button>
-                    )
-                  })}
-                </div>
-                {options.length === 0 && (
-                  <p className="text-sm text-faint">No pickup options on file — contact the school admin.</p>
-                )}
-              </fieldset>
-
+      {!data ? (
+        <NeonScanner tone="mint" aspect="portrait" hint="Align wristband QR" scanning>
+          <div className="flex flex-col items-center gap-4 w-full px-4">
+            <form onSubmit={doLookup} className="flex w-full gap-2">
               <Input
-                label="Your name (staff)"
-                required
-                value={staffName}
-                onChange={(e) => setStaffName(e.target.value)}
-                aria-label="staff name"
+                type="text"
+                value={qr}
+                onChange={(e) => setQr(e.target.value)}
+                placeholder="Scan or paste QR"
+                aria-label="QR code"
+                className="flex-1"
               />
+              <Button type="submit" tone="ghost" size="md" loading={busy}>Look up</Button>
+            </form>
+            {lookupError && (
+              <p className="w-full rounded-xl border border-danger/60 bg-danger/10 px-3 py-2 text-sm text-danger">{lookupError}</p>
+            )}
+          </div>
+        </NeonScanner>
+      ) : (
+        <SignPanel tone="mint" padding="lg">
+          <div className="space-y-4">
+            <ChildCard child={data.child} primary_parent={data.primary_parent ?? { name: '—', phone: null }} />
 
-              <Button
-                type="button"
-                tone="mint"
-                size="xl"
-                fullWidth
-                onClick={doCheckOut}
-                disabled={!selected || !staffName.trim() || busy}
-                loading={busy}
-              >
-                Release to selected
-              </Button>
-
-              {submitError && (
-                <p className="rounded-xl border border-danger/60 bg-danger/10 px-3 py-2 text-sm text-danger">{submitError}</p>
-              )}
-            </>
-          )}
-
-          {success && (
-            <>
-              <p className="rounded-xl border border-neon-mint/60 bg-neon-mint/10 px-3 py-2 text-sm text-neon-mint shadow-glow-mint animate-rise">
-                ✨ Checked out safely. See them next time.
+            {data.child.checked_out_at ? (
+              <p className="rounded-xl border border-warn/60 bg-warn/10 px-3 py-2 text-sm text-warn">
+                Already checked out at {new Date(data.child.checked_out_at).toLocaleTimeString()}.
               </p>
-              <Button tone="ghost" size="md" fullWidth onClick={reset}>Next kid</Button>
-            </>
-          )}
-        </div>
+            ) : !data.child.checked_in_at ? (
+              <p className="rounded-xl border border-warn/60 bg-warn/10 px-3 py-2 text-sm text-warn">
+                This kid isn&apos;t checked in yet — send them to check-in first.
+              </p>
+            ) : (
+              <>
+                <fieldset className="space-y-2 rounded-2xl border border-ink-hair bg-ink-2/70 p-4">
+                  <legend className="text-xs font-semibold uppercase tracking-widest text-mist">
+                    Who&apos;s picking up?
+                  </legend>
+                  <div className="grid gap-2">
+                    {options.map((o) => {
+                      const active = selected?.name === o.name && selected?.kind === o.kind
+                      return (
+                        <button
+                          key={`${o.kind}:${o.name}`}
+                          type="button"
+                          onClick={() => setSelected(o)}
+                          aria-pressed={active}
+                          className={`rounded-xl border-2 px-4 py-3 text-left transition ${
+                            active
+                              ? 'border-neon-mint bg-neon-mint/10 shadow-glow-mint'
+                              : 'border-ink-hair bg-ink-2 motion-safe:hover:border-neon-mint/40'
+                          }`}
+                        >
+                          <div className={`text-sm font-semibold ${active ? 'text-neon-mint' : 'text-paper'}`}>{o.name}</div>
+                          {o.relationship && <div className="text-xs text-faint mt-0.5">{o.relationship}</div>}
+                        </button>
+                      )
+                    })}
+                  </div>
+                  {options.length === 0 && (
+                    <p className="text-sm text-faint">No pickup options on file — contact the school admin.</p>
+                  )}
+                </fieldset>
+
+                <Input
+                  label="Your name (staff)"
+                  required
+                  value={staffName}
+                  onChange={(e) => setStaffName(e.target.value)}
+                  aria-label="staff name"
+                />
+
+                <Button
+                  type="button"
+                  tone="mint"
+                  size="xl"
+                  fullWidth
+                  onClick={doCheckOut}
+                  disabled={!selected || !staffName.trim() || busy}
+                  loading={busy}
+                >
+                  Release to selected
+                </Button>
+
+                {submitError && (
+                  <p className="rounded-xl border border-danger/60 bg-danger/10 px-3 py-2 text-sm text-danger">{submitError}</p>
+                )}
+              </>
+            )}
+
+            {success && (
+              <>
+                <p className="rounded-xl border border-neon-mint/60 bg-neon-mint/10 px-3 py-2 text-sm text-neon-mint shadow-glow-mint animate-rise">
+                  ✨ Checked out safely. See them next time.
+                </p>
+                <Button tone="ghost" size="md" fullWidth onClick={reset}>Next kid</Button>
+              </>
+            )}
+          </div>
+        </SignPanel>
       )}
-    </StationShell>
+
+      <section className="flex flex-col gap-2">
+        <SectionHeading num="LOG" title="Recent pickups" tone="mint" />
+        {recentPickups.length === 0 ? (
+          <p className="text-sm text-faint px-1">No pickups yet this session.</p>
+        ) : (
+          <ul className="flex flex-col gap-1.5">
+            {recentPickups.map((p, i) => (
+              <li key={i} className="flex items-center justify-between rounded-xl border border-ink-hair bg-ink-2/70 px-4 py-2.5 text-sm">
+                <span className="font-semibold text-paper">{p.childName}</span>
+                <span className="text-faint">→ {p.pickedUpBy}</span>
+                <span className="font-mono text-[11px] text-mist">{p.time}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+    </main>
   )
 }
