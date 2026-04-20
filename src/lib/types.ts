@@ -6,6 +6,7 @@ export type Station =
   | 'check_in' | 'jail' | 'cornhole' | 'face_painting'
   | 'arts_crafts' | 'prize_wheel' | 'video_games' | 'dance_competition'
   | 'quiet_corner' | 'pizza' | 'cake_walk' | 'check_out' | 'photo' | 'reload'
+  | 'cleanup'
 
 export type DropoffType = 'both_parents' | 'one_parent' | 'grandparent' | 'other_approved_adult'
 export type FaithTone = 'strong' | 'subtle' | 'off'
@@ -202,3 +203,38 @@ export type AuditLog = {
   ip_address: string | null
   created_at: string
 }
+
+export type Prize = {
+  id: string
+  label: string
+  sub: string | null
+  sort_order: number
+  active: boolean
+  created_at: string
+}
+
+export type PrizeRedemption = {
+  id: string
+  child_id: string
+  prize_id: string
+  volunteer_name: string | null
+  updated_at: string
+}
+
+export type CleanupTask = {
+  id: string
+  label: string
+  sub: string | null
+  sort_order: number
+  active: boolean
+  created_at: string
+}
+
+export type CleanupCompletion = {
+  id: string
+  event_id: string
+  task_id: string
+  completed_by: string | null
+  completed_at: string
+}
+

@@ -1,7 +1,6 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Aurora } from '@/components/glow/Aurora'
 import { GlowCross } from '@/components/glow/GlowCross'
 import { Button } from '@/components/glow/Button'
 import { Input } from '@/components/glow/Input'
@@ -34,10 +33,8 @@ export default function VolunteerLogin() {
   }
 
   return (
-    <div className="relative min-h-screen">
-      <Aurora className="fixed inset-0 z-0" />
-      <main className="relative z-10 mx-auto flex min-h-[85vh] max-w-sm items-center px-6">
-        <form onSubmit={onSubmit} className="w-full space-y-6">
+    <main className="flex min-h-[70dvh] items-center">
+      <form onSubmit={onSubmit} className="w-full space-y-6">
           <div className="text-center space-y-4">
             <div className="inline-flex justify-center">
               <GlowCross size={56} tone="cyan" />
@@ -71,7 +68,6 @@ export default function VolunteerLogin() {
             {submitting ? 'Signing in…' : 'Sign in'}
           </Button>
         </form>
-      </main>
-    </div>
+    </main>
   )
 }

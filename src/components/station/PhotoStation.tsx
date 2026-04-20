@@ -1,10 +1,16 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
-import { StationShell } from './StationShell'
+import { clsx } from '@/components/glow/clsx'
+import {
+  PageHead,
+  NeonScanner,
+  Chip,
+  Button,
+  GlyphGlow,
+  Input,
+} from '@/components/glow'
+import { PhotoGlyph } from '@/components/glow/glyphs'
 import PhotoViewfinder, { PhotoViewfinderHandle } from './PhotoViewfinder'
-import { Input } from '@/components/glow/Input'
-import { Button } from '@/components/glow/Button'
-import { Chip } from '@/components/glow/Chip'
 
 type ScannedKid = {
   id: string
@@ -15,6 +21,9 @@ type ScannedKid = {
 
 const STATION_STORAGE_KEY = 'sbbq_station'
 
+const FRAME_OPTIONS = ['Classic', 'Glow', 'Polaroid', 'Neon', 'Raw'] as const
+type Frame = typeof FRAME_OPTIONS[number]
+
 export default function PhotoStation() {
   const [station, setStation] = useState<string | null>(null)
   const [qr, setQr] = useState('')
@@ -24,7 +33,22 @@ export default function PhotoStation() {
   const [lookupError, setLookupError] = useState<string | null>(null)
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [lastUpload, setLastUpload] = useState<{ photo_id: string; count: number } | null>(null)
+  const [takenCount, setTakenCount] = useState(0)
+  const [frame, setFrame] = useState<Frame>('Classic')
+  const [cameraReady, setCameraReady] = useState(false)
   const viewfinderRef = useRef<PhotoViewfinderHandle>(null)
+
+  // Mirror RoamingStation camera-boot pattern: flip ready after 2 s so the
+  // polaroid placeholder GlyphGlow dismisses once the viewfinder should be live.
+  useEffect(() => {
+    const t = setTimeout(() => setCameraReady(true), 2000)
+    return () => clearTimeout(t)
+  }, [])
+
+  // Derived state
+  const capturing = busy
+  const anyBlocked = scanned.some((k) => !k.photo_consent_app)
+  const consentGranted = scanned.length > 0 && !anyBlocked
 
   useEffect(() => {
     try {
@@ -68,9 +92,7 @@ export default function PhotoStation() {
     setScanned(scanned.filter((k) => k.id !== id))
   }
 
-  const anyBlocked = scanned.some((k) => !k.photo_consent_app)
-
-  async function capture() {
+  async function handleSnap() {
     if (!station || scanned.length === 0) return
     const blob = await viewfinderRef.current?.capture()
     if (!blob) {
@@ -92,29 +114,54 @@ export default function PhotoStation() {
         setUploadError(data.error ?? 'Upload failed')
         return
       }
-      setLastUpload({ photo_id: data.photo_id, count: data.tagged_child_ids.length })
+      const uploaded = { photo_id: data.photo_id, count: data.tagged_child_ids.length }
+      setLastUpload(uploaded)
+      setTakenCount((n) => n + uploaded.count)
       setScanned([])
     } finally {
       setBusy(false)
     }
   }
 
+  function handleRetake() {
+    setLastUpload(null)
+    setScanned([])
+    setUploadError(null)
+  }
+
   if (!station) {
     return (
-      <StationShell eyebrow="Photo" title="No station selected">
+      <main className="flex flex-col gap-5">
+        <PageHead
+          back={{ href: '/station', label: 'stations' }}
+          title="PHOTO BOOTH"
+          sub="No station selected."
+        />
         <p className="rounded-xl border border-warn/60 bg-warn/10 px-3 py-2 text-sm text-warn">
-          Pick a station from the picker first. <a href="/station" className="underline">Back to picker.</a>
+          Pick a station from the picker first.{' '}
+          <a href="/station" className="underline">Back to picker.</a>
         </p>
-      </StationShell>
+      </main>
     )
   }
 
   return (
-    <StationShell
-      eyebrow="Station · Photo"
-      title="Scan then shoot"
-      subtitle="Scan every kid in the frame, then hit shutter."
-    >
+    <main className="flex flex-col gap-5">
+      <PageHead
+        back={{ href: '/station', label: 'stations' }}
+        title="PHOTO BOOTH"
+        sub="Tap to snap. Consent-off kids get text-only receipts."
+        right={<Chip tone="magenta" glow>TAKEN · {takenCount}</Chip>}
+      />
+
+      <NeonScanner tone="magenta" aspect="portrait" hint="Tap to snap · 3-2-1" scanning={!capturing}>
+        {!cameraReady ? (
+          <GlyphGlow tone="magenta" size={96}><PhotoGlyph size={72} /></GlyphGlow>
+        ) : null}
+        <PhotoViewfinder ref={viewfinderRef} facingMode="environment" />
+      </NeonScanner>
+
+      {/* QR scan input */}
       <form onSubmit={addScan} className="flex gap-2">
         <Input
           type="text"
@@ -124,7 +171,7 @@ export default function PhotoStation() {
           aria-label="QR code"
           className="flex-1"
         />
-        <Button type="submit" tone="ghost" size="md" loading={busy}>Add to frame</Button>
+        <Button type="submit" tone="ghost" size="md" loading={capturing}>Add to frame</Button>
       </form>
 
       {lookupError && (
@@ -154,7 +201,40 @@ export default function PhotoStation() {
         </section>
       )}
 
-      <PhotoViewfinder ref={viewfinderRef} facingMode="environment" />
+      {/* Frame-style filter chips */}
+      <div className="flex gap-2 flex-wrap">
+        {FRAME_OPTIONS.map((f) => (
+          <Chip
+            key={f}
+            tone={frame === f ? 'magenta' : 'quiet'}
+            glow={frame === f}
+            role="button"
+            tabIndex={0}
+            aria-pressed={frame === f}
+            onClick={() => setFrame(f)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                setFrame(f)
+              }
+            }}
+          >
+            {f}
+          </Chip>
+        ))}
+      </div>
+
+      {/* Consent status banner */}
+      <div className={clsx(
+        'rounded-xl border px-4 py-3 text-sm',
+        consentGranted
+          ? 'border-neon-mint/50 text-neon-mint'
+          : 'border-neon-gold/50 text-neon-gold'
+      )}>
+        {consentGranted
+          ? "CONSENT ON · Photos sync to the family's album after the event."
+          : 'CONSENT OFF · Text-only receipt. No photos saved.'}
+      </div>
 
       <Input
         label="Your name (staff, optional)"
@@ -163,16 +243,19 @@ export default function PhotoStation() {
         aria-label="volunteer name"
       />
 
-      <Button
-        tone="magenta"
-        size="xl"
-        fullWidth
-        onClick={capture}
-        disabled={busy || scanned.length === 0 || anyBlocked}
-        loading={busy}
-      >
-        📸 Shutter ({scanned.length})
-      </Button>
+      <div className="grid grid-cols-2 gap-3">
+        <Button
+          tone="magenta"
+          size="lg"
+          fullWidth
+          onClick={handleSnap}
+          disabled={capturing || scanned.length === 0 || anyBlocked}
+          loading={capturing}
+        >
+          Snap!
+        </Button>
+        <Button tone="ghost" size="lg" fullWidth onClick={handleRetake}>Retake last</Button>
+      </div>
 
       {uploadError && (
         <p className="rounded-xl border border-danger/60 bg-danger/10 px-3 py-2 text-sm text-danger">{uploadError}</p>
@@ -208,6 +291,6 @@ export default function PhotoStation() {
           </div>
         </div>
       )}
-    </StationShell>
+    </main>
   )
 }

@@ -1,12 +1,19 @@
 'use client'
 import { useState } from 'react'
-import { StationShell } from './StationShell'
-import ChildCard from './ChildCard'
-import { Input } from '@/components/glow/Input'
-import { Button } from '@/components/glow/Button'
-import { Card, CardEyebrow, CardTitle } from '@/components/glow/Card'
+import {
+  PageHead,
+  NeonScanner,
+  SignPanel,
+  Chip,
+  StatTile,
+  TimelineTrack,
+  Input,
+  Button,
+  type TimelineItem,
+} from '@/components/glow'
 
-type Lookup = {
+// API shape returned by /api/children/by-qr/[qr]
+type ChildData = {
   child: {
     id: string
     first_name: string
@@ -34,7 +41,8 @@ type Lookup = {
   pickup_authorizations: { name: string; relationship: string | null }[]
 }
 
-type Timeline = {
+// API shape returned by /api/children/by-qr/[qr]/timeline
+type TimelineData = {
   events: {
     id: string
     station: string
@@ -53,10 +61,66 @@ type Timeline = {
   }[]
 }
 
+type Tone = 'magenta' | 'cyan' | 'uv' | 'gold' | 'mint'
+
+// Map a station name to a consistent display tone for the timeline track
+function stationTone(station: string): Tone {
+  const s = station.toLowerCase()
+  if (s.includes('drink') || s.includes('soda'))  return 'cyan'
+  if (s.includes('jail'))                          return 'magenta'
+  if (s.includes('spin') || s.includes('prize'))   return 'gold'
+  if (s.includes('dj') || s.includes('shoutout'))  return 'uv'
+  return 'mint'
+}
+
+function toTimelineItems(data: TimelineData, lastEventId: string | null): TimelineItem[] {
+  return data.events.map((e) => ({
+    time: new Date(e.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    label: `${e.event_type.replace(/_/g, ' ')} · ${e.station}`,
+    state: e.id === lastEventId ? 'now' : 'done',
+    tone: stationTone(e.station),
+  }))
+}
+
+// Mono eyebrow shared across the five info sections — matches Phase 5 pattern
+function SectionEyebrow({
+  tone,
+  children,
+}: {
+  tone: 'uv' | 'gold' | 'cyan' | 'mint'
+  children: React.ReactNode
+}) {
+  const toneClass = {
+    uv:   'text-neon-uv',
+    gold: 'text-neon-gold',
+    cyan: 'text-neon-cyan',
+    mint: 'text-neon-mint',
+  }[tone]
+  return (
+    <div
+      className={`text-[10px] font-semibold uppercase tracking-[0.22em] ${toneClass} [font-family:var(--font-mono),JetBrains_Mono,monospace]`}
+    >
+      {children}
+    </div>
+  )
+}
+
+// Compact timestamp formatter for the Status section
+function fmtTime(iso: string | null): string {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  return d.toLocaleString([], {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
 export default function LookupStation() {
   const [qr, setQr] = useState('')
-  const [data, setData] = useState<Lookup | null>(null)
-  const [timeline, setTimeline] = useState<Timeline | null>(null)
+  const [data, setData] = useState<ChildData | null>(null)
+  const [timeline, setTimeline] = useState<TimelineData | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -82,117 +146,239 @@ export default function LookupStation() {
     }
   }
 
+  // Simulate scanning: the NeonScanner shows while idle (no result yet).
+  // Tapping/submitting triggers the lookup. In a real wristband setup,
+  // a hardware QR reader would fire an input event — the form handles it.
+  const kid = data?.child ?? null
+  const kidTone: Tone = 'uv' // pref_tone not in current API; default to uv
+
+  // Build allergy list from comma-separated string
+  const allergies = kid?.allergies
+    ? kid.allergies.split(',').map((s) => s.trim()).filter(Boolean)
+    : []
+
+  // Remaining counts derived from existing API fields
+  const drinksLeft = kid?.drink_tickets_remaining ?? 0
+  const jailLeft   = kid?.jail_tickets_remaining ?? 0
+  const spinsLeft  = kid?.prize_wheel_used_at === null ? 1 : 0
+  const djLeft     = kid?.dj_shoutout_used_at === null ? 1 : 0
+
+  // Timeline items: use the existing /timeline endpoint events if available
+  const lastEventId = timeline?.events.length
+    ? timeline.events[timeline.events.length - 1].id
+    : null
+  const timelineItems: TimelineItem[] = timeline
+    ? toTimelineItems(timeline, lastEventId)
+    : []
+
+  const primary = data?.primary_parent ?? null
+  const secondary = data?.secondary_parent ?? null
+  const pickups = data?.pickup_authorizations ?? []
+
   return (
-    <StationShell
-      eyebrow="Station · Profile lookup"
-      title="Who is this kid?"
-      subtitle="Read-only view — useful for questions, allergies, or check-in checks."
-    >
-      <form onSubmit={doLookup} className="flex gap-2">
-        <Input
-          type="text"
-          value={qr}
-          onChange={(e) => setQr(e.target.value)}
-          placeholder="Scan or paste QR"
-          aria-label="QR code"
-          className="flex-1"
-        />
-        <Button type="submit" tone="ghost" size="md" loading={busy}>Look up</Button>
-      </form>
+    <main className="flex flex-col gap-5">
+      <PageHead
+        back={{ href: '/station', label: 'stations' }}
+        title="KID LOOKUP"
+        sub="Scan any wristband to see what the kid has done tonight."
+      />
 
       {error && (
-        <p className="rounded-xl border border-danger/60 bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>
+        <p className="rounded-xl border border-danger/60 bg-danger/10 px-3 py-2 text-sm text-danger">
+          {error}
+        </p>
       )}
 
-      {data && (
-        <div className="space-y-4">
-          <ChildCard child={data.child} primary_parent={data.primary_parent ?? { name: '—', phone: null }} />
+      {!kid ? (
+        /* Idle scanner — single render. `hint` and `scanning` vary with `busy`
+           so there's no double-Scanner race between idle and loading states.
+           The QR form is embedded so volunteers without a hardware reader can
+           type/paste a wristband code. */
+        <NeonScanner
+          tone="cyan"
+          aspect="portrait"
+          scanning={!busy}
+          hint={busy ? 'Looking up…' : 'Scan wristband or enter code'}
+        >
+          <form
+            onSubmit={doLookup}
+            className="flex w-full max-w-xs flex-col gap-3"
+          >
+            <Input
+              type="text"
+              value={qr}
+              onChange={(e) => setQr(e.target.value)}
+              placeholder="QR / wristband code"
+              aria-label="QR code"
+              autoFocus
+              disabled={busy}
+            />
+            <Button
+              type="submit"
+              tone="cyan"
+              fullWidth
+              loading={busy}
+              disabled={busy || !qr.trim()}
+            >
+              Look up
+            </Button>
+          </form>
+        </NeonScanner>
+      ) : (
+        <>
+          <SignPanel tone={kidTone} padding="lg">
+            <h2 className="font-display text-2xl font-bold text-paper">
+              {kid.first_name} {kid.last_name}
+            </h2>
 
-          <Card tone="default" padded className="text-sm space-y-2">
-            <CardEyebrow className="text-neon-cyan">Consents</CardEyebrow>
-            <ul className="space-y-1 text-paper">
-              <li className="flex justify-between"><span className="text-mist">App photos</span><span>{data.child.photo_consent_app ? 'YES' : 'NO'}</span></li>
-              <li className="flex justify-between"><span className="text-mist">Promo / social</span><span>{data.child.photo_consent_promo ? 'YES' : 'NO'}</span></li>
-              <li className="flex justify-between"><span className="text-mist">Vision matching</span><span>{data.child.vision_matching_consent ? 'YES' : 'NO'}</span></li>
-              <li className="flex justify-between"><span className="text-mist">FACTS</span><span>{data.child.facts_reload_permission ? `up to $${data.child.facts_max_amount.toFixed(2)}` : 'no'}</span></li>
-            </ul>
-          </Card>
+            <div className="mt-1 flex flex-wrap gap-2">
+              {allergies.length > 0 && (
+                <Chip tone="gold">⚠ {allergies.join(', ')}</Chip>
+              )}
+              {/* photo_consent_app used as the primary "photos off" signal */}
+              {!kid.photo_consent_app && (
+                <Chip tone="quiet">photos off</Chip>
+              )}
+              {/* vision_matching_consent maps to the ai consent flag */}
+              {!kid.vision_matching_consent && (
+                <Chip tone="quiet">ai off</Chip>
+              )}
+            </div>
 
-          {data.child.special_instructions && (
-            <Card tone="default" padded className="text-sm">
-              <CardEyebrow className="text-neon-uv">Special instructions</CardEyebrow>
-              <p className="mt-1 text-paper">{data.child.special_instructions}</p>
-            </Card>
+            <div className="mt-4 grid grid-cols-4 gap-3">
+              {/* drink_tickets_remaining maps to drinks_left; max = 2 per spec */}
+              <StatTile label="Drinks"   value={`${drinksLeft}/2`}  tone="cyan" />
+              {/* jail_tickets_remaining maps to jail_left; max = 3 per spec */}
+              <StatTile label="Jail"     value={`${jailLeft}/3`}    tone="magenta" />
+              {/* prize_wheel_used_at: null = 1 remaining, truthy = 0 remaining */}
+              <StatTile label="Spins"    value={`${spinsLeft}/1`}   tone="gold" />
+              {/* dj_shoutout_used_at: null = 1 remaining, truthy = 0 remaining */}
+              <StatTile label="Shoutout" value={`${djLeft}/1`}      tone="uv" />
+            </div>
+
+            <div className="mt-4">
+              {/* TimelineTrack wired to existing /timeline endpoint events.
+                  Empty array renders gracefully if no events logged yet. */}
+              <TimelineTrack items={timelineItems} />
+            </div>
+          </SignPanel>
+
+          {/* 1. Consents */}
+          <SignPanel tone="uv" padding="md">
+            <SectionEyebrow tone="uv">Consents</SectionEyebrow>
+            <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm text-paper">
+              <dt className="text-paper/70">Photos (app)</dt>
+              <dd>{kid.photo_consent_app ? 'Yes' : 'No'}</dd>
+              <dt className="text-paper/70">Photos (promo)</dt>
+              <dd>{kid.photo_consent_promo ? 'Yes' : 'No'}</dd>
+              <dt className="text-paper/70">Vision matching</dt>
+              <dd>{kid.vision_matching_consent ? 'Yes' : 'No'}</dd>
+              <dt className="text-paper/70">Facts reload</dt>
+              <dd>
+                {kid.facts_reload_permission
+                  ? `Yes · max $${kid.facts_max_amount}`
+                  : 'No'}
+              </dd>
+            </dl>
+          </SignPanel>
+
+          {/* 2. Special instructions (conditional) */}
+          {kid.special_instructions && (
+            <SignPanel tone="gold" padding="md">
+              <SectionEyebrow tone="gold">Special instructions</SectionEyebrow>
+              <p className="mt-3 whitespace-pre-wrap text-sm text-paper">
+                {kid.special_instructions}
+              </p>
+            </SignPanel>
           )}
 
-          <Card tone="default" padded className="text-sm space-y-2">
-            <CardEyebrow className="text-neon-gold">Contacts</CardEyebrow>
-            {data.primary_parent && (
-              <div className="text-paper">
-                <span className="font-semibold">Primary:</span> {data.primary_parent.name} · {data.primary_parent.phone ?? '—'} · {data.primary_parent.email ?? '—'}
+          {/* 3. Contacts */}
+          <SignPanel tone="cyan" padding="md">
+            <SectionEyebrow tone="cyan">Contacts</SectionEyebrow>
+            <div className="mt-3 flex flex-col gap-3 text-sm text-paper">
+              <div>
+                <div className="text-[11px] uppercase tracking-wider text-paper/60">Primary</div>
+                {primary ? (
+                  <div className="mt-1">
+                    <div className="font-medium">{primary.name}</div>
+                    {primary.phone && <div className="text-paper/80">{primary.phone}</div>}
+                    {primary.email && <div className="text-paper/80">{primary.email}</div>}
+                  </div>
+                ) : (
+                  <div className="mt-1 text-paper/60">—</div>
+                )}
               </div>
-            )}
-            {data.secondary_parent && (
-              <div className="text-paper">
-                <span className="font-semibold">Secondary:</span> {data.secondary_parent.name} · {data.secondary_parent.phone ?? '—'} · {data.secondary_parent.email ?? '—'}
+              <div>
+                <div className="text-[11px] uppercase tracking-wider text-paper/60">Secondary</div>
+                {secondary ? (
+                  <div className="mt-1">
+                    <div className="font-medium">{secondary.name}</div>
+                    {secondary.phone && <div className="text-paper/80">{secondary.phone}</div>}
+                    {secondary.email && <div className="text-paper/80">{secondary.email}</div>}
+                  </div>
+                ) : (
+                  <div className="mt-1 text-paper/60">—</div>
+                )}
               </div>
-            )}
-          </Card>
+            </div>
+          </SignPanel>
 
-          <Card tone="default" padded className="text-sm space-y-2">
-            <CardEyebrow className="text-neon-magenta">Approved pickup</CardEyebrow>
-            {data.pickup_authorizations.length === 0 ? (
-              <p className="text-faint">None besides parents.</p>
-            ) : (
-              <ul className="space-y-1 text-paper">
-                {data.pickup_authorizations.map((p, i) => (
-                  <li key={i}>{p.name}{p.relationship ? ` · ${p.relationship}` : ''}</li>
-                ))}
-              </ul>
-            )}
-          </Card>
-
-          <Card tone="default" padded className="text-sm space-y-2">
-            <CardEyebrow className="text-neon-mint">Status</CardEyebrow>
-            <ul className="space-y-1 text-paper">
-              <li>Checked in: {data.child.checked_in_at ? new Date(data.child.checked_in_at).toLocaleString() : 'no'} {data.child.checked_in_dropoff_type && <span className="text-faint">({data.child.checked_in_dropoff_type.replace(/_/g, ' ')})</span>}</li>
-              <li>Checked out: {data.child.checked_out_at ? `${new Date(data.child.checked_out_at).toLocaleString()} to ${data.child.checked_out_to_name}` : 'no'}</li>
-            </ul>
-          </Card>
-
-          {timeline && (timeline.events.length > 0 || timeline.reloads.length > 0) && (
-            <Card tone="default" padded className="text-sm space-y-2">
-              <CardEyebrow>Timeline</CardEyebrow>
-              <ul className="space-y-1 text-paper">
-                {timeline.events.map((e) => (
-                  <li key={e.id}>
-                    <span className="text-faint">{new Date(e.created_at).toLocaleTimeString()}</span>{' '}
-                    <span className="font-semibold">{e.event_type}</span> at {e.station}
-                    {e.item_name && ` · ${e.item_name}`}
-                    {e.tickets_delta !== 0 && ` · ${e.tickets_delta > 0 ? '+' : ''}${e.tickets_delta} 🎟`}
-                    {e.volunteer_name && ` · ${e.volunteer_name}`}
+          {/* 4. Approved pickup */}
+          <SignPanel tone="mint" padding="md">
+            <SectionEyebrow tone="mint">Approved pickup</SectionEyebrow>
+            {pickups.length > 0 ? (
+              <ul className="mt-3 flex flex-col gap-1.5 text-sm text-paper">
+                {pickups.map((p, i) => (
+                  <li
+                    key={`${p.name}-${i}`}
+                    className="flex items-baseline justify-between gap-3"
+                  >
+                    <span className="font-medium">{p.name}</span>
+                    {p.relationship && (
+                      <span className="text-paper/70">{p.relationship}</span>
+                    )}
                   </li>
                 ))}
               </ul>
-              {timeline.reloads.length > 0 && (
-                <>
-                  <CardTitle className="mt-3 text-sm font-semibold font-sans text-mist">Reload history</CardTitle>
-                  <ul className="space-y-1 text-paper">
-                    {timeline.reloads.map((r, i) => (
-                      <li key={i}>
-                        <span className="text-faint">{new Date(r.created_at).toLocaleTimeString()}</span>{' '}
-                        +{r.tickets_added} 🎟 · {r.payment_method}
-                        {r.amount_charged != null && ` · $${Number(r.amount_charged).toFixed(2)}`}
-                        {r.staff_name && ` · ${r.staff_name}`}
-                      </li>
-                    ))}
-                  </ul>
-                </>
-              )}
-            </Card>
-          )}
-        </div>
+            ) : (
+              <p className="mt-3 text-sm text-paper/60">No additional pickup authorizations.</p>
+            )}
+          </SignPanel>
+
+          {/* 5. Status */}
+          <SignPanel tone="gold" padding="md">
+            <SectionEyebrow tone="gold">Status</SectionEyebrow>
+            <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm text-paper">
+              <dt className="text-paper/70">Checked in</dt>
+              <dd>
+                {kid.checked_in_at ? (
+                  <>
+                    {fmtTime(kid.checked_in_at)}
+                    {kid.checked_in_dropoff_type && (
+                      <span className="text-paper/70"> · {kid.checked_in_dropoff_type}</span>
+                    )}
+                  </>
+                ) : (
+                  '—'
+                )}
+              </dd>
+              <dt className="text-paper/70">Checked out</dt>
+              <dd>
+                {kid.checked_out_at ? (
+                  <>
+                    {fmtTime(kid.checked_out_at)}
+                    {kid.checked_out_to_name && (
+                      <span className="text-paper/70"> · to {kid.checked_out_to_name}</span>
+                    )}
+                  </>
+                ) : (
+                  '—'
+                )}
+              </dd>
+            </dl>
+          </SignPanel>
+        </>
       )}
-    </StationShell>
+    </main>
   )
 }

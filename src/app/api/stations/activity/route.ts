@@ -107,28 +107,6 @@ export async function POST(req: NextRequest) {
     })
   }
 
-  // --- One-time: prize wheel ---
-  if (station === 'prize_wheel') {
-    if (snap.prize_wheel_used_at) {
-      return Response.json({
-        error: 'prize wheel already used tonight',
-        used_at: snap.prize_wheel_used_at,
-      }, { status: 409 })
-    }
-    const now = new Date().toISOString()
-    await sb.from('children').update({ prize_wheel_used_at: now }).eq('id', snap.id)
-    await sb.from('station_events').insert({
-      child_id: snap.id,
-      station,
-      event_type: 'ticket_spend',
-      tickets_delta: 0,
-      item_name: 'Prize wheel spin',
-      volunteer_name: volunteer,
-      notes: parsed.data.notes || null,
-    })
-    return Response.json({ ok: true, kind: 'prize_wheel', used_at: now })
-  }
-
   // --- One-time: DJ shoutout ---
   if (station === 'dj_shoutout') {
     if (snap.dj_shoutout_used_at) {

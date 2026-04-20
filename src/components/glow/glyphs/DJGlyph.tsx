@@ -1,0 +1,14 @@
+export function DJGlyph({ size = 80 }: { size?: number }) {
+  return (
+    <svg viewBox="0 0 100 100" width={size} height={size} stroke="currentColor" strokeLinecap="round" aria-hidden>
+      <g strokeWidth={5}>
+        <line x1={12} y1={54} x2={12} y2={72} />
+        <line x1={26} y1={40} x2={26} y2={60} />
+        <line x1={40} y1={20} x2={40} y2={80} />
+        <line x1={54} y1={46} x2={54} y2={54} />
+        <line x1={68} y1={12} x2={68} y2={88} />
+        <line x1={82} y1={34} x2={82} y2={66} />
+      </g>
+    </svg>
+  )
+}

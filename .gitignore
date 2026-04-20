@@ -36,6 +36,9 @@ next-env.d.ts
 # brainstorm companion (local mockups, not for repo)
 .superpowers/
 
+# git worktrees
+.worktrees/
+
 # misc
 .DS_Store
 *.pem

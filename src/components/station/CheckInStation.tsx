@@ -1,11 +1,15 @@
 'use client'
 import { useRef, useState } from 'react'
-import { StationShell } from './StationShell'
+import { useRouter } from 'next/navigation'
 import ChildCard from './ChildCard'
 import PhotoViewfinder, { PhotoViewfinderHandle } from './PhotoViewfinder'
 import { Input } from '@/components/glow/Input'
 import { Button } from '@/components/glow/Button'
 import { Card, CardEyebrow } from '@/components/glow/Card'
+import { PageHead } from '@/components/glow/PageHead'
+import { NeonScanner } from '@/components/glow/NeonScanner'
+import { Chip } from '@/components/glow/Chip'
+import { SectionHeading } from '@/components/glow/SectionHeading'
 
 type Lookup = {
   child: {
@@ -34,7 +38,10 @@ const DROPOFF_OPTIONS: { value: DropoffType; label: string }[] = [
   { value: 'other_approved_adult', label: 'Other approved adult' },
 ]
 
+type Arrival = { name: string; time: string }
+
 export default function CheckInStation() {
+  const router = useRouter()
   const [qr, setQr] = useState('')
   const [data, setData] = useState<Lookup | null>(null)
   const [dropoff, setDropoff] = useState<DropoffType | null>(null)
@@ -46,7 +53,18 @@ export default function CheckInStation() {
   const [mugshotUploading, setMugshotUploading] = useState(false)
   const [success, setSuccess] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [recentArrivals, setRecentArrivals] = useState<Arrival[]>([])
   const viewfinderRef = useRef<PhotoViewfinderHandle>(null)
+
+  const checkedInCount = recentArrivals.length
+
+  function handleWalkin() {
+    router.push('/register')
+  }
+
+  function handleManualLookup() {
+    router.push('/station/lookup')
+  }
 
   async function doLookup(e?: React.FormEvent) {
     e?.preventDefault()
@@ -116,6 +134,13 @@ export default function CheckInStation() {
         return
       }
       setSuccess(true)
+      setRecentArrivals((prev) => [
+        {
+          name: `${data.child.first_name} ${data.child.last_name}`,
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        },
+        ...prev,
+      ])
     } finally {
       setBusy(false)
     }
@@ -137,26 +162,38 @@ export default function CheckInStation() {
   const mugshotReady = !needsMugshot || mugshotTaken
 
   return (
-    <StationShell
-      eyebrow="Station · Check-in"
-      title="Welcome the kid in"
-      subtitle="Scan their wristband, take the jail mugshot, assign a dropoff, check them in."
-    >
-      <form onSubmit={doLookup} className="flex gap-2">
-        <Input
-          type="text"
-          value={qr}
-          onChange={(e) => setQr(e.target.value)}
-          placeholder="Scan or paste QR"
-          aria-label="QR code"
-          className="flex-1"
-        />
-        <Button type="submit" tone="ghost" size="md" loading={busy}>Look up</Button>
-      </form>
+    <main className="flex flex-col gap-5">
+      <PageHead
+        back={{ href: '/station', label: 'stations' }}
+        title="CHECK-IN STATION"
+        sub="Scan a family's QR, or tap Walk-in to register a new kid."
+        right={<Chip tone="cyan" glow>LIVE · {checkedInCount}</Chip>}
+      />
 
-      {lookupError && (
-        <p className="rounded-xl border border-danger/60 bg-danger/10 px-3 py-2 text-sm text-danger">{lookupError}</p>
-      )}
+      <NeonScanner tone="cyan" aspect="portrait" hint="Align QR · auto-capture" scanning={!data && !lookupError}>
+        <div className="flex w-full flex-col gap-3 px-4">
+          <form onSubmit={doLookup} className="flex gap-2">
+            <Input
+              type="text"
+              value={qr}
+              onChange={(e) => setQr(e.target.value)}
+              placeholder="Scan or paste QR"
+              aria-label="QR code"
+              className="flex-1"
+            />
+            <Button type="submit" tone="ghost" size="md" loading={busy}>Look up</Button>
+          </form>
+
+          {lookupError && (
+            <p className="rounded-xl border border-danger/60 bg-danger/10 px-3 py-2 text-sm text-danger">{lookupError}</p>
+          )}
+        </div>
+      </NeonScanner>
+
+      <div className="grid grid-cols-2 gap-3">
+        <Button tone="magenta" size="lg" fullWidth onClick={handleWalkin}>Walk-in</Button>
+        <Button tone="ghost" size="lg" fullWidth onClick={handleManualLookup}>Manual lookup</Button>
+      </div>
 
       {data && (
         <div className="space-y-4">
@@ -247,6 +284,22 @@ export default function CheckInStation() {
           )}
         </div>
       )}
-    </StationShell>
+
+      <section className="flex flex-col gap-2">
+        <SectionHeading num="LOG" title="Recent arrivals" tone="cyan" />
+        {recentArrivals.length === 0 ? (
+          <p className="text-sm text-mist px-1">No arrivals yet this session.</p>
+        ) : (
+          <ul className="flex flex-col gap-1">
+            {recentArrivals.map((arrival, i) => (
+              <li key={i} className="flex items-center justify-between rounded-xl border border-ink-hair bg-ink-2/60 px-3 py-2 text-sm">
+                <span className="text-paper">{arrival.name}</span>
+                <span className="text-mist [font-family:var(--font-mono),JetBrains_Mono,monospace] text-xs">{arrival.time}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+    </main>
   )
 }

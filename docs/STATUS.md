@@ -1,7 +1,9 @@
 # Kid Profile Rebuild — STATUS
 
 **Branch:** `kid-profile-rebuild` · **Last update:** 2026-04-19 (evening session — Resend live + registration email)
-**Live:** https://spring-bbq-bash.vercel.app · **Event:** Saturday, April 25, 2026 (6 days out)
+**Live:** https://spring-bbq-bash.vercel.app · **Event:** Saturday, April 25, 2026 (5 days out as of 2026-04-20)
+
+> **In-flight: `glow-redesign` branch** — station + admin visual restyle. Foundation phase complete (20 primitives + 8 glyphs, reviewed ✅). See `docs/STATUS-glow-redesign.md` to resume.
 **Plan:** `docs/plans/2026-04-16-kid-profile-rebuild-plan.md` · **Spec:** `docs/specs/2026-04-16-kid-profile-rebuild-design.md`
 **Vercel production branch:** `kid-profile-rebuild` (changed from `main` on 2026-04-19 — every push now auto-deploys to prod)
 
