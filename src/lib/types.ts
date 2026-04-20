@@ -238,9 +238,3 @@ export type CleanupCompletion = {
   completed_at: string
 }
 
-export type CleanupLock = {
-  id: string
-  event_id: string
-  locked_by: string | null
-  locked_at: string
-}

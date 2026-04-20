@@ -25,21 +25,18 @@ const TASKS: CleanupTask[] = [
 type FetchArgs = [input: RequestInfo | URL, init?: RequestInit]
 
 /**
- * Stateful fake server. Tracks completed task ids + lock presence so
- * optimistic UI can round-trip against a live-ish backend.
+ * Stateful fake server. Tracks completed task ids so optimistic UI can
+ * round-trip against a live-ish backend.
  */
 function mockCleanupServer(initial?: {
   tasks?: CleanupTask[]
   completed?: string[]
-  locked?: boolean
-  // Inject a failure on toggle or lock by setting these flags.
+  // Inject a failure on toggle by setting this flag.
   toggleFails?: boolean
-  lockConflict?: boolean
 }) {
   const state = {
     tasks: initial?.tasks ?? TASKS,
     completed: new Set<string>(initial?.completed ?? []),
-    locked: initial?.locked ?? false,
   }
   const calls: Array<{ url: string; method: string; body?: unknown }> = []
 
@@ -59,7 +56,6 @@ function mockCleanupServer(initial?: {
         json: async () => ({
           tasks: state.tasks,
           completed_task_ids: [...state.completed],
-          locked: state.locked,
         }),
       } as Response
     }
@@ -84,24 +80,6 @@ function mockCleanupServer(initial?: {
           remaining: state.tasks.length - state.completed.size,
           total: state.tasks.length,
         }),
-      } as Response
-    }
-
-    // POST /api/stations/cleanup/lock
-    if (url === '/api/stations/cleanup/lock' && method === 'POST') {
-      const remaining = state.tasks.length - state.completed.size
-      if (initial?.lockConflict || remaining !== 0) {
-        return {
-          ok: false,
-          status: 409,
-          json: async () => ({ error: 'tasks remaining', remaining, total: state.tasks.length }),
-        } as Response
-      }
-      state.locked = true
-      return {
-        ok: true,
-        status: 200,
-        json: async () => ({ ok: true, locked_at: '2026-04-25T23:30:00Z' }),
       } as Response
     }
 
@@ -178,95 +156,19 @@ describe('CleanupStation', () => {
     })
   })
 
-  it('CLOSE OUT button is disabled until every task is on', async () => {
+  it('progress chip shows N/M DONE and updates as toggles flip', async () => {
     mockCleanupServer()
     render(<CleanupStation />)
-    await waitFor(() => expect(screen.getByText(/fold & stack tables/i)).toBeInTheDocument())
-
-    const closeOut = screen.getByRole('button', { name: /close out/i })
-    expect(closeOut).toBeDisabled()
+    await waitFor(() => expect(screen.getByText(/0\s*\/\s*3\s*done/i)).toBeInTheDocument())
 
     fireEvent.click(toggleFor('Fold & Stack Tables'))
     await waitFor(() => expect(screen.getByText(/1\s*\/\s*3\s*done/i)).toBeInTheDocument())
-    expect(screen.getByRole('button', { name: /close out/i })).toBeDisabled()
 
     fireEvent.click(toggleFor('Trash Bags to Dumpster'))
     await waitFor(() => expect(screen.getByText(/2\s*\/\s*3\s*done/i)).toBeInTheDocument())
-    expect(screen.getByRole('button', { name: /close out/i })).toBeDisabled()
 
     fireEvent.click(toggleFor('Collect Lost & Found'))
     await waitFor(() => expect(screen.getByText(/3\s*\/\s*3\s*done/i)).toBeInTheDocument())
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: /close out/i })).not.toBeDisabled()
-    })
-  })
-
-  it('tapping CLOSE OUT POSTs /lock and shows the NIGHT LOCKED banner', async () => {
-    const { calls } = mockCleanupServer({ completed: ['t1', 't2', 't3'] })
-    render(<CleanupStation />)
-    await waitFor(() => expect(screen.getByText(/3\s*\/\s*3\s*done/i)).toBeInTheDocument())
-
-    const closeOut = screen.getByRole('button', { name: /close out/i })
-    await waitFor(() => expect(closeOut).not.toBeDisabled())
-    fireEvent.click(closeOut)
-
-    await waitFor(() => {
-      const lockPost = calls.find((c) => c.url === '/api/stations/cleanup/lock' && c.method === 'POST')
-      expect(lockPost).toBeTruthy()
-    })
-    await waitFor(() => {
-      expect(screen.getByText(/night locked/i)).toBeInTheDocument()
-    })
-  })
-
-  it('post-lock: toggling an item off re-enables the CLOSE OUT button', async () => {
-    const { calls } = mockCleanupServer({ completed: ['t1', 't2', 't3'] })
-    render(<CleanupStation />)
-    await waitFor(() => expect(screen.getByText(/3\s*\/\s*3\s*done/i)).toBeInTheDocument())
-
-    // Lock it once.
-    fireEvent.click(screen.getByRole('button', { name: /close out/i }))
-    await waitFor(() => expect(screen.getByText(/night locked/i)).toBeInTheDocument())
-
-    // Toggle one item off — button should be disabled again and show " LEFT".
-    fireEvent.click(toggleFor('Fold & Stack Tables'))
-    await waitFor(() => {
-      expect(screen.getByText(/2\s*\/\s*3\s*done/i)).toBeInTheDocument()
-    })
-    await waitFor(() => {
-      const btn = screen.getByRole('button', { name: /close out/i })
-      expect(btn).toBeDisabled()
-      expect(btn.textContent?.toLowerCase()).toMatch(/left/)
-    })
-
-    // Toggle it back on — button re-enables and a second /lock tap is possible.
-    fireEvent.click(toggleFor('Fold & Stack Tables'))
-    await waitFor(() => expect(screen.getByText(/3\s*\/\s*3\s*done/i)).toBeInTheDocument())
-    const btnAgain = screen.getByRole('button', { name: /close out/i })
-    await waitFor(() => expect(btnAgain).not.toBeDisabled())
-
-    fireEvent.click(btnAgain)
-    await waitFor(() => {
-      const lockPosts = calls.filter((c) => c.url === '/api/stations/cleanup/lock' && c.method === 'POST')
-      // At least two lock taps landed — append-only writes.
-      expect(lockPosts.length).toBeGreaterThanOrEqual(2)
-    })
-  })
-
-  it('409 on /lock surfaces as an inline error without locking the UI', async () => {
-    // Seed with all 3 completed; the mock flag forces a 409 even though remaining is 0.
-    mockCleanupServer({ completed: ['t1', 't2', 't3'], lockConflict: true })
-    render(<CleanupStation />)
-    await waitFor(() => expect(screen.getByText(/3\s*\/\s*3\s*done/i)).toBeInTheDocument())
-
-    fireEvent.click(screen.getByRole('button', { name: /close out/i }))
-
-    await waitFor(() => {
-      // Error banner mentions "tasks remaining"
-      expect(screen.getByText(/tasks remaining/i)).toBeInTheDocument()
-    })
-    // NIGHT LOCKED banner must not appear.
-    expect(screen.queryByText(/night locked/i)).not.toBeInTheDocument()
   })
 
   it('toggle server error reverts the optimistic state', async () => {
