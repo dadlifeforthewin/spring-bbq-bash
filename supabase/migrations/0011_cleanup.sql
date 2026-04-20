@@ -15,7 +15,7 @@ create table cleanup_tasks (
 create table cleanup_completions (
   id             uuid primary key default gen_random_uuid(),
   event_id       uuid not null references events(id) on delete cascade,
-  task_id        uuid not null references cleanup_tasks(id) on delete cascade,
+  task_id        uuid not null references cleanup_tasks(id) on delete restrict,
   completed_by   text,                           -- volunteer name (from request body)
   completed_at   timestamptz not null default now(),
   unique (event_id, task_id)
