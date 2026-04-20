@@ -154,7 +154,7 @@ export default function StoriesList() {
               <li key={r.id}>
                 <Link
                   href={`/admin/stories/${r.id}`}
-                  className="group flex flex-wrap items-center gap-3 rounded-xl border border-ink-hair bg-ink-2/60 px-4 py-3 transition hover:border-neon-cyan/60 hover:bg-ink-3/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-cyan/40"
+                  className="group flex flex-col gap-2 rounded-xl border border-ink-hair bg-ink-2/60 px-4 py-3 transition hover:border-neon-cyan/60 hover:bg-ink-3/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-cyan/40 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3"
                 >
                   <div className="min-w-0 flex-1">
                     <div className="font-display text-base font-semibold tracking-tight text-paper group-hover:text-neon-cyan">

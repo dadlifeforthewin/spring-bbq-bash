@@ -94,8 +94,8 @@ export default function ChildrenList() {
 
       {error && <p className="rounded-xl border border-danger/60 bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}
 
-      <div className="overflow-hidden rounded-2xl border border-ink-hair bg-ink-2/70 backdrop-blur-sm">
-        <table className="w-full text-sm">
+      <div className="overflow-x-auto rounded-2xl border border-ink-hair bg-ink-2/70 backdrop-blur-sm">
+        <table className="w-full min-w-[720px] text-sm">
           <thead className="bg-ink-3/60 text-left uppercase tracking-widest text-[10px] text-faint">
             <tr>
               <th className="px-3 py-2">Name</th>
