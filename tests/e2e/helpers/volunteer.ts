@@ -41,7 +41,7 @@ export async function loginVolunteer(page: Page, password: string) {
   await page.getByLabel(/volunteer password/i).fill(password)
   await page.getByRole('button', { name: /sign in/i }).click()
   // Wait until the picker shows — confirms cookie was set + page refreshed
-  await page.getByRole('heading', { name: /pick your station/i }).waitFor({ timeout: 5000 })
+  await page.getByRole('heading', { name: /BASH.*GLOW/i }).waitFor({ timeout: 5000 })
 }
 
 // Uses page.request so the volunteer cookie travels with the call

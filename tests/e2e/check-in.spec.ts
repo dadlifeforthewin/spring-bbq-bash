@@ -33,7 +33,7 @@ test('volunteer checks in a child via QR', async ({ page, request }) => {
   await page.goto('/station')
   await page.getByLabel(/volunteer password/i).fill(pw!)
   await page.getByRole('button', { name: /sign in/i }).click()
-  await expect(page.getByRole('heading', { name: /pick your station/i })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /BASH.*GLOW/i })).toBeVisible()
 
   // Go to check-in
   await page.goto('/station/check-in')
