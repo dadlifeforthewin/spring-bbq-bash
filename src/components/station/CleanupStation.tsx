@@ -195,7 +195,7 @@ export default function CleanupStation() {
     : `CLOSE OUT (${remaining} LEFT)`
 
   return (
-    <main className="flex flex-col gap-5 pb-28">
+    <main className="flex flex-col gap-5 pb-40">
       <PageHead
         back={{ href: '/station', label: 'stations' }}
         title="CLEANUP CREW"
@@ -271,7 +271,7 @@ export default function CleanupStation() {
       )}
 
       {/* Sticky bottom CLOSE OUT button. Tappable on re-lock too. */}
-      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-ink-hair/50 bg-ink/85 backdrop-blur-md px-4 py-3">
+      <div className="fixed inset-x-0 bottom-[44px] z-20 border-t border-ink-hair/50 bg-ink/85 backdrop-blur-md px-4 py-3">
         <div className="mx-auto max-w-md">
           <Button
             tone="gold"
