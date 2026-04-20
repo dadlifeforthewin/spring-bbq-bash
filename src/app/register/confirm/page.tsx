@@ -76,7 +76,7 @@ export default function ConfirmPage() {
       'CALSCALE:GREGORIAN',
       'METHOD:PUBLISH',
       'BEGIN:VEVENT',
-      'UID:spring-bbq-bash-2026@lcalincoln.com',
+      'UID:spring-bbq-bash-2026@attntodetail.ai',
       'SUMMARY:Spring BBQ Bash · Glow Party Edition',
       'DESCRIPTION:Lincoln Christian Academy — bring your whole family. Wear glow.',
       'LOCATION:Lincoln Christian Academy',
@@ -125,8 +125,8 @@ export default function ConfirmPage() {
             </p>
             <p>
               Need help? Email{' '}
-              <a href="mailto:events@lcalincoln.com" className={s.miniLink} style={{ display: 'inline-flex' }}>
-                events@lcalincoln.com
+              <a href="mailto:brian@attntodetail.ai" className={s.miniLink} style={{ display: 'inline-flex' }}>
+                brian@attntodetail.ai
               </a>
             </p>
           </div>
@@ -286,7 +286,7 @@ export default function ConfirmPage() {
 
         <footer className={s.footer}>
           Need to update pickup authorizations or contact info? Email{' '}
-          <a href="mailto:events@lcalincoln.com">events@lcalincoln.com</a>.
+          <a href="mailto:brian@attntodetail.ai">brian@attntodetail.ai</a>.
           <br />
           Built with love by{' '}
           <a href="https://attntodetail.ai">Attn: To Detail</a>

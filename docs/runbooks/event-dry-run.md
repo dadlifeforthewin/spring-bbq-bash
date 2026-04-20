@@ -1,6 +1,6 @@
 # Spring BBQ Bash — pre-event dry-run script
 
-**Last updated:** 2026-04-18
+**Last updated:** 2026-04-19 (reconciled after Resend went live + confirm-page QR + waiver shipped 2026-04-18)
 **Run this:** Tuesday April 21 at the latest (gives 4 days for any fixes)
 **Time required:** ~30 minutes
 **Tools:** one phone, one laptop (for admin), a burner email inbox you can check on the phone
@@ -12,7 +12,7 @@
 Run through this before you start the script. If any item is unchecked, fix it first — the dry-run won't tell you anything useful otherwise.
 
 - [ ] Site is at https://spring-bbq-bash.vercel.app and loads (you see the "Spring BBQ Bash · Glow Party Edition" wordmark)
-- [ ] `RESEND_API_KEY` and `EMAIL_FROM` are set in Vercel env (without these, the test-send button at step 17 will return a "Send failed" error). Sending domain DNS (SPF / DKIM / DMARC) is verified in Resend
+- [x] `RESEND_API_KEY` and `EMAIL_FROM` are set in Vercel env ✅ completed 2026-04-19. Sending domain `attntodetail.ai` verified at Resend with SPF + DKIM + MX + DMARC; test-send landed in iCloud inbox with `dmarc=pass`.
 - [ ] `ANTHROPIC_API_KEY` is set in Vercel env (story generation at step 16 silently no-ops without it)
 - [ ] Volunteer password (`SpringBBQ2026$`) and admin password (`LCAadmin2026$`) memorized or noted
 - [ ] Burner email (Gmail/iCloud alias, or a `+test` alias on your real address) ready, opened on the phone
@@ -52,8 +52,9 @@ Each step has: what to do, expected result, what to flag if it doesn't match. Nu
 
 ### Step 6 — Confirmation page renders
 **Do:** Read the confirm page.
-**Expect:** "You're registered" eyebrow, "See you Saturday under the blacklight." headline, the same 4 perk chips, and a contact email `events@lcalincoln.com`.
-**KNOWN GAP — flag if Brian still wants this fixed before Saturday:** This page does **not** display the kids' QR codes anywhere, and the registration API does **not** send a confirmation email to the parent. The console-logs the payload server-side. Parents currently have no record of their child's wristband QR after registering. (See "Inconsistencies / known gaps" at the bottom.)
+**Expect:** "YOU'RE IN" marquee, per-kid gate-pass card with a **real QR code** (generated client-side from the API's `created[]` response), the edit link, ICS calendar download, Print button, and Apple Wallet placeholder button. Contact email footer shows `brian@attntodetail.ai`.
+**Flag if:** Any QR cell renders blank (means sessionStorage flow broke — check browser console for errors). Apple Wallet button is expected to be a placeholder for now.
+**Open item (separate from dry-run):** the line "Confirmation sent to {email}" still renders even though the registration API itself does not yet call Resend — only the keepsake email uses Resend today. Parents will look for a confirmation email and find nothing. Either wire the register API to send one, or soften that line. Not blocking the dry-run, but worth deciding before Saturday.
 
 ### Step 7 — Get the kids' QR codes for testing
 **Do:** Switch to the **laptop**, open https://spring-bbq-bash.vercel.app/admin in incognito. Log in with `LCAadmin2026$`. Click "Children" in the top nav. Find your fake family. Click into one of the kids — copy the QR code from the URL (the `/admin/children/[id]` route shows full child detail; the QR string is what you'll type into station QR inputs).
@@ -111,7 +112,7 @@ Each step has: what to do, expected result, what to flag if it doesn't match. Nu
 **Flag if:** Counts stay at 0 (means stats endpoint isn't aggregating correctly), or the bar chart is empty.
 
 ### Step 18 — Story moderation
-**Do:** Top nav → "Stories". Wait ~30–60 seconds after checkout for the story to appear (Claude Haiku takes ~10–20s; the page does NOT auto-refresh, so reload manually).
+**Do:** Top nav → "Stories". Wait ~30–60 seconds after checkout for the story to appear (Claude Haiku takes ~10–20s). Page auto-refreshes every 10s while any row is `pending`, and there's a manual "Refresh" button in the toolbar if you want to force it.
 **Expect:** A row for your test kid with status `auto_approved` (if quality passed) or `needs_review` (if it failed auto-check). Click in to see the rendered story + photo gallery.
 **Flag if:** Story never appears (check Vercel logs for `/api/stories/generate` errors — usually `ANTHROPIC_API_KEY` missing). Or content reads visibly AI-slop ("unforgettable adventure", "lifetime memory") — banned phrases should have caught these.
 
@@ -156,12 +157,12 @@ After the dry-run, either:
 
 ## Common gotchas
 
-- **`RESEND_API_KEY` / `EMAIL_FROM` empty** — the test-send button fails silently with "Send failed" or 500. Check Vercel env, then redeploy (env changes don't propagate to running functions until next deploy).
+- **`RESEND_API_KEY` / `EMAIL_FROM` empty** — the test-send button fails silently with "Send failed" or 500. Check Vercel env, then redeploy (env changes don't propagate to running functions until next deploy). *As of 2026-04-19 both are set; sending domain is `attntodetail.ai`.*
 - **`ANTHROPIC_API_KEY` empty** — checkout completes fine but no story appears in `/admin/stories` because the background `fetch` to `/api/stories/generate` 500s. Check Vercel function logs.
 - **Camera permission denied** — Safari iOS sometimes silently blocks camera on first visit; user has to manually re-enable in Settings → Safari → Camera. Test on Chrome Android too.
 - **QR scan fails under blacklight** — the picker uses `navigator.mediaDevices.getUserMedia({ facingMode: 'environment' })`. Low light + neon makes camera autofocus jumpy. Manual paste of the QR string is always the fallback (every QR input has a text field).
 - **Multiple browser tabs / sessions** — the volunteer cookie expires at hard cutoff 11 PM event night. If a tablet sits idle past that, every scan returns 401. Re-log in.
-- **Confirm page doesn't show QR codes** — see "Inconsistencies" below. Means parents will arrive on Saturday with no record of which wristband is theirs.
+- **Missing a deploy after a push** — Vercel's Production Branch is now `kid-profile-rebuild` (changed 2026-04-19), so every push auto-deploys to production. Before that change, pushes only created Preview URLs and required a manual promote; if prod ever stops matching HEAD, verify the production-branch setting didn't get reverted.
 
 ---
 
@@ -179,14 +180,16 @@ Ship-ready when:
 
 ## Inconsistencies / known gaps to fix before Saturday
 
-These are bugs found while writing this runbook — flag them for Brian:
+Reconciled 2026-04-19. Resolved items struck through with commit hashes; active items keep their numbers.
 
-1. **Confirm page does not display QR codes and `/api/register` does not send a confirmation email to the parent.** It only `console.log`s the payload. Parents currently have no record of their child's QR after registering — they walk into the event with nothing to scan. Either (a) render QR codes on `/register/confirm`, or (b) wire the registration API into Resend like Phase 7 wired the keepsake email. STATUS.md "Phase 2 follow-ups #2" tracks this as Phase-7 deferred work, but it never shipped.
+1. ~~**Confirm page does not display QR codes.**~~ **Shipped 2026-04-18** — per-kid gate-pass cards with real QR codes now render from the API's `created[]` response. Parents get a printable wristband reference on submit.
 
-2. **Real LCA waiver text not in the form.** Per STATUS.md "Before the event #1": `WaiverSection.tsx` carries placeholder copy marked `TODO(plan Phase 2)`. Legal liability if it ships as-is. Source the real text from LCA's existing paper permission slip.
+   ~~**`/api/register` does not send a confirmation email.**~~ **Partially open.** The confirm page still shows "Confirmation sent to {email}" but the register API does not actually call Resend today — only the keepsake cron does. Either wire register → Resend, or soften the confirm-page copy before Saturday. Not blocking the dry-run.
 
-3. **No "delete child" quick action in admin.** After the dry-run, removing the test family requires going through Supabase dashboard. Not blocking, but inconvenient for quick cleanup.
+2. ~~**Real LCA waiver text not in the form.**~~ **Shipped 2026-04-18** — `WaiverSection.tsx` now carries the verbatim LCA paper-slip text. `PhotoConsentSection.tsx` also exposes the full LCA Photo/Video Release via an expandable `<details>`. Migration 0007 added `'ai_consent'` to the signature_type CHECK and the API writes 3 signature rows per registration.
 
-4. **Stories list does not auto-refresh.** After checkout, the AI story takes ~30-60s to render. The `/admin/stories` page does not poll — you have to manually reload. Easy to miss in the chaos of event night.
+3. **No "delete child" quick action in admin.** Still open. After the dry-run, removing the test family requires the Supabase dashboard. Not blocking.
 
-5. **Reload station only adds drink tickets.** Confirmed by ReloadStation copy: "Only drink tickets reload — jail, prize wheel, and DJ are fixed at the start." Make sure volunteers know this — if a kid says they "ran out of jail tickets", reload won't help them.
+4. ~~**Stories list does not auto-refresh.**~~ **Shipped 2026-04-19** (`f2f6db0`) — `/admin/stories` now polls every 10s while any row is `pending`, plus a visible "Refresh" button and "last updated" timestamp.
+
+5. **Reload station only adds drink tickets.** Still stands by design — confirmed by ReloadStation copy: "Only drink tickets reload — jail, prize wheel, and DJ are fixed at the start." Cover this during volunteer briefing so staff don't promise what the station can't deliver.
