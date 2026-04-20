@@ -70,12 +70,40 @@ module.exports = {
           '0%, 100%': { opacity: '0', transform: 'scale(0.6)' },
           '50%':      { opacity: '1', transform: 'scale(1)' },
         },
+        'beam-sweep': {
+          '0%':   { transform: 'translateY(-100%)', opacity: '0' },
+          '15%':  { opacity: '1' },
+          '85%':  { opacity: '1' },
+          '100%': { transform: 'translateY(100%)', opacity: '0' },
+        },
+        'breathe': {
+          '0%, 100%': { transform: 'scale(1)',   filter: 'brightness(1)' },
+          '50%':      { transform: 'scale(1.05)', filter: 'brightness(1.25)' },
+        },
+        'count-up-glow': {
+          '0%':   { opacity: '.4', filter: 'brightness(1)' },
+          '55%':  { opacity: '1',  filter: 'brightness(1.4)' },
+          '100%': { opacity: '1',  filter: 'brightness(1)' },
+        },
+        'draw-border': {
+          '0%':   { 'stroke-dashoffset': '200' },
+          '100%': { 'stroke-dashoffset': '0' },
+        },
+        'corner-pulse': {
+          '0%, 100%': { transform: 'scale(1)',   opacity: '1' },
+          '40%':      { transform: 'scale(1.2)', opacity: '.9' },
+        },
       },
       animation: {
         'pulse-glow': 'pulse-glow 4s ease-in-out infinite',
         'drift': 'drift 18s ease-in-out infinite',
         'rise':  'rise 380ms ease-out both',
         'sparkle': 'sparkle 2.4s ease-in-out infinite',
+        'beam-sweep':    'beam-sweep 1.6s linear infinite',
+        'breathe':       'breathe 2.4s ease-in-out infinite',
+        'count-up-glow': 'count-up-glow 360ms ease-out',
+        'draw-border':   'draw-border 400ms ease-out forwards',
+        'corner-pulse':  'corner-pulse 320ms ease-out',
       },
       letterSpacing: {
         display: '-0.02em',
