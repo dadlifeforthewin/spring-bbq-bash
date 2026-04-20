@@ -78,35 +78,46 @@ export default function StationPicker({ stations }: { stations: Station[] }) {
       </div>
 
       {/* DB-driven glyph grid */}
-      <ul className="grid grid-cols-2 gap-3" role="list">
-        {stations.map((s) => {
-          const meta = ROUTING[s.slug] ?? FALLBACK
-          return (
-            <li key={s.slug}>
-              <button
-                type="button"
-                onClick={() => pick(s)}
-                className={clsx(
-                  'group flex w-full flex-col items-center gap-2 rounded-2xl border bg-ink-2/60 p-4 text-center',
-                  'border-ink-hair hover:border-current transition-[transform,border-color] duration-200',
-                  'active:scale-[0.97] motion-safe:hover:-translate-y-0.5',
-                  toneHoverText[meta.tone],
-                )}
-              >
-                <GlyphGlow tone={meta.tone} size={72}>
-                  <meta.Glyph />
-                </GlyphGlow>
-                <span className="font-display text-sm font-bold uppercase tracking-[0.08em] text-paper">
-                  {s.name}
-                </span>
-                <span className="text-[10px] uppercase tracking-[0.14em] text-mist">
-                  {meta.sub}
-                </span>
-              </button>
-            </li>
-          )
-        })}
-      </ul>
+      {stations.length === 0 ? (
+        <SignPanel tone="magenta" padding="md">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-neon-magenta [font-family:var(--font-mono),JetBrains_Mono,monospace]">
+            No stations
+          </div>
+          <p className="mt-2 text-sm text-mist leading-relaxed">
+            No active stations configured. Ask an admin to seed the stations table.
+          </p>
+        </SignPanel>
+      ) : (
+        <ul className="grid grid-cols-2 gap-3" role="list">
+          {stations.map((s) => {
+            const meta = ROUTING[s.slug] ?? FALLBACK
+            return (
+              <li key={s.slug}>
+                <button
+                  type="button"
+                  onClick={() => pick(s)}
+                  className={clsx(
+                    'group flex w-full flex-col items-center gap-2 rounded-2xl border bg-ink-2/60 p-4 text-center',
+                    'border-ink-hair hover:border-current transition-[transform,border-color,color] duration-200',
+                    'motion-safe:active:scale-[0.97] motion-safe:hover:-translate-y-0.5',
+                    toneHoverText[meta.tone],
+                  )}
+                >
+                  <GlyphGlow tone={meta.tone} size={72}>
+                    <meta.Glyph size={56} />
+                  </GlyphGlow>
+                  <span className="font-display text-sm font-bold uppercase tracking-[0.08em] text-paper">
+                    {s.name}
+                  </span>
+                  <span className="text-[10px] uppercase tracking-[0.14em] text-mist">
+                    {meta.sub}
+                  </span>
+                </button>
+              </li>
+            )
+          })}
+        </ul>
+      )}
 
       {/* Quick reference */}
       <SignPanel tone="gold" padding="md">
