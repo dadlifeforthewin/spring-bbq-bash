@@ -49,7 +49,9 @@ export async function POST(req: NextRequest) {
 
   const volunteer = parsed.data.volunteer_name || null
 
-  // 3. Upsert prize_redemptions (unique on child_id).
+  // 3. Upsert prize_redemptions (unique on child_id). The pre-read is only used
+  // to compute isUpdate for the response; the write goes through Postgres
+  // ON CONFLICT so concurrent tablet taps can't both win an INSERT race.
   const { data: existing } = await sb
     .from('prize_redemptions')
     .select('id, prize_id')
@@ -59,24 +61,18 @@ export async function POST(req: NextRequest) {
   const isUpdate = !!existing
   const nowIso = new Date().toISOString()
 
-  if (existing) {
-    const { error: upErr } = await sb
-      .from('prize_redemptions')
-      .update({
+  const { error: upsertErr } = await sb
+    .from('prize_redemptions')
+    .upsert(
+      {
+        child_id: parsed.data.child_id,
         prize_id: parsed.data.prize_id,
         volunteer_name: volunteer,
         updated_at: nowIso,
-      })
-      .eq('id', existing.id)
-    if (upErr) return Response.json({ error: 'db error', details: upErr.message }, { status: 500 })
-  } else {
-    const { error: insErr } = await sb.from('prize_redemptions').insert({
-      child_id: parsed.data.child_id,
-      prize_id: parsed.data.prize_id,
-      volunteer_name: volunteer,
-    })
-    if (insErr) return Response.json({ error: 'db error', details: insErr.message }, { status: 500 })
-  }
+      },
+      { onConflict: 'child_id' }
+    )
+  if (upsertErr) return Response.json({ error: 'db error', details: upsertErr.message }, { status: 500 })
 
   // 4. Stamp children.prize_wheel_used_at ONLY on first redemption.
   if (!child.prize_wheel_used_at) {
