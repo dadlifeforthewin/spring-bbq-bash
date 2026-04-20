@@ -35,8 +35,15 @@ export default function PhotoStation() {
   const [lastUpload, setLastUpload] = useState<{ photo_id: string; count: number } | null>(null)
   const [takenCount, setTakenCount] = useState(0)
   const [frame, setFrame] = useState<Frame>('Classic')
-  const [cameraReady] = useState(false)
+  const [cameraReady, setCameraReady] = useState(false)
   const viewfinderRef = useRef<PhotoViewfinderHandle>(null)
+
+  // Mirror RoamingStation camera-boot pattern: flip ready after 2 s so the
+  // polaroid placeholder GlyphGlow dismisses once the viewfinder should be live.
+  useEffect(() => {
+    const t = setTimeout(() => setCameraReady(true), 2000)
+    return () => clearTimeout(t)
+  }, [])
 
   // Derived state
   const capturing = busy
@@ -151,9 +158,7 @@ export default function PhotoStation() {
         {!cameraReady ? (
           <GlyphGlow tone="magenta" size={96}><PhotoGlyph size={72} /></GlyphGlow>
         ) : null}
-        <div className="absolute inset-0">
-          <PhotoViewfinder ref={viewfinderRef} facingMode="environment" />
-        </div>
+        <PhotoViewfinder ref={viewfinderRef} facingMode="environment" />
       </NeonScanner>
 
       {/* QR scan input */}
@@ -203,7 +208,16 @@ export default function PhotoStation() {
             key={f}
             tone={frame === f ? 'magenta' : 'quiet'}
             glow={frame === f}
+            role="button"
+            tabIndex={0}
+            aria-pressed={frame === f}
             onClick={() => setFrame(f)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                setFrame(f)
+              }
+            }}
           >
             {f}
           </Chip>

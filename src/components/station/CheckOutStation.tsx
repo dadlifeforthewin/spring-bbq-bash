@@ -122,7 +122,7 @@ export default function CheckOutStation() {
       <PageHead
         back={{ href: '/station', label: 'stations' }}
         title="CHECK-OUT STATION"
-        sub="Scan the wristband and match the 4-digit pickup code."
+        sub="Scan the wristband and confirm who's picking up."
         right={<Chip tone="mint" glow>OUT · {recentPickups.length}</Chip>}
       />
 
