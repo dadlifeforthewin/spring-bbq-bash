@@ -6,6 +6,7 @@ export type Station =
   | 'check_in' | 'jail' | 'cornhole' | 'face_painting'
   | 'arts_crafts' | 'prize_wheel' | 'video_games' | 'dance_competition'
   | 'quiet_corner' | 'pizza' | 'cake_walk' | 'check_out' | 'photo' | 'reload'
+  | 'cleanup'
 
 export type DropoffType = 'both_parents' | 'one_parent' | 'grandparent' | 'other_approved_adult'
 export type FaithTone = 'strong' | 'subtle' | 'off'
@@ -218,4 +219,28 @@ export type PrizeRedemption = {
   prize_id: string
   volunteer_name: string | null
   updated_at: string
+}
+
+export type CleanupTask = {
+  id: string
+  label: string
+  sub: string | null
+  sort_order: number
+  active: boolean
+  created_at: string
+}
+
+export type CleanupCompletion = {
+  id: string
+  event_id: string
+  task_id: string
+  completed_by: string | null
+  completed_at: string
+}
+
+export type CleanupLock = {
+  id: string
+  event_id: string
+  locked_by: string | null
+  locked_at: string
 }
