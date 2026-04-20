@@ -1,9 +1,10 @@
 # Glow Redesign — STATUS
 
-**Branch:** `glow-redesign` (off `kid-profile-rebuild`) · **Last update:** 2026-04-20
-**Event:** Saturday, April 25, 2026 (5 days out)
+**Branch:** `glow-redesign` (HEAD `c7f0c2b`) · **Last update:** 2026-04-20 (late-morning, Phase 5 shipped)
+**Event:** Saturday, April 25, 2026 (5 days out) · **Dry-run:** Tuesday April 21 (tomorrow)
 **Spec:** `docs/specs/2026-04-19-station-admin-glow-redesign-design.md`
 **Plan:** `docs/plans/2026-04-19-glow-redesign-plan.md`
+**Phase 5.5 reference (new features):** `docs/design/cleanup-crew-reference.md`
 **Not auto-deployed** — Vercel production branch is `kid-profile-rebuild`, not this one.
 
 ## Why this branch exists
@@ -31,17 +32,29 @@ Parent-facing surfaces (`/`, `/register`, `/register/confirm`) are already at D1
 - Cross retained ONLY as camera-loading / photo-tile empty-state placeholder.
 - Volunteer landing hero reuses the live BASH & GLOW wordmark (no new centerpiece).
 
-## Remaining phases (Phase 5–9 of the plan)
+## Phase 5 — SHIPPED 2026-04-20
+
+9 tasks across 13 commits. Picker + 6 station pages migrated to glow primitives; legacy StationShell + ReloadStation + /station/reload route deleted. 67/67 unit tests green; typecheck clean.
+
+| Task | Commit | Scope |
+|---|---|---|
+| 5.1 | `01a003e` | app/station/layout.tsx (Aurora+GridFloor+mono footer) + strip Aurora from StationShell & VolunteerLogin + `safe-bottom` utility |
+| 5.2 | `996322b` | StationPicker: NeonWordmark hero, DB-driven 16-slug GlyphGlow grid, SparkGlyph fallback, SignPanel quick-ref, empty-state handling |
+| 5.3–5.8 | `1258837`→`49f5f1e` | 6 station components rebuilt in parallel worktrees (CheckIn/CheckOut/Activity/Photo/Roaming/Lookup) |
+| fix | `a1570f8` | LookupStation: visible QR form + 5 profile sections restored + double-scanner race fixed; PhotoStation: cameraReady wired + viewfinder clip fix + Chip keyboard a11y; CheckOut subtitle copy |
+| 5.9 | `c7f0c2b` | Delete ReloadStation, /station/reload, reload.spec.ts, StationShell |
+
+**Remaining surfaces on `glow-redesign` from original plan:**
 
 | Phase | Scope | Risk |
 |---|---|---|
-| 5 | Station shell + picker + 6 inner pages (check-in, check-out, activity, photo, roaming, profile) | **High** — rewrites live files, E2E must stay green |
+| 5.5 (new — not in original plan) | prize_wheel station + cleanup crew station + admin CRUD for both. Reference: `docs/design/cleanup-crew-reference.md`. 8 sub-tasks tracked. | Medium — new DB tables + migrations |
 | 6 | Admin shell layout + dashboard | Medium |
 | 7 | Admin photos-queue + stories list + stories editor | Medium |
-| 8 | Admin polish-only (children list, child editor, bulk, catalog, settings) | Low — primitive swaps, no layout rebuild |
+| 8 | Admin polish-only (children list, child editor, bulk, catalog, settings) | Low — primitive swaps |
 | 9 | QA gate (typecheck, full E2E, Applitools, motion review, scrub greps, screenshots) | — |
 
-**Merge strategy:** split cutoff around Tuesday April 21 dry-run. Phases 5 before; Phases 6–8 after. If 6–8 slip, admin stays on current styling for event night (still a working command center).
+**Merge strategy:** Phase 5 shipped before Tuesday dry-run ✓. Phase 5.5 features (prize_wheel + cleanup) targeted for Wed–Thu, post-dry-run. Admin Phases 6–8 remain post-dry-run; if they slip, admin stays on current styling for event night (still a working command center).
 
 ## How to resume
 
