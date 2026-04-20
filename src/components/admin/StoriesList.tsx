@@ -1,6 +1,7 @@
 'use client'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
+import { PageHead, Chip, Button } from '@/components/glow'
 
 type Row = {
   id: string
@@ -20,6 +21,33 @@ type Row = {
 
 const STATUS_FILTERS = ['all', 'pending', 'needs_review', 'auto_approved', 'approved', 'sent', 'skipped'] as const
 const POLL_MS = 10_000
+
+type StatusTone = 'mint' | 'gold' | 'magenta' | 'cyan' | 'quiet'
+
+function statusTone(status: string): StatusTone {
+  switch (status) {
+    case 'auto_approved':
+    case 'approved':
+    case 'sent':
+      return 'mint'
+    case 'needs_review':
+      return 'gold'
+    case 'skipped':
+    case 'failed':
+    case 'error':
+      return 'magenta'
+    case 'pending':
+      return 'cyan'
+    default:
+      return 'quiet'
+  }
+}
+
+function scoreTone(score: number): 'mint' | 'gold' | 'danger' {
+  if (score >= 0.8) return 'mint'
+  if (score >= 0.6) return 'gold'
+  return 'danger'
+}
 
 export default function StoriesList() {
   const [rows, setRows] = useState<Row[]>([])
@@ -48,6 +76,7 @@ export default function StoriesList() {
   }, [load])
 
   const hasPending = rows.some((r) => r.status === 'pending')
+  const pendingCount = rows.filter((r) => r.status === 'pending').length
 
   useEffect(() => {
     if (!hasPending) return
@@ -55,78 +84,116 @@ export default function StoriesList() {
     return () => clearInterval(id)
   }, [hasPending, load])
 
+  const rightSlot = (
+    <>
+      {hasPending && <Chip tone="gold" glow>AUTO · 10s</Chip>}
+      {lastLoadedAt && !hasPending && (
+        <Chip tone="quiet">UPDATED {lastLoadedAt.toLocaleTimeString()}</Chip>
+      )}
+      <Button tone="ghost" size="sm" onClick={load} disabled={loading}>
+        {loading ? 'Refreshing…' : 'Refresh'}
+      </Button>
+    </>
+  )
+
   return (
-    <div className="space-y-4">
-      <header>
-        <h1 className="text-3xl font-black">AI stories</h1>
-        <p className="text-slate-500">Review generated keepsake stories before they go out in tomorrow morning&apos;s email.</p>
-      </header>
+    <div className="flex flex-col gap-6">
+      <PageHead
+        title="Stories"
+        sub={
+          <span>
+            <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-neon-cyan [font-family:var(--font-mono),JetBrains_Mono,monospace]">
+              STORIES · REVIEW QUEUE
+            </span>
+            <span className="text-mist"> — {pendingCount} pending</span>
+          </span>
+        }
+        right={rightSlot}
+      />
 
       <div className="flex flex-wrap items-center gap-2">
         {STATUS_FILTERS.map((s) => (
-          <button key={s} type="button" onClick={() => setStatus(s)}
-            className={`rounded px-3 py-1 text-sm font-bold ${
-              status === s ? 'bg-neon-magenta/20 border border-neon-magenta text-neon-magenta' : 'bg-slate-100 text-slate-700'
-            }`}>
+          <Chip
+            key={s}
+            tone={status === s ? 'cyan' : 'quiet'}
+            glow={status === s}
+            onClick={() => setStatus(s)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                setStatus(s)
+              }
+            }}
+            className="cursor-pointer select-none"
+          >
             {s.replace(/_/g, ' ')}
-          </button>
+          </Chip>
         ))}
-        <div className="ml-auto flex items-center gap-3 text-xs text-slate-500">
-          {hasPending && (
-            <span className="inline-flex items-center gap-1.5">
-              <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-amber-500" />
-              auto-refreshing every 10s
-            </span>
-          )}
-          {lastLoadedAt && !hasPending && (
-            <span>updated {lastLoadedAt.toLocaleTimeString()}</span>
-          )}
-          <button type="button" onClick={load} disabled={loading}
-            className="rounded border border-slate-300 bg-white px-3 py-1 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60">
-            {loading ? 'Refreshing…' : 'Refresh'}
-          </button>
-        </div>
       </div>
 
-      {error && <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+      {error && (
+        <p className="rounded-xl border border-danger/60 bg-danger/10 px-3 py-2 text-sm text-danger">
+          {error}
+        </p>
+      )}
 
-      <div className="overflow-hidden rounded border border-slate-200 bg-white">
-        <table className="w-full text-sm">
-          <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
-            <tr>
-              <th className="px-3 py-2">Child</th>
-              <th className="px-3 py-2">Status</th>
-              <th className="px-3 py-2">Score</th>
-              <th className="px-3 py-2">Words</th>
-              <th className="px-3 py-2">Photos</th>
-              <th className="px-3 py-2">Generated</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.length === 0 && (
-              <tr><td colSpan={6} className="px-3 py-4 text-slate-500">No stories match.</td></tr>
-            )}
-            {rows.map((r) => (
-              <tr key={r.id} className="border-t border-slate-100 hover:bg-slate-50">
-                <td className="px-3 py-2">
-                  <Link href={`/admin/stories/${r.id}`} className="font-semibold text-fuchsia-700">
-                    {r.children ? `${r.children.first_name} ${r.children.last_name}` : '—'}
-                  </Link>
-                </td>
-                <td className="px-3 py-2 capitalize">{r.status.replace(/_/g, ' ')}</td>
-                <td className="px-3 py-2 tabular-nums">
-                  {r.auto_check_score == null ? '—' : Number(r.auto_check_score).toFixed(2)}
-                </td>
-                <td className="px-3 py-2 tabular-nums">{r.word_count ?? '—'}</td>
-                <td className="px-3 py-2 tabular-nums">{r.photo_count ?? '—'}</td>
-                <td className="px-3 py-2 text-slate-500">
-                  {r.generated_at ? new Date(r.generated_at).toLocaleString() : 'not yet'}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {rows.length === 0 ? (
+        <p className="rounded-xl border border-ink-hair bg-ink-2/40 px-4 py-6 text-sm text-mist">
+          {loading ? 'Loading…' : 'No stories match.'}
+        </p>
+      ) : (
+        <ul className="flex flex-col gap-2">
+          {rows.map((r) => {
+            const scoreNum = r.auto_check_score == null ? null : Number(r.auto_check_score)
+            const name = r.children
+              ? `${r.children.first_name} ${r.children.last_name}`
+              : '—'
+            return (
+              <li key={r.id}>
+                <Link
+                  href={`/admin/stories/${r.id}`}
+                  className="group flex flex-col gap-2 rounded-xl border border-ink-hair bg-ink-2/60 px-4 py-3 transition hover:border-neon-cyan/60 hover:bg-ink-3/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-cyan/40 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="font-display text-base font-semibold tracking-tight text-paper group-hover:text-neon-cyan">
+                      {name}
+                    </div>
+                    <div className="mt-0.5 text-[10px] uppercase tracking-[0.14em] text-faint [font-family:var(--font-mono),JetBrains_Mono,monospace]">
+                      {r.generated_at
+                        ? `GEN ${new Date(r.generated_at).toLocaleString()}`
+                        : 'NOT YET GENERATED'}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <Chip tone={statusTone(r.status)}>
+                      {r.status.replace(/_/g, ' ')}
+                    </Chip>
+                    <Chip tone="quiet">
+                      {r.word_count ?? '—'} W
+                    </Chip>
+                    <Chip tone="quiet">
+                      {r.photo_count ?? '—'} PH
+                    </Chip>
+                  </div>
+
+                  <div className="shrink-0">
+                    {scoreNum == null ? (
+                      <Chip tone="quiet">SCORE —</Chip>
+                    ) : (
+                      <Chip tone={scoreTone(scoreNum)} glow={scoreNum >= 0.8}>
+                        {scoreNum.toFixed(2)}
+                      </Chip>
+                    )}
+                  </div>
+                </Link>
+              </li>
+            )
+          })}
+        </ul>
+      )}
     </div>
   )
 }

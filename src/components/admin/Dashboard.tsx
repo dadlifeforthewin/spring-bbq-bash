@@ -1,7 +1,6 @@
 'use client'
-import { useEffect, useState } from 'react'
-import { Card, CardEyebrow } from '@/components/glow/Card'
-import { Heading, Eyebrow } from '@/components/glow/Heading'
+import { useEffect, useMemo, useState } from 'react'
+import { PageHead, StatTile, SignPanel, SectionHeading, Chip } from '@/components/glow'
 
 type Stats = {
   event: { id: string; name: string; event_date: string; ends_at: string } | null
@@ -34,6 +33,7 @@ const POLL_MS = 5000
 export default function Dashboard() {
   const [stats, setStats] = useState<Stats | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [now, setNow] = useState(() => new Date())
 
   useEffect(() => {
     let cancelled = false
@@ -42,133 +42,200 @@ export default function Dashboard() {
         const res = await fetch('/api/admin/stats')
         if (!res.ok) throw new Error(`stats ${res.status}`)
         const data = (await res.json()) as Stats
-        if (!cancelled) { setStats(data); setError(null) }
+        if (!cancelled) {
+          setStats(data)
+          setError(null)
+        }
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : 'Failed to load stats')
       }
     }
     load()
-    const t = setInterval(load, POLL_MS)
-    return () => { cancelled = true; clearInterval(t) }
+    const statsTimer = setInterval(load, POLL_MS)
+    const clockTimer = setInterval(() => setNow(new Date()), 30_000)
+    return () => {
+      cancelled = true
+      clearInterval(statsTimer)
+      clearInterval(clockTimer)
+    }
   }, [])
 
-  if (error) return <p className="rounded-xl border border-danger/60 bg-danger/10 px-3 py-2 text-danger">{error}</p>
-  if (!stats) return <p className="text-mist">Loading…</p>
+  const heroTitle = useMemo(() => {
+    if (!stats) return 'Loading the pulse…'
+    if (stats.counts.checked_in === 0) return 'Bash loading. Final walkthroughs pending.'
+    return 'Bash is LIVE. Here’s the pulse.'
+  }, [stats])
 
-  const { counts, money, spend_by_station, stories_by_status } = stats
-  const maxSpend = Math.max(1, ...Object.values(spend_by_station))
+  const dateStrip = useMemo(() => {
+    return now
+      .toLocaleString('en-US', {
+        weekday: 'long',
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+      })
+      .toUpperCase()
+  }, [now])
+
+  if (error && !stats) {
+    return (
+      <p className="rounded-xl border border-danger/60 bg-danger/10 px-3 py-2 text-danger">
+        {error}
+      </p>
+    )
+  }
+
+  const counts = stats?.counts
+  const money = stats?.money
+  const spend = stats?.spend_by_station ?? {}
+  const stories = stats?.stories_by_status ?? {}
+  const overdue = counts?.not_checked_out_after_end ?? 0
+  const maxSpend = Math.max(1, ...Object.values(spend))
 
   return (
-    <div className="space-y-6">
-      <header className="space-y-1">
-        <Eyebrow tone="magenta">Live dashboard</Eyebrow>
-        <Heading level={1} size="lg" tone="paper">
-          {stats.event?.name ?? 'Spring BBQ Bash · Glow Party Edition'}
-        </Heading>
-        {stats.event?.event_date && (
-          <p className="text-mist text-sm">{stats.event.event_date}</p>
-        )}
-      </header>
+    <div className="flex flex-col gap-6">
+      <PageHead
+        title={heroTitle}
+        sub={
+          <span className="block">
+            <span className="font-semibold text-paper/80">{stats?.event?.name ?? 'Spring BBQ Bash'}</span>
+            <span className="text-mist"> · {dateStrip}</span>
+          </span>
+        }
+      />
 
-      {counts.not_checked_out_after_end > 0 && (
-        <Card tone="glow-magenta" padded>
-          <strong className="text-neon-magenta">⚠️ {counts.not_checked_out_after_end}</strong>
-          <span className="text-paper"> kid(s) still checked in after event end.</span>
-        </Card>
+      {overdue > 0 && (
+        <SignPanel tone="magenta" padding="md">
+          <div className="flex items-center gap-3">
+            <span className="text-[10px] uppercase tracking-[0.14em] text-neon-magenta [font-family:var(--font-mono),JetBrains_Mono,monospace]">
+              ALERT · PICKUP OVERDUE
+            </span>
+            <Chip tone="magenta" glow>
+              {overdue} KID{overdue === 1 ? '' : 'S'}
+            </Chip>
+            <span className="text-sm text-paper">still checked in after event end.</span>
+          </div>
+        </SignPanel>
       )}
 
-      <section className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <Stat label="Registered" value={counts.registered} />
-        <Stat label="Checked in" value={counts.checked_in} tone="cyan" />
-        <Stat label="Checked out" value={counts.checked_out} tone="mint" />
-        <Stat label="Not arrived" value={counts.not_arrived} tone="quiet" />
-        <Stat label="Drinks left" value={counts.drinks_remaining ?? 0} tone="cyan" />
-        <Stat label="Jail left" value={counts.jail_remaining ?? 0} tone="magenta" />
-        <Stat label="Prize wheel used" value={counts.prize_wheel_used ?? 0} tone="gold" />
-        <Stat label="DJ shoutouts used" value={counts.dj_shoutout_used ?? 0} tone="uv" />
-        <Stat label="Tickets spent" value={counts.tickets_spent} />
-        <Stat label="Photos taken" value={counts.photos} />
-        <Stat label="Comp reloads" value={money.comp_count} />
+      <section>
+        <SectionHeading num="01" title="Attendance" tone="mint" />
+        <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <StatTile label="Checked in" value={counts?.checked_in ?? '—'} tone="mint" outline />
+          <StatTile label="Registered" value={counts?.registered ?? '—'} tone="cyan" outline />
+          <StatTile label="Checked out" value={counts?.checked_out ?? '—'} tone="uv" outline />
+          <StatTile label="Not arrived" value={counts?.not_arrived ?? '—'} tone="gold" outline />
+        </div>
       </section>
 
-      <section className="grid grid-cols-1 gap-3 md:grid-cols-3">
-        <MoneyStat label="FACTS charged" value={`$${money.facts_total.toFixed(2)}`} />
-        <MoneyStat label="Cash collected" value={`$${money.cash_total.toFixed(2)}`} />
-        <MoneyStat label="Venmo collected" value={`$${money.venmo_total.toFixed(2)}`} />
+      <section>
+        <SectionHeading num="02" title="Tickets & photos" tone="gold" />
+        <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <StatTile label="Drinks left"      value={counts?.drinks_remaining ?? '—'}  tone="cyan"    outline />
+          <StatTile label="Jail left"        value={counts?.jail_remaining ?? '—'}    tone="magenta" outline />
+          <StatTile label="Prize wheel used" value={counts?.prize_wheel_used ?? '—'}  tone="gold"    outline />
+          <StatTile label="Photos taken"     value={counts?.photos ?? '—'}            tone="uv"      outline />
+        </div>
       </section>
 
-      <Card tone="default" padded className="space-y-3">
-        <CardEyebrow>Spend by station</CardEyebrow>
-        {Object.keys(spend_by_station).length === 0 ? (
-          <p className="text-sm text-faint">No spends yet.</p>
-        ) : (
-          <ul className="space-y-2">
-            {Object.entries(spend_by_station)
-              .sort(([, a], [, b]) => b - a)
-              .map(([station, tickets]) => (
-                <li key={station} className="flex items-center gap-3 text-sm">
-                  <span className="w-32 shrink-0 capitalize text-mist">{station.replace(/_/g, ' ')}</span>
-                  <span className="relative h-3 flex-1 overflow-hidden rounded-full bg-ink-3">
-                    <span
-                      className="absolute inset-y-0 left-0 bg-gradient-to-r from-neon-magenta via-neon-uv to-neon-cyan shadow-[0_0_12px_rgba(155,92,255,.5)]"
-                      style={{ width: `${(tickets / maxSpend) * 100}%` }}
-                    />
-                  </span>
-                  <span className="w-10 text-right tabular-nums text-paper font-semibold">{tickets}</span>
-                </li>
-              ))}
-          </ul>
-        )}
-      </Card>
+      <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
+        <SignPanel tone="uv" padding="lg">
+          <span className="block text-[10px] uppercase tracking-[0.14em] text-neon-uv [font-family:var(--font-mono),JetBrains_Mono,monospace]">
+            SPEND · BY STATION
+          </span>
+          {Object.keys(spend).length === 0 ? (
+            <p className="mt-4 text-sm text-mist">No spends yet.</p>
+          ) : (
+            <ul className="mt-4 flex flex-col gap-2.5">
+              {Object.entries(spend)
+                .sort(([, a], [, b]) => b - a)
+                .map(([station, tickets]) => (
+                  <li key={station} className="flex items-center gap-3 text-sm">
+                    <span className="w-32 shrink-0 capitalize text-mist [font-family:var(--font-mono),JetBrains_Mono,monospace] text-xs uppercase tracking-[0.1em]">
+                      {station.replace(/_/g, ' ')}
+                    </span>
+                    <span className="relative h-3 flex-1 overflow-hidden rounded-full bg-ink-3">
+                      <span
+                        className="absolute inset-y-0 left-0 bg-gradient-to-r from-neon-magenta via-neon-uv to-neon-cyan shadow-[0_0_12px_rgba(155,92,255,.5)]"
+                        style={{ width: `${(tickets / maxSpend) * 100}%` }}
+                      />
+                    </span>
+                    <span className="w-10 text-right tabular-nums font-display font-semibold text-paper">{tickets}</span>
+                  </li>
+                ))}
+            </ul>
+          )}
+        </SignPanel>
 
-      <Card tone="default" padded className="space-y-2">
-        <CardEyebrow>AI story status</CardEyebrow>
-        {Object.keys(stories_by_status).length === 0 ? (
-          <p className="text-sm text-faint">No stories yet.</p>
-        ) : (
-          <ul className="flex flex-wrap gap-2 text-sm">
-            {Object.entries(stories_by_status).map(([status, count]) => (
-              <li key={status} className="rounded-full border border-ink-hair bg-ink-3 px-3 py-1">
-                <span className="font-semibold text-paper">{count}</span>
-                <span className="ml-1 text-mist">{status.replace(/_/g, ' ')}</span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Card>
+        <div className="flex flex-col gap-4">
+          <SignPanel tone="cyan" padding="md">
+            <span className="block text-[10px] uppercase tracking-[0.14em] text-neon-cyan [font-family:var(--font-mono),JetBrains_Mono,monospace]">
+              STORIES · {Object.values(stories).reduce((a, b) => a + b, 0) || 0} TOTAL
+            </span>
+            {Object.keys(stories).length === 0 ? (
+              <p className="mt-3 text-sm text-mist">No stories yet.</p>
+            ) : (
+              <ul className="mt-3 flex flex-wrap gap-2">
+                {Object.entries(stories).map(([status, count]) => (
+                  <li key={status}>
+                    <Chip tone={storyTone(status)}>
+                      {count} {status.replace(/_/g, ' ')}
+                    </Chip>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </SignPanel>
+
+          <SignPanel tone="mint" padding="md">
+            <span className="block text-[10px] uppercase tracking-[0.14em] text-neon-mint [font-family:var(--font-mono),JetBrains_Mono,monospace]">
+              MONEY · TOTALS
+            </span>
+            <ul className="mt-3 flex flex-col gap-2 text-sm">
+              <MoneyRow label="FACTS charged" value={money ? `$${money.facts_total.toFixed(2)}` : '—'} />
+              <MoneyRow label="Cash collected" value={money ? `$${money.cash_total.toFixed(2)}` : '—'} />
+              <MoneyRow label="Venmo collected" value={money ? `$${money.venmo_total.toFixed(2)}` : '—'} />
+              <MoneyRow label="Comp reloads" value={money ? String(money.comp_count) : '—'} />
+            </ul>
+          </SignPanel>
+        </div>
+      </div>
+
+      {error && stats && (
+        <p className="text-xs text-warn [font-family:var(--font-mono),JetBrains_Mono,monospace]">
+          Last refresh failed: {error} — showing cached values.
+        </p>
+      )}
     </div>
   )
 }
 
-type StatTone = 'paper' | 'magenta' | 'cyan' | 'uv' | 'gold' | 'mint' | 'quiet'
-
-function Stat({ label, value, tone = 'paper' }: { label: string; value: number; tone?: StatTone }) {
-  const toneBorder: Record<StatTone, string> = {
-    paper:   'border-ink-hair',
-    magenta: 'border-neon-magenta/40 shadow-[0_0_20px_-5px_rgba(255,46,147,.4)]',
-    cyan:    'border-neon-cyan/40 shadow-[0_0_20px_-5px_rgba(0,230,247,.4)]',
-    uv:      'border-neon-uv/40 shadow-[0_0_20px_-5px_rgba(155,92,255,.4)]',
-    gold:    'border-neon-gold/40 shadow-[0_0_20px_-5px_rgba(255,225,71,.4)]',
-    mint:    'border-neon-mint/40 shadow-[0_0_20px_-5px_rgba(75,230,179,.4)]',
-    quiet:   'border-ink-hair opacity-70',
+function storyTone(status: string): 'mint' | 'gold' | 'magenta' | 'cyan' | 'quiet' {
+  switch (status) {
+    case 'auto_approved':
+    case 'approved':
+    case 'sent':
+      return 'mint'
+    case 'needs_review':
+      return 'gold'
+    case 'failed':
+    case 'error':
+      return 'magenta'
+    case 'pending':
+      return 'cyan'
+    default:
+      return 'quiet'
   }
-  const toneText: Record<StatTone, string> = {
-    paper: 'text-paper', magenta: 'text-neon-magenta', cyan: 'text-neon-cyan',
-    uv: 'text-neon-uv', gold: 'text-neon-gold', mint: 'text-neon-mint', quiet: 'text-paper',
-  }
-  return (
-    <div className={`rounded-2xl border bg-ink-2/70 backdrop-blur-sm p-4 ${toneBorder[tone]}`}>
-      <div className="text-[10px] uppercase tracking-widest text-faint">{label}</div>
-      <div className={`text-3xl font-display font-bold tabular-nums mt-1 ${toneText[tone]}`}>{value}</div>
-    </div>
-  )
 }
 
-function MoneyStat({ label, value }: { label: string; value: string }) {
+function MoneyRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-neon-mint/30 bg-ink-2/70 p-4 shadow-[0_0_20px_-5px_rgba(75,230,179,.35)]">
-      <div className="text-[10px] uppercase tracking-widest text-neon-mint">{label}</div>
-      <div className="text-2xl font-display font-bold tabular-nums text-paper mt-1">{value}</div>
-    </div>
+    <li className="flex items-center justify-between gap-4">
+      <span className="text-mist [font-family:var(--font-mono),JetBrains_Mono,monospace] text-xs uppercase tracking-[0.1em]">
+        {label}
+      </span>
+      <span className="font-display font-semibold tabular-nums text-paper">{value}</span>
+    </li>
   )
 }

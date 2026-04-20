@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
+import { Button, Chip, GlyphGlow, PageHead, PhotoGlyph, SignPanel } from '@/components/glow'
 
 type Candidate = {
   child_id: string
@@ -17,10 +18,37 @@ type QueuePhoto = {
   candidates: Candidate[]
 }
 
-const FILTERS = ['pending_review', 'unmatched', 'rejected', 'auto', 'confirmed'] as const
+type FilterKey = 'pending_review' | 'unmatched' | 'rejected' | 'auto' | 'confirmed'
+
+const FILTERS: { key: FilterKey; label: string }[] = [
+  { key: 'pending_review', label: 'Pending' },
+  { key: 'unmatched', label: 'Unmatched' },
+  { key: 'rejected', label: 'Rejected' },
+  { key: 'auto', label: 'Auto' },
+  { key: 'confirmed', label: 'Confirmed' },
+]
+
+type ChipTone = 'gold' | 'cyan' | 'danger' | 'uv' | 'mint'
+type PanelTone = 'gold' | 'cyan' | 'magenta' | 'uv' | 'mint'
+
+const CHIP_TONE: Record<FilterKey, ChipTone> = {
+  pending_review: 'gold',
+  unmatched: 'cyan',
+  rejected: 'danger',
+  auto: 'uv',
+  confirmed: 'mint',
+}
+
+const PANEL_TONE: Record<FilterKey, PanelTone> = {
+  pending_review: 'gold',
+  unmatched: 'cyan',
+  rejected: 'magenta',
+  auto: 'uv',
+  confirmed: 'mint',
+}
 
 export default function PhotoQueue() {
-  const [status, setStatus] = useState<(typeof FILTERS)[number]>('pending_review')
+  const [status, setStatus] = useState<FilterKey>('pending_review')
   const [photos, setPhotos] = useState<QueuePhoto[]>([])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -53,72 +81,136 @@ export default function PhotoQueue() {
     }
   }
 
+  const chipTone = CHIP_TONE[status]
+  const panelTone = PANEL_TONE[status]
+  const headLabel = FILTERS.find((f) => f.key === status)?.label.toUpperCase() ?? 'QUEUE'
+
   return (
-    <div className="space-y-4">
-      <header>
-        <h1 className="text-3xl font-black">Photo queue</h1>
-        <p className="text-slate-500">Confirm vision-suggested matches, or tag unmatched photos manually.</p>
-      </header>
+    <div className="flex flex-col gap-5">
+      <PageHead
+        title="Photo queue"
+        sub="Confirm vision-suggested matches, or tag unmatched photos manually."
+        right={
+          <Chip tone={chipTone} glow>
+            {headLabel} · {photos.length}
+          </Chip>
+        }
+      />
 
       <div className="flex flex-wrap gap-2">
-        {FILTERS.map((s) => (
-          <button key={s} type="button" onClick={() => setStatus(s)}
-            className={`rounded px-3 py-1 text-sm font-bold ${
-              status === s ? 'bg-neon-magenta/20 border border-neon-magenta text-neon-magenta' : 'bg-slate-100 text-slate-700'
-            }`}>
-            {s.replace(/_/g, ' ')}
-          </button>
-        ))}
+        {FILTERS.map((f) => {
+          const active = status === f.key
+          return (
+            <Chip
+              key={f.key}
+              tone={active ? CHIP_TONE[f.key] : 'quiet'}
+              glow={active}
+              onClick={() => setStatus(f.key)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  setStatus(f.key)
+                }
+              }}
+              className="cursor-pointer select-none"
+            >
+              {f.label}
+            </Chip>
+          )
+        })}
       </div>
 
-      {error && <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+      {error && (
+        <p className="rounded-xl border border-danger/60 bg-danger/10 px-3 py-2 text-sm text-danger">
+          {error}
+        </p>
+      )}
 
       {photos.length === 0 ? (
-        <p className="text-slate-500">{busy ? 'Loading…' : 'Nothing here.'}</p>
+        <p className="text-mist text-sm [font-family:var(--font-mono),JetBrains_Mono,monospace] uppercase tracking-[0.12em]">
+          {busy ? 'Loading…' : 'Nothing here.'}
+        </p>
       ) : (
         <ul className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {photos.map((p) => (
-            <li key={p.id} className="overflow-hidden rounded border border-slate-200 bg-white">
-              {p.signed_url ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={p.signed_url} alt="" className="h-56 w-full object-cover" />
-              ) : (
-                <div className="flex h-56 items-center justify-center bg-slate-100 text-slate-400">No preview</div>
-              )}
-              <div className="space-y-2 p-3 text-sm">
-                <div className="text-xs text-slate-500">
-                  {new Date(p.taken_at).toLocaleString()}
-                  {p.match_confidence != null && ` · best ${Math.round(p.match_confidence * 100)}%`}
+            <li key={p.id}>
+              <SignPanel tone={panelTone} padding="sm">
+                <div className="flex flex-col gap-3">
+                  <div className="relative overflow-hidden rounded-xl border border-ink-hair bg-ink-2/60 aspect-video">
+                    {p.signed_url ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img src={p.signed_url} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center">
+                        <GlyphGlow tone={panelTone} size={96}>
+                          <PhotoGlyph size={96} />
+                        </GlyphGlow>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[10px] uppercase tracking-[0.14em] text-mist [font-family:var(--font-mono),JetBrains_Mono,monospace]">
+                      {new Date(p.taken_at).toLocaleString()}
+                    </span>
+                    <Chip tone={chipTone}>
+                      {p.match_confidence != null
+                        ? `BEST ${Math.round(p.match_confidence * 100)}%`
+                        : headLabel}
+                    </Chip>
+                  </div>
+
+                  {p.candidates.length === 0 ? (
+                    <p className="text-sm text-mist">
+                      No vision candidates — tag manually below (coming soon).
+                    </p>
+                  ) : (
+                    <ul className="flex flex-col gap-2">
+                      {p.candidates.map((c) => (
+                        <li
+                          key={c.child_id}
+                          className="flex items-start gap-3 rounded-lg border border-ink-hair bg-ink/40 px-3 py-2"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="font-display font-semibold text-paper">{c.first_name}</span>
+                              <Chip tone={c.confidence >= 0.75 ? 'mint' : c.confidence >= 0.5 ? 'gold' : 'quiet'}>
+                                {Math.round(c.confidence * 100)}%
+                              </Chip>
+                            </div>
+                            <p className="mt-1 text-xs text-mist leading-snug">{c.reasoning}</p>
+                          </div>
+                          {status === 'pending_review' && (
+                            <Button
+                              tone="mint"
+                              size="sm"
+                              onClick={() => decide(p.id, 'confirm', c.child_id)}
+                              disabled={busy}
+                            >
+                              Confirm
+                            </Button>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+
+                  {status === 'pending_review' && (
+                    <div className="flex justify-end">
+                      <Button
+                        tone="danger"
+                        size="sm"
+                        onClick={() => decide(p.id, 'reject')}
+                        disabled={busy}
+                      >
+                        Reject all
+                      </Button>
+                    </div>
+                  )}
                 </div>
-                {p.candidates.length === 0 ? (
-                  <p className="text-slate-500">No vision candidates — tag manually below (coming soon).</p>
-                ) : (
-                  <ul className="space-y-1">
-                    {p.candidates.map((c) => (
-                      <li key={c.child_id} className="flex items-center gap-2">
-                        <span className="flex-1">
-                          <strong>{c.first_name}</strong> · {Math.round(c.confidence * 100)}%
-                          <div className="text-xs text-slate-500">{c.reasoning}</div>
-                        </span>
-                        {status === 'pending_review' && (
-                          <button type="button" onClick={() => decide(p.id, 'confirm', c.child_id)}
-                            disabled={busy}
-                            className="rounded bg-green-600 px-2 py-1 text-xs font-bold text-white disabled:opacity-50">
-                            Confirm
-                          </button>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-                {status === 'pending_review' && (
-                  <button type="button" onClick={() => decide(p.id, 'reject')}
-                    disabled={busy}
-                    className="rounded bg-red-600 px-3 py-1 text-xs font-bold text-white disabled:opacity-50">
-                    Reject all
-                  </button>
-                )}
-              </div>
+              </SignPanel>
             </li>
           ))}
         </ul>

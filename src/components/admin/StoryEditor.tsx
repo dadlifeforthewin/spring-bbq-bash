@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
-import Link from 'next/link'
+import { PageHead, SignPanel, SectionHeading, Button, Chip } from '@/components/glow'
 
 type Story = {
   id: string
@@ -15,6 +15,18 @@ type Story = {
   story_html: string | null
   moderation_notes: string | null
   children: { id: string; first_name: string; last_name: string; age: number | null; grade: string | null } | null
+}
+
+type KidTone = 'magenta' | 'cyan' | 'uv' | 'gold' | 'mint'
+
+const statusToneMap: Record<string, 'mint' | 'gold' | 'cyan' | 'magenta' | 'quiet' | 'danger'> = {
+  approved: 'mint',
+  auto_approved: 'mint',
+  sent: 'cyan',
+  needs_review: 'gold',
+  pending_review: 'gold',
+  pending: 'magenta',
+  skipped: 'quiet',
 }
 
 export default function StoryEditor({ id }: { id: string }) {
@@ -71,85 +83,173 @@ export default function StoryEditor({ id }: { id: string }) {
     }
   }
 
-  if (error) return <p className="rounded bg-red-50 px-3 py-2 text-red-700">{error}</p>
-  if (!story) return <p className="text-slate-500">Loading…</p>
+  if (error) {
+    return (
+      <div className="space-y-4">
+        <PageHead back={{ href: '/admin/stories', label: 'stories' }} title="Keepsake" sub="Review, edit, regenerate, or approve." />
+        <SignPanel tone="magenta" padding="lg">
+          <p className="text-danger font-semibold">{error}</p>
+        </SignPanel>
+      </div>
+    )
+  }
+  if (!story) {
+    return (
+      <div className="space-y-4">
+        <PageHead back={{ href: '/admin/stories', label: 'stories' }} title="Keepsake" sub="Review, edit, regenerate, or approve." />
+        <SignPanel tone="uv" padding="lg">
+          <p className="text-mist">Loading…</p>
+        </SignPanel>
+      </div>
+    )
+  }
 
+  // preferred_tone is not on the children payload yet; fall back to 'uv'.
+  const kidTone: KidTone = 'uv'
+  const childName = story.children
+    ? `${story.children.first_name} ${story.children.last_name}`
+    : 'Story'
+  const childFirstName = story.children?.first_name ?? 'Kid'
+  const statusLabel = story.status.replace(/_/g, ' ')
+  const statusTone = statusToneMap[story.status] ?? 'quiet'
   const notesList = (story.auto_check_notes ?? '').split(' | ').filter(Boolean)
+  const score = story.auto_check_score != null ? Number(story.auto_check_score) : null
 
   return (
-    <div className="space-y-4">
-      <header className="flex flex-wrap items-baseline gap-3">
-        <h1 className="text-3xl font-black">
-          {story.children ? `${story.children.first_name} ${story.children.last_name}` : 'Story'}
-        </h1>
-        <span className="rounded bg-slate-100 px-2 py-0.5 text-sm capitalize">{story.status.replace(/_/g, ' ')}</span>
-        {story.auto_check_score != null && (
-          <span className="text-sm text-slate-500">score {Number(story.auto_check_score).toFixed(2)}</span>
-        )}
-        <span className="ml-auto">
-          <Link href="/admin/stories" className="text-sm text-slate-500">← Back to list</Link>
-        </span>
-      </header>
+    <div className="space-y-6">
+      <PageHead
+        back={{ href: '/admin/stories', label: 'stories' }}
+        title={`${childFirstName}'s keepsake`}
+        sub="Review, edit, regenerate, or approve."
+      />
 
-      {notesList.length > 0 && (
-        <section className="rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-          <h2 className="font-bold">Auto-check notes</h2>
-          <ul className="list-disc pl-5">
-            {notesList.map((n, i) => <li key={i}>{n}</li>)}
-          </ul>
-        </section>
-      )}
+      <SignPanel tone={kidTone} padding="lg">
+        <header className="flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-0 space-y-3">
+            <h2 className="font-display text-2xl font-bold text-paper leading-tight">
+              {childName}
+            </h2>
+            <div className="flex flex-wrap items-center gap-2">
+              <Chip tone={statusTone}>{statusLabel}</Chip>
+              {score != null && (
+                <Chip tone="quiet">score {score.toFixed(2)}</Chip>
+              )}
+              {story.word_count != null && (
+                <Chip tone="quiet">{story.word_count} words</Chip>
+              )}
+              {story.photo_count != null && story.photo_count > 0 && (
+                <Chip tone="quiet">{story.photo_count} photos</Chip>
+              )}
+            </div>
+            {notesList.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-faint [font-family:var(--font-mono),JetBrains_Mono,monospace]">
+                  auto-check
+                </span>
+                {notesList.map((n, i) => (
+                  <Chip key={i} tone="danger" glow>
+                    <span aria-hidden>✗</span>
+                    <span>{n}</span>
+                  </Chip>
+                ))}
+              </div>
+            )}
+            {notesList.length === 0 && score != null && (
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-faint [font-family:var(--font-mono),JetBrains_Mono,monospace]">
+                  auto-check
+                </span>
+                <Chip tone="mint" glow>
+                  <span aria-hidden>✓</span>
+                  <span>all rules clear</span>
+                </Chip>
+              </div>
+            )}
+          </div>
+        </header>
+      </SignPanel>
 
-      <section className="space-y-2 rounded border border-slate-200 bg-white p-4">
-        <h2 className="text-lg font-bold">Story text</h2>
-        <textarea value={text} onChange={(e) => setText(e.target.value)} rows={16}
+      <section className="space-y-3">
+        <SectionHeading num="DRAFT" title="Keepsake story" tone={kidTone} />
+        <textarea
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          rows={16}
           aria-label="story text"
-          className="w-full rounded border px-3 py-2 font-serif text-sm" />
-        <div className="flex items-center gap-2">
-          <button type="button" onClick={() => patch({ story_text: text })}
+          disabled={busy}
+          className="w-full rounded-xl border-2 border-ink-hair bg-ink-3/70 px-4 py-3 font-serif text-sm text-paper leading-relaxed placeholder:text-faint focus:outline-none focus:border-neon-cyan focus:ring-4 focus:ring-neon-cyan/30 transition disabled:opacity-60"
+        />
+        <div className="flex flex-wrap items-center gap-3">
+          <Button
+            tone="ghost"
+            size="lg"
+            onClick={() => patch({ story_text: text })}
             disabled={busy}
-            className="rounded bg-slate-900 px-3 py-2 text-sm font-bold text-white disabled:opacity-50">
+          >
             Save text
-          </button>
-          <button type="button" onClick={regenerate} disabled={busy}
-            className="rounded bg-slate-200 px-3 py-2 text-sm font-bold text-slate-900 disabled:opacity-50">
+          </Button>
+          <Button
+            tone="cyan"
+            size="lg"
+            onClick={regenerate}
+            disabled={busy}
+            loading={busy}
+          >
             Regenerate
-          </button>
+          </Button>
+          {saved && (
+            <span className="text-sm text-neon-mint font-semibold [font-family:var(--font-mono),JetBrains_Mono,monospace] tracking-wider uppercase">
+              Saved
+            </span>
+          )}
         </div>
       </section>
 
       {story.story_html && (
-        <section className="rounded border border-slate-200 bg-white p-4">
-          <h2 className="text-lg font-bold">HTML preview</h2>
-          <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: story.story_html }} />
+        <section className="space-y-3">
+          <SectionHeading num="PREVIEW" title="HTML preview" tone={kidTone} />
+          <div className="rounded-xl border border-ink-hair bg-ink-2/60 p-5">
+            <div
+              className="prose prose-invert max-w-none text-paper"
+              dangerouslySetInnerHTML={{ __html: story.story_html }}
+            />
+          </div>
         </section>
       )}
 
-      <section className="space-y-2 rounded border border-slate-200 bg-white p-4">
-        <h2 className="text-lg font-bold">Moderation notes</h2>
-        <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3}
+      <section className="space-y-3">
+        <SectionHeading num="NOTES" title="Moderation notes" tone={kidTone} />
+        <textarea
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          rows={3}
           aria-label="moderation notes"
-          className="w-full rounded border px-3 py-2 text-sm" />
-        <button type="button" onClick={() => patch({ moderation_notes: notes })} disabled={busy}
-          className="rounded bg-slate-200 px-3 py-2 text-sm font-bold text-slate-900 disabled:opacity-50">
+          disabled={busy}
+          className="w-full rounded-xl border-2 border-ink-hair bg-ink-3/70 px-4 py-3 text-sm text-paper placeholder:text-faint focus:outline-none focus:border-neon-cyan focus:ring-4 focus:ring-neon-cyan/30 transition disabled:opacity-60"
+        />
+        <Button
+          tone="ghost"
+          size="md"
+          onClick={() => patch({ moderation_notes: notes })}
+          disabled={busy}
+        >
           Save notes
-        </button>
+        </Button>
       </section>
 
-      <section className="flex flex-wrap gap-2 rounded border border-slate-200 bg-white p-4">
-        <button type="button" onClick={() => patch({ status: 'approved' })} disabled={busy}
-          className="rounded bg-green-600 px-4 py-2 font-bold text-white disabled:opacity-50">
-          Approve
-        </button>
-        <button type="button" onClick={() => patch({ status: 'needs_review' })} disabled={busy}
-          className="rounded bg-amber-500 px-4 py-2 font-bold text-white disabled:opacity-50">
-          Send back for review
-        </button>
-        <button type="button" onClick={() => patch({ status: 'skipped' })} disabled={busy}
-          className="rounded bg-slate-500 px-4 py-2 font-bold text-white disabled:opacity-50">
-          Skip (don&apos;t send)
-        </button>
-        {saved && <span className="self-center text-sm text-green-700">Saved.</span>}
+      <section className="space-y-3">
+        <SectionHeading num="DECIDE" title="Moderation" tone={kidTone} />
+        <div className="flex flex-wrap gap-3">
+          <Button tone="mint" size="lg" onClick={() => patch({ status: 'approved' })} disabled={busy}>
+            Approve
+          </Button>
+          <Button tone="ghost" size="lg" onClick={() => patch({ status: 'needs_review' })} disabled={busy}>
+            Send back
+          </Button>
+          <Button tone="ghost" size="lg" onClick={() => patch({ status: 'skipped' })} disabled={busy}>
+            Skip
+          </Button>
+        </div>
       </section>
     </div>
   )
