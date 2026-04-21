@@ -6,10 +6,7 @@ type EventRow = {
   id: string
   name: string
   event_date: string
-  check_in_opens_at: string
-  check_in_closes_at: string
   ends_at: string
-  default_initial_tickets: number
   faith_tone_level: 'strong' | 'subtle' | 'off'
   email_from_name: string | null
   email_logo_url: string | null
@@ -55,10 +52,7 @@ export default function Settings() {
       const payload = {
         name: r.name,
         event_date: r.event_date,
-        check_in_opens_at: new Date(r.check_in_opens_at).toISOString(),
-        check_in_closes_at: new Date(r.check_in_closes_at).toISOString(),
         ends_at: new Date(r.ends_at).toISOString(),
-        default_initial_tickets: r.default_initial_tickets,
         faith_tone_level: r.faith_tone_level,
         email_from_name: r.email_from_name,
         email_logo_url: r.email_logo_url,
@@ -90,15 +84,15 @@ export default function Settings() {
         <label className="block"><span className="text-sm">Event name</span>
           <Input value={row.name} onChange={(e) => set('name', e.target.value)}
             aria-label="event name" /></label>
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
           <label className="block"><span className="text-sm">Date</span>
             <Input type="date" value={row.event_date}
               onChange={(e) => set('event_date', e.target.value)}
               aria-label="event date" /></label>
-          <label className="block"><span className="text-sm">Default tickets</span>
-            <Input type="number" min={0} max={100} value={row.default_initial_tickets}
-              onChange={(e) => set('default_initial_tickets', Number(e.target.value) || 0)}
-              aria-label="default initial tickets" /></label>
+          <label className="block"><span className="text-sm">Event ends</span>
+            <Input type="datetime-local" value={toLocalInput(row.ends_at)}
+              onChange={(e) => set('ends_at', e.target.value)}
+              aria-label="event ends" /></label>
           <label className="block"><span className="text-sm">Faith tone</span>
             <Select value={row.faith_tone_level}
               onChange={(e) => set('faith_tone_level', e.target.value as EventRow['faith_tone_level'])}
@@ -108,17 +102,6 @@ export default function Settings() {
               <option value="off">Off</option>
             </Select>
           </label>
-        </div>
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-          <label className="block"><span className="text-sm">Check-in opens</span>
-            <Input type="datetime-local" value={toLocalInput(row.check_in_opens_at)}
-              onChange={(e) => set('check_in_opens_at', e.target.value)} /></label>
-          <label className="block"><span className="text-sm">Check-in closes</span>
-            <Input type="datetime-local" value={toLocalInput(row.check_in_closes_at)}
-              onChange={(e) => set('check_in_closes_at', e.target.value)} /></label>
-          <label className="block"><span className="text-sm">Event ends</span>
-            <Input type="datetime-local" value={toLocalInput(row.ends_at)}
-              onChange={(e) => set('ends_at', e.target.value)} /></label>
         </div>
       </section>
 

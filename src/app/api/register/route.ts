@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
   }
 
   const sb = serverClient()
-  const { data: eventRow } = await sb.from('events').select('id, default_initial_tickets').limit(1).single()
+  const { data: eventRow } = await sb.from('events').select('id').limit(1).single()
   if (!eventRow) return Response.json({ error: 'no event configured' }, { status: 500 })
 
   const created: { child_id: string; qr_code: string }[] = []

@@ -1,6 +1,6 @@
 # Glow Redesign — STATUS
 
-**Branch:** `glow-redesign` merged into `kid-profile-rebuild` at `3ba4b0b` on 2026-04-20 · **Last update:** 2026-04-20 (Mon, deploy pushed)
+**Branch:** `glow-redesign` merged into `kid-profile-rebuild` at `3ba4b0b` (Phase 5+5.5) and again at `c57d31c` (Phase 6-8 admin polish) on 2026-04-20 · **Last update:** 2026-04-20 (Mon, both deploys pushed)
 **Event:** Saturday, April 25, 2026 (5 days out) · **Dry-run:** Tuesday April 21 (tomorrow)
 **Spec:** `docs/specs/2026-04-19-station-admin-glow-redesign-design.md`
 **Plan:** `docs/plans/2026-04-19-glow-redesign-plan.md`
@@ -23,7 +23,7 @@ Phase 5 + 5.5 shipped to prod. Full sequence executed:
 
 1. **Brian populates `/admin/prizes`** — prize catalog ships empty; station page shows admin hint until rows exist. Needed before the event, but station still renders.
 2. **Dry-run tomorrow (Tue Apr 21)** — exercise prize_wheel + cleanup in the live environment per `docs/runbooks/event-dry-run.md`.
-3. **Admin Phases 6–8 (polish pass)** — see `docs/plans/2026-04-19-glow-redesign-plan.md`. Not blocking event; admin surfaces still render on pre-rebuild styling and work functionally.
+3. ~~**Admin Phases 6–8 (polish pass)**~~ — ✅ SHIPPED 2026-04-20 (merge `c57d31c`). Admin layout.tsx + AdminChrome, Dashboard rebuild, Photo/Stories restyle, 5-page primitive swap, 2 mobile bug fixes. Typecheck clean · 114/114 tests · visual review green desktop + mobile.
 
 Cleanup-crew lock mechanism stays removed — do NOT re-propose it.
 

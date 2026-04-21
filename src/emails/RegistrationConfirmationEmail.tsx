@@ -330,8 +330,8 @@ export default function RegistrationConfirmationEmail({
             <Text style={styles.greeting}>Hi {primary_parent_name} —</Text>
             <Text style={styles.lead}>
               {isMulti
-                ? `You're registered. Below is one wristband code per kid — save this email, screenshot it, or print it. Volunteers will scan these at check-in.`
-                : `You're registered. Your wristband code is below — save this email, screenshot it, or print it. Volunteers will scan it at check-in.`}
+                ? `You're registered. Below is a wristband code for each of them — save this email, screenshot it, or print it. Volunteers will scan these at check-in.`
+                : `You're registered. Their wristband code is below — save this email, screenshot it, or print it. Volunteers will scan it at check-in.`}
             </Text>
 
             <Text style={styles.callout}>{isMulti ? 'Wristband codes' : 'Wristband code'}</Text>
@@ -378,12 +378,12 @@ export default function RegistrationConfirmationEmail({
             <div style={styles.whatsNext}>
               <Text style={styles.whatsNextHeading}>What happens next</Text>
               <Text style={styles.whatsNextLine}>
-                <strong style={{ color: PAPER }}>Saturday:</strong> arrive between 5 and 5:30, scan in
-                at the check-in table, and let the kids loose.
+                <strong style={{ color: PAPER }}>Saturday:</strong> arrive between 5 and 5:30 at the
+                courtyard by the water fountain, scan in, and let the kids loose.
               </Text>
               <Text style={styles.whatsNextLine}>
                 <strong style={{ color: PAPER }}>Sunday morning:</strong> we&apos;ll send a keepsake
-                email with a short story about your kid&apos;s night plus any photos taken.
+                email with a short recap of the night plus any photos taken.
               </Text>
             </div>
 
