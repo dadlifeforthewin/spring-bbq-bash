@@ -30,8 +30,21 @@ export default function EditForm({ token, initial }: { token: string; initial: E
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
 
+  // UI-only toggles per child — derived from initial payload so an
+  // existing filled field stays open for edit. Payload shape unchanged.
+  const [yesAllergies, setYesAllergies] = useState<boolean[]>(
+    () => initial.children.map((c) => c.allergies.trim().length > 0),
+  )
+  const [yesSpecial, setYesSpecial] = useState<boolean[]>(
+    () => initial.children.map((c) => c.special_instructions.trim().length > 0),
+  )
+
   const setChild = (idx: number, patch: Partial<EditableChild>) =>
     setChildren(children.map((c, i) => i === idx ? { ...c, ...patch } : c))
+
+  function setYesAt(setter: typeof setYesAllergies, idx: number, v: boolean) {
+    setter((prev) => prev.map((p, i) => (i === idx ? v : p)))
+  }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -103,19 +116,55 @@ export default function EditForm({ token, initial }: { token: string; initial: E
                   className="w-full rounded border px-3 py-2" />
               </label>
 
-              <label className="block">
-                <span className="block text-sm">Allergies or medical conditions</span>
-                <textarea value={c.allergies} rows={2}
-                  onChange={(e) => setChild(i, { allergies: e.target.value })}
-                  className="w-full rounded border px-3 py-2" />
-              </label>
+              <fieldset className="space-y-2">
+                <legend className="text-sm font-medium">Any allergies or medical notes?</legend>
+                <div className="flex gap-2" role="radiogroup" aria-label="Any allergies or medical notes?">
+                  <label className={`cursor-pointer rounded-full border px-4 py-1.5 text-xs font-semibold uppercase tracking-wider ${yesAllergies[i] ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-300 bg-white text-slate-500 hover:border-slate-400'}`}>
+                    <input type="radio" className="sr-only" name={`edit-allergies-${c.id}`} checked={yesAllergies[i] === true}
+                      onChange={() => setYesAt(setYesAllergies, i, true)} />
+                    Yes
+                  </label>
+                  <label className={`cursor-pointer rounded-full border px-4 py-1.5 text-xs font-semibold uppercase tracking-wider ${!yesAllergies[i] ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-300 bg-white text-slate-500 hover:border-slate-400'}`}>
+                    <input type="radio" className="sr-only" name={`edit-allergies-${c.id}`} checked={yesAllergies[i] === false}
+                      onChange={() => { setYesAt(setYesAllergies, i, false); setChild(i, { allergies: '' }) }} />
+                    No
+                  </label>
+                </div>
+                {yesAllergies[i] && (
+                  <label className="block">
+                    <span className="block text-xs text-slate-500">Tell volunteers what to watch for.</span>
+                    <textarea value={c.allergies} rows={2}
+                      onChange={(e) => setChild(i, { allergies: e.target.value })}
+                      aria-label="Allergies or medical notes"
+                      className="w-full rounded border px-3 py-2" />
+                  </label>
+                )}
+              </fieldset>
 
-              <label className="block">
-                <span className="block text-sm">Special instructions</span>
-                <textarea value={c.special_instructions} rows={2}
-                  onChange={(e) => setChild(i, { special_instructions: e.target.value })}
-                  className="w-full rounded border px-3 py-2" />
-              </label>
+              <fieldset className="space-y-2">
+                <legend className="text-sm font-medium">Anything else volunteers should know?</legend>
+                <div className="flex gap-2" role="radiogroup" aria-label="Anything else volunteers should know?">
+                  <label className={`cursor-pointer rounded-full border px-4 py-1.5 text-xs font-semibold uppercase tracking-wider ${yesSpecial[i] ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-300 bg-white text-slate-500 hover:border-slate-400'}`}>
+                    <input type="radio" className="sr-only" name={`edit-special-${c.id}`} checked={yesSpecial[i] === true}
+                      onChange={() => setYesAt(setYesSpecial, i, true)} />
+                    Yes
+                  </label>
+                  <label className={`cursor-pointer rounded-full border px-4 py-1.5 text-xs font-semibold uppercase tracking-wider ${!yesSpecial[i] ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-300 bg-white text-slate-500 hover:border-slate-400'}`}>
+                    <input type="radio" className="sr-only" name={`edit-special-${c.id}`} checked={yesSpecial[i] === false}
+                      onChange={() => { setYesAt(setYesSpecial, i, false); setChild(i, { special_instructions: '' }) }} />
+                    No
+                  </label>
+                </div>
+                {yesSpecial[i] && (
+                  <label className="block">
+                    <span className="block text-xs text-slate-500">Pickup quirks, meltdowns to avoid, special requests.</span>
+                    <textarea value={c.special_instructions} rows={2}
+                      onChange={(e) => setChild(i, { special_instructions: e.target.value })}
+                      aria-label="Special instructions"
+                      className="w-full rounded border px-3 py-2" />
+                  </label>
+                )}
+              </fieldset>
 
               <div className="space-y-2">
                 <h3 className="text-sm font-semibold">Approved pickup list</h3>
