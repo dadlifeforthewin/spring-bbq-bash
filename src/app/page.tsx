@@ -52,7 +52,7 @@ export default function Home() {
             <div className={styles.crestSeal}>LCA</div>
             <div className={styles.crestText}>
               <b>Lincoln Christian Academy</b>
-              <span>EST. 1995 · 30 YEARS · PTO</span>
+              <span>EST. 1995 · 30 YEARS · PTF</span>
             </div>
           </div>
           <div className={styles.ticker} aria-hidden="true">
@@ -69,7 +69,7 @@ export default function Home() {
         <section className={styles.hero}>
           <div className={styles.heroKicker}>
             <span className={styles.bar} aria-hidden="true" />
-            Under the pavilion · All grades welcome
+            Courtyard by the water fountain · All grades welcome
           </div>
 
           <div className={styles.signWrap}>
@@ -82,7 +82,7 @@ export default function Home() {
               <span className={styles.taglineStar} aria-hidden="true">✦</span>
               <span>Sat · April 25 · 5–8 PM</span>
               <span className={styles.taglineStar} aria-hidden="true">✦</span>
-              <span>Wear white to glow</span>
+              <span>Dress comfy to glow</span>
               <span className={styles.taglineStar} aria-hidden="true">✦</span>
             </div>
 
@@ -136,14 +136,14 @@ export default function Home() {
               <div className={styles.statSub}>Sat, Apr 25, 2026</div>
             </div>
             <div className={`${styles.stat} ${styles.statWhere}`}>
-              <div className={styles.statLbl}>Where</div>
-              <div className={styles.statVal}>The Lot</div>
-              <div className={styles.statSub}>LCA Main Campus · Pavilion</div>
+              <div className={styles.statLbl}>Check-in</div>
+              <div className={styles.statVal}>Courtyard</div>
+              <div className={styles.statSub}>By the water fountain · LCA Main Campus</div>
             </div>
             <div className={styles.stat}>
               <div className={styles.statLbl}>Dress code</div>
-              <div className={styles.statVal}>WEAR WHITE</div>
-              <div className={styles.statSub}>Reflective / light-color clothes glow best</div>
+              <div className={styles.statVal}>COMFY + GLOW</div>
+              <div className={styles.statSub}>Comfy clothes that work with the glow.</div>
             </div>
           </div>
         </section>
@@ -152,7 +152,7 @@ export default function Home() {
         <section>
           <div className={styles.sectionLabel}>
             <span className={styles.sectionNum}>01</span>
-            <span>What your kid&apos;s wristband gets them</span>
+            <span>What the wristband unlocks</span>
             <span className={styles.sectionRule} aria-hidden="true" />
           </div>
 
@@ -182,7 +182,7 @@ export default function Home() {
                   <path d="M8 10V7a4 4 0 0 1 8 0v3" />
                 </svg>
                 <h3>DRINKS</h3>
-                <p>Lemonade, juice, or a glow-soda from the drink tent.</p>
+                <p>Something cold from the drink tent.</p>
               </div>
               <div className={`${styles.perk} ${styles.perk2}`}>
                 <div className={styles.perkCount}>3</div>
@@ -198,7 +198,7 @@ export default function Home() {
                   <path d="M8 5v14M12 5v14M16 5v14" />
                 </svg>
                 <h3>JAIL / PASS</h3>
-                <p>Get sent to glow-jail? Trade one pass to break free. Use all three if you&apos;re extra mischievous.</p>
+                <p>Passes to break out of glow-jail. Use &apos;em all if you get extra mischievous.</p>
               </div>
               <div className={`${styles.perk} ${styles.perk3}`}>
                 <div className={styles.perkCount}>1</div>
@@ -214,7 +214,7 @@ export default function Home() {
                   <path d="M12 3v9l6 3" />
                 </svg>
                 <h3>PRIZE SPIN</h3>
-                <p>One spin on the big wheel. Candy, glow sticks, plush, gift cards — every slot wins.</p>
+                <p>One spin on the big wheel. Every slot wins.</p>
               </div>
               <div className={`${styles.perk} ${styles.perk4}`}>
                 <div className={styles.perkCount}>1</div>
@@ -231,7 +231,7 @@ export default function Home() {
                   <path d="M13 14l6-3V4l-6 3" />
                 </svg>
                 <h3>DJ SHOUTOUT</h3>
-                <p>Drop your name in the booth and hear it over the speakers during your favorite jam.</p>
+                <p>Drop your name in the booth — hear it over the speakers.</p>
               </div>
             </div>
           </div>
@@ -248,11 +248,10 @@ export default function Home() {
           <div className={styles.ctaRow}>
             <article className={`${styles.ctaCard} ${styles.ctaCardPrimary}`}>
               <div className={styles.ctaEyebrow}>Step 2 · Parents · ~2 minutes</div>
-              <h3>Finish the permission slip so your kid&apos;s wristband is ready at the gate.</h3>
+              <h3>Finish the permission slip — we&apos;ll have their wristband ready at the gate.</h3>
               <p>
-                Already bought a ticket? Great. Just fill this out and we&apos;ll have the wristband
-                printed, perks pre-loaded, and waiting for you at check-in — no line, no paperwork at
-                the door.
+                Already bought a ticket? Great. Just fill this out and we&apos;ll have everything
+                ready at check-in — no line, no paperwork.
               </p>
               <Link className={styles.bigBtn} href="/register">
                 Fill out permission slip
@@ -270,7 +269,7 @@ export default function Home() {
             </a>{' '}
             · Donated to LCA for 30 years.
           </div>
-          <div>© 2026 · LCA PTO</div>
+          <div>© 2026 · LCA PTF</div>
         </footer>
       </main>
     </div>
