@@ -11,6 +11,7 @@ import {
 } from '@/components/glow'
 import { PhotoGlyph } from '@/components/glow/glyphs'
 import PhotoViewfinder, { PhotoViewfinderHandle } from './PhotoViewfinder'
+import NameSearch from './NameSearch'
 
 type ScannedKid = {
   id: string
@@ -58,17 +59,18 @@ export default function PhotoStation() {
     }
   }, [])
 
-  async function addScan(e?: React.FormEvent) {
+  async function addScan(e?: React.FormEvent, overrideQr?: string) {
     e?.preventDefault()
     setLookupError(null)
-    if (!qr.trim()) return
-    if (scanned.some((k) => k.id === qr.trim())) {
+    const value = (overrideQr ?? qr).trim()
+    if (!value) return
+    if (scanned.some((k) => k.id === value)) {
       setQr('')
       return
     }
     setBusy(true)
     try {
-      const res = await fetch(`/api/children/by-qr/${encodeURIComponent(qr.trim())}`)
+      const res = await fetch(`/api/children/by-qr/${encodeURIComponent(value)}`)
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
         setLookupError(err.error ?? 'Lookup failed')
@@ -173,6 +175,12 @@ export default function PhotoStation() {
         />
         <Button type="submit" tone="ghost" size="md" loading={capturing}>Add to frame</Button>
       </form>
+
+      <NameSearch
+        tone="magenta"
+        disabled={capturing}
+        onSelect={(qrCode) => { setQr(qrCode); addScan(undefined, qrCode) }}
+      />
 
       {lookupError && (
         <p className="rounded-xl border border-danger/60 bg-danger/10 px-3 py-2 text-sm text-danger">{lookupError}</p>

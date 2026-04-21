@@ -10,6 +10,7 @@ import {
   Chip,
   SectionHeading,
 } from '@/components/glow'
+import NameSearch from './NameSearch'
 
 type Lookup = {
   child: {
@@ -47,14 +48,15 @@ export default function CheckOutStation() {
   const [busy, setBusy] = useState(false)
   const [recentPickups, setRecentPickups] = useState<RecentPickup[]>([])
 
-  async function doLookup(e?: React.FormEvent) {
+  async function doLookup(e?: React.FormEvent, overrideQr?: string) {
     e?.preventDefault()
     setLookupError(null); setSubmitError(null); setSuccess(false)
     setData(null); setSelected(null)
-    if (!qr.trim()) return
+    const value = (overrideQr ?? qr).trim()
+    if (!value) return
     setBusy(true)
     try {
-      const res = await fetch(`/api/children/by-qr/${encodeURIComponent(qr.trim())}`)
+      const res = await fetch(`/api/children/by-qr/${encodeURIComponent(value)}`)
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
         setLookupError(err.error ?? 'Lookup failed')
@@ -127,24 +129,31 @@ export default function CheckOutStation() {
       />
 
       {!data ? (
-        <NeonScanner tone="mint" aspect="portrait" hint="Align wristband QR" scanning>
-          <div className="flex flex-col items-center gap-4 w-full px-4">
-            <form onSubmit={doLookup} className="flex w-full gap-2">
-              <Input
-                type="text"
-                value={qr}
-                onChange={(e) => setQr(e.target.value)}
-                placeholder="Scan or paste QR"
-                aria-label="QR code"
-                className="flex-1"
-              />
-              <Button type="submit" tone="ghost" size="md" loading={busy}>Look up</Button>
-            </form>
-            {lookupError && (
-              <p className="w-full rounded-xl border border-danger/60 bg-danger/10 px-3 py-2 text-sm text-danger">{lookupError}</p>
-            )}
-          </div>
-        </NeonScanner>
+        <>
+          <NeonScanner tone="mint" aspect="portrait" hint="Align wristband QR" scanning>
+            <div className="flex flex-col items-center gap-4 w-full px-4">
+              <form onSubmit={doLookup} className="flex w-full gap-2">
+                <Input
+                  type="text"
+                  value={qr}
+                  onChange={(e) => setQr(e.target.value)}
+                  placeholder="Scan or paste QR"
+                  aria-label="QR code"
+                  className="flex-1"
+                />
+                <Button type="submit" tone="ghost" size="md" loading={busy}>Look up</Button>
+              </form>
+              {lookupError && (
+                <p className="w-full rounded-xl border border-danger/60 bg-danger/10 px-3 py-2 text-sm text-danger">{lookupError}</p>
+              )}
+            </div>
+          </NeonScanner>
+          <NameSearch
+            tone="mint"
+            disabled={busy}
+            onSelect={(qrCode) => { setQr(qrCode); doLookup(undefined, qrCode) }}
+          />
+        </>
       ) : (
         <SignPanel tone="mint" padding="lg">
           <div className="space-y-4">

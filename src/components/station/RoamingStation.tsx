@@ -10,6 +10,7 @@ import {
   GlyphGlow,
   RoamingGlyph,
 } from '@/components/glow'
+import NameSearch from './NameSearch'
 
 type Shot = {
   photo_id: string
@@ -26,6 +27,30 @@ export default function RoamingStation() {
   const [busy, setBusy] = useState(false)
   const [shots, setShots] = useState<Shot[]>([])
   const [cameraReady, setCameraReady] = useState(false)
+  const [taggedKid, setTaggedKid] = useState<{ id: string; name: string } | null>(null)
+  const [tagError, setTagError] = useState<string | null>(null)
+
+  // Name-search fallback: resolve the chosen kid so the next capture tags them.
+  async function doLookup(_e?: React.FormEvent, overrideQr?: string) {
+    const value = (overrideQr ?? '').trim()
+    if (!value) return
+    setTagError(null)
+    try {
+      const res = await fetch(`/api/children/by-qr/${encodeURIComponent(value)}`)
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        setTagError(err.error ?? 'Lookup failed')
+        return
+      }
+      const body = await res.json()
+      setTaggedKid({
+        id: body.child.id,
+        name: `${body.child.first_name} ${body.child.last_name}`,
+      })
+    } catch {
+      setTagError('Lookup failed')
+    }
+  }
 
   // Mark camera ready after brief boot window; confirmed on first successful capture
   useEffect(() => {
@@ -55,10 +80,12 @@ export default function RoamingStation() {
 
       const form = new FormData()
       form.set('photo', blob, 'roaming.jpg')
-      form.set('child_ids', '[]')
+      form.set('child_ids', JSON.stringify(taggedKid ? [taggedKid.id] : []))
       form.set('station', 'roaming')
       form.set('capture_mode', 'roaming_vision')
       if (volunteerName.trim()) form.set('volunteer_name', volunteerName.trim())
+      // One-shot tag: consumed by this capture, cleared for the next.
+      if (taggedKid) setTaggedKid(null)
 
       const res = await fetch('/api/photos/upload', { method: 'POST', body: form })
       const body = await res.json()
@@ -136,6 +163,34 @@ export default function RoamingStation() {
         value={volunteerName}
         onChange={(e) => setVolunteerName(e.target.value)}
       />
+
+      {/* Name-search fallback: pre-tag the next capture when a wristband won't scan. */}
+      <NameSearch
+        tone="uv"
+        disabled={uploading}
+        onSelect={(qrCode) => { doLookup(undefined, qrCode) }}
+      />
+
+      {taggedKid && (
+        <SignPanel tone="uv" padding="md">
+          <div className="flex items-center justify-between gap-3 text-sm text-paper">
+            <span>
+              Next shot will tag <strong className="text-neon-uv">{taggedKid.name}</strong>.
+            </span>
+            <button
+              type="button"
+              onClick={() => setTaggedKid(null)}
+              className="text-[11px] font-semibold uppercase tracking-wider text-neon-cyan hover:text-paper transition [font-family:var(--font-mono),JetBrains_Mono,monospace]"
+            >
+              [ clear ]
+            </button>
+          </div>
+        </SignPanel>
+      )}
+
+      {tagError && (
+        <p className="rounded-xl border border-danger/60 bg-danger/10 px-3 py-2 text-sm text-danger">{tagError}</p>
+      )}
 
       {lastUploadStatus && (
         <SignPanel tone="uv" padding="md">
