@@ -1,4 +1,5 @@
 'use client'
+import { useId, useState } from 'react'
 import PickupList from './PickupList'
 import WristbandPreview from './WristbandPreview'
 import s from './registration.module.css'
@@ -46,6 +47,15 @@ export default function ChildBlock({
     onChange({ ...value, [field]: v })
 
   const displayName = [value.first_name, value.last_name].filter(Boolean).join(' ')
+
+  // UI-only toggles: track whether the parent has opted into entering notes.
+  // We keep the existing string payload shape — empty string = no notes.
+  // Initial state is derived from existing value so editing a pre-populated
+  // child picks up where it left off.
+  const allergiesGroup = useId()
+  const specialGroup = useId()
+  const [yesAllergies, setYesAllergies] = useState(value.allergies.trim().length > 0)
+  const [yesSpecial, setYesSpecial] = useState(value.special_instructions.trim().length > 0)
 
   return (
     <div className={`${s.card} ${s.cardAccentPink}`}>
@@ -120,27 +130,79 @@ export default function ChildBlock({
         </label>
       </div>
 
-      <label className={s.field} style={{ marginTop: 14 }}>
-        <span className={s.fieldLabel}>Allergies or medical notes</span>
-        <textarea
-          className={s.textarea}
-          rows={2}
-          value={value.allergies}
-          onChange={(e) => set('allergies', e.target.value)}
-        />
-        <span className={s.fieldHint}>Optional. Leave blank if none.</span>
-      </label>
+      <fieldset className={s.field} style={{ marginTop: 14, border: 0, padding: 0, minWidth: 0 }}>
+        <legend className={s.fieldLabel}>Any allergies or medical notes?</legend>
+        <div className={s.yesNoRow} role="radiogroup" aria-label="Any allergies or medical notes?">
+          <label className={`${s.yesNoPill} ${yesAllergies ? s.yesNoPillActive : ''}`}>
+            <input
+              type="radio"
+              name={allergiesGroup}
+              checked={yesAllergies}
+              onChange={() => setYesAllergies(true)}
+            />
+            <span>Yes</span>
+          </label>
+          <label className={`${s.yesNoPill} ${!yesAllergies ? s.yesNoPillActive : ''}`}>
+            <input
+              type="radio"
+              name={allergiesGroup}
+              checked={!yesAllergies}
+              onChange={() => { setYesAllergies(false); set('allergies', '') }}
+            />
+            <span>No</span>
+          </label>
+        </div>
+        {yesAllergies && (
+          <label className={s.field} style={{ marginTop: 10 }}>
+            <span className={s.fieldHint}>Tell volunteers what to watch for.</span>
+            <textarea
+              className={s.textarea}
+              rows={2}
+              value={value.allergies}
+              onChange={(e) => set('allergies', e.target.value)}
+              aria-label="Allergies or medical notes"
+              autoFocus
+            />
+          </label>
+        )}
+      </fieldset>
 
-      <label className={s.field} style={{ marginTop: 14 }}>
-        <span className={s.fieldLabel}>Special instructions</span>
-        <textarea
-          className={s.textarea}
-          rows={2}
-          value={value.special_instructions}
-          onChange={(e) => set('special_instructions', e.target.value)}
-        />
-        <span className={s.fieldHint}>Optional. Anything the volunteers should know.</span>
-      </label>
+      <fieldset className={s.field} style={{ marginTop: 14, border: 0, padding: 0, minWidth: 0 }}>
+        <legend className={s.fieldLabel}>Anything else volunteers should know?</legend>
+        <div className={s.yesNoRow} role="radiogroup" aria-label="Anything else volunteers should know?">
+          <label className={`${s.yesNoPill} ${yesSpecial ? s.yesNoPillActive : ''}`}>
+            <input
+              type="radio"
+              name={specialGroup}
+              checked={yesSpecial}
+              onChange={() => setYesSpecial(true)}
+            />
+            <span>Yes</span>
+          </label>
+          <label className={`${s.yesNoPill} ${!yesSpecial ? s.yesNoPillActive : ''}`}>
+            <input
+              type="radio"
+              name={specialGroup}
+              checked={!yesSpecial}
+              onChange={() => { setYesSpecial(false); set('special_instructions', '') }}
+            />
+            <span>No</span>
+          </label>
+        </div>
+        {yesSpecial && (
+          <label className={s.field} style={{ marginTop: 10 }}>
+            <span className={s.fieldHint}>Pickup quirks, meltdowns to avoid, special requests.</span>
+            <textarea
+              className={s.textarea}
+              rows={2}
+              value={value.special_instructions}
+              onChange={(e) => set('special_instructions', e.target.value)}
+              aria-label="Special instructions"
+              autoFocus
+            />
+          </label>
+        )}
+      </fieldset>
 
       <section style={{ marginTop: 18 }}>
         <span className={s.fieldLabel} style={{ display: 'block', marginBottom: 8 }}>Approved pickup list</span>
