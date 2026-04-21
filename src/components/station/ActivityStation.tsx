@@ -15,6 +15,7 @@ import {
   DJGlyph,
   SparkGlyph,
 } from '@/components/glow/glyphs'
+import NameSearch from './NameSearch'
 
 type Lookup = {
   child: {
@@ -113,13 +114,14 @@ export default function ActivityStation() {
     tone: 'cyan' as const,
   } : null
 
-  async function doLookup(e?: React.FormEvent) {
+  async function doLookup(e?: React.FormEvent, overrideQr?: string) {
     e?.preventDefault()
     setLookupError(null); setActionError(null); setSuccess(null); setData(null)
-    if (!qr.trim()) return
+    const value = (overrideQr ?? qr).trim()
+    if (!value) return
     setBusy(true)
     try {
-      const res = await fetch(`/api/children/by-qr/${encodeURIComponent(qr.trim())}`)
+      const res = await fetch(`/api/children/by-qr/${encodeURIComponent(value)}`)
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
         setLookupError(err.error ?? 'Lookup failed')
@@ -409,6 +411,14 @@ export default function ActivityStation() {
           )}
         </div>
       </NeonScanner>
+
+      {!data && (
+        <NameSearch
+          tone={meta.tone}
+          disabled={busy}
+          onSelect={(qrCode) => { setQr(qrCode); doLookup(undefined, qrCode) }}
+        />
+      )}
 
       {log.length > 0 && (
         <section className="flex flex-col gap-2">

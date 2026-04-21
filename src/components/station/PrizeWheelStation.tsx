@@ -10,6 +10,7 @@ import {
   GlyphGlow,
 } from '@/components/glow'
 import { PrizeWheelGlyph } from '@/components/glow/glyphs'
+import NameSearch from './NameSearch'
 
 // ---- shapes ----
 type Prize = {
@@ -110,9 +111,9 @@ export default function PrizeWheelStation() {
     }
   }, [])
 
-  async function doLookup(e?: React.FormEvent) {
+  async function doLookup(e?: React.FormEvent, overrideQr?: string) {
     e?.preventDefault()
-    const trimmed = qr.trim()
+    const trimmed = (overrideQr ?? qr).trim()
     if (!trimmed) return
     setUi({ kind: 'loading' })
     try {
@@ -218,33 +219,40 @@ export default function PrizeWheelStation() {
           </div>
         </SignPanel>
       ) : scanning ? (
-        <NeonScanner
-          tone="gold"
-          aspect="portrait"
-          scanning={ui.kind === 'idle'}
-          hint={ui.kind === 'loading' ? 'Looking up…' : 'Scan wristband or paste QR'}
-        >
-          <form onSubmit={doLookup} className="flex w-full max-w-xs flex-col gap-3 px-4">
-            <Input
-              type="text"
-              value={qr}
-              onChange={(e) => setQr(e.target.value)}
-              placeholder="QR / wristband code"
-              aria-label="QR code"
-              autoFocus
-              disabled={ui.kind === 'loading'}
-            />
-            <Button
-              type="submit"
-              tone="gold"
-              fullWidth
-              loading={ui.kind === 'loading'}
-              disabled={!qr.trim() || ui.kind === 'loading'}
-            >
-              Look up
-            </Button>
-          </form>
-        </NeonScanner>
+        <>
+          <NeonScanner
+            tone="gold"
+            aspect="portrait"
+            scanning={ui.kind === 'idle'}
+            hint={ui.kind === 'loading' ? 'Looking up…' : 'Scan wristband or paste QR'}
+          >
+            <form onSubmit={doLookup} className="flex w-full max-w-xs flex-col gap-3 px-4">
+              <Input
+                type="text"
+                value={qr}
+                onChange={(e) => setQr(e.target.value)}
+                placeholder="QR / wristband code"
+                aria-label="QR code"
+                autoFocus
+                disabled={ui.kind === 'loading'}
+              />
+              <Button
+                type="submit"
+                tone="gold"
+                fullWidth
+                loading={ui.kind === 'loading'}
+                disabled={!qr.trim() || ui.kind === 'loading'}
+              >
+                Look up
+              </Button>
+            </form>
+          </NeonScanner>
+          <NameSearch
+            tone="gold"
+            disabled={ui.kind === 'loading'}
+            onSelect={(qrCode) => { setQr(qrCode); doLookup(undefined, qrCode) }}
+          />
+        </>
       ) : ui.kind === 'error' ? (
         <div className="space-y-3">
           <SignPanel tone="magenta">

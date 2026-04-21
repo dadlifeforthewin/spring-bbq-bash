@@ -10,6 +10,7 @@ import { PageHead } from '@/components/glow/PageHead'
 import { NeonScanner } from '@/components/glow/NeonScanner'
 import { Chip } from '@/components/glow/Chip'
 import { SectionHeading } from '@/components/glow/SectionHeading'
+import NameSearch from './NameSearch'
 
 type Lookup = {
   child: {
@@ -66,15 +67,16 @@ export default function CheckInStation() {
     router.push('/station/lookup')
   }
 
-  async function doLookup(e?: React.FormEvent) {
+  async function doLookup(e?: React.FormEvent, overrideQr?: string) {
     e?.preventDefault()
     setLookupError(null); setCheckInError(null); setMugshotError(null)
     setSuccess(false); setMugshotTaken(false)
     setData(null); setDropoff(null)
-    if (!qr.trim()) return
+    const value = (overrideQr ?? qr).trim()
+    if (!value) return
     setBusy(true)
     try {
-      const res = await fetch(`/api/children/by-qr/${encodeURIComponent(qr.trim())}`)
+      const res = await fetch(`/api/children/by-qr/${encodeURIComponent(value)}`)
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
         setLookupError(err.error ?? 'Lookup failed')
@@ -189,6 +191,13 @@ export default function CheckInStation() {
           )}
         </div>
       </NeonScanner>
+      {!data && (
+        <NameSearch
+          tone="cyan"
+          disabled={busy}
+          onSelect={(qrCode) => { setQr(qrCode); doLookup(undefined, qrCode) }}
+        />
+      )}
 
       <div className="grid grid-cols-2 gap-3">
         <Button tone="magenta" size="lg" fullWidth onClick={handleWalkin}>Walk-in</Button>

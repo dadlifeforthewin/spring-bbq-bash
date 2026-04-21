@@ -11,6 +11,7 @@ import {
   Button,
   type TimelineItem,
 } from '@/components/glow'
+import NameSearch from './NameSearch'
 
 // API shape returned by /api/children/by-qr/[qr]
 type ChildData = {
@@ -124,15 +125,16 @@ export default function LookupStation() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  async function doLookup(e?: React.FormEvent) {
+  async function doLookup(e?: React.FormEvent, overrideQr?: string) {
     e?.preventDefault()
     setError(null); setData(null); setTimeline(null)
-    if (!qr.trim()) return
+    const value = (overrideQr ?? qr).trim()
+    if (!value) return
     setBusy(true)
     try {
       const [childRes, tlRes] = await Promise.all([
-        fetch(`/api/children/by-qr/${encodeURIComponent(qr.trim())}`),
-        fetch(`/api/children/by-qr/${encodeURIComponent(qr.trim())}/timeline`),
+        fetch(`/api/children/by-qr/${encodeURIComponent(value)}`),
+        fetch(`/api/children/by-qr/${encodeURIComponent(value)}/timeline`),
       ])
       if (!childRes.ok) {
         const err = await childRes.json().catch(() => ({}))
@@ -194,36 +196,43 @@ export default function LookupStation() {
            so there's no double-Scanner race between idle and loading states.
            The QR form is embedded so volunteers without a hardware reader can
            type/paste a wristband code. */
-        <NeonScanner
-          tone="cyan"
-          aspect="portrait"
-          scanning={!busy}
-          hint={busy ? 'Looking up…' : 'Scan wristband or enter code'}
-        >
-          <form
-            onSubmit={doLookup}
-            className="flex w-full max-w-xs flex-col gap-3"
+        <>
+          <NeonScanner
+            tone="cyan"
+            aspect="portrait"
+            scanning={!busy}
+            hint={busy ? 'Looking up…' : 'Scan wristband or enter code'}
           >
-            <Input
-              type="text"
-              value={qr}
-              onChange={(e) => setQr(e.target.value)}
-              placeholder="QR / wristband code"
-              aria-label="QR code"
-              autoFocus
-              disabled={busy}
-            />
-            <Button
-              type="submit"
-              tone="cyan"
-              fullWidth
-              loading={busy}
-              disabled={busy || !qr.trim()}
+            <form
+              onSubmit={doLookup}
+              className="flex w-full max-w-xs flex-col gap-3"
             >
-              Look up
-            </Button>
-          </form>
-        </NeonScanner>
+              <Input
+                type="text"
+                value={qr}
+                onChange={(e) => setQr(e.target.value)}
+                placeholder="QR / wristband code"
+                aria-label="QR code"
+                autoFocus
+                disabled={busy}
+              />
+              <Button
+                type="submit"
+                tone="cyan"
+                fullWidth
+                loading={busy}
+                disabled={busy || !qr.trim()}
+              >
+                Look up
+              </Button>
+            </form>
+          </NeonScanner>
+          <NameSearch
+            tone="cyan"
+            disabled={busy}
+            onSelect={(qrCode) => { setQr(qrCode); doLookup(undefined, qrCode) }}
+          />
+        </>
       ) : (
         <>
           <SignPanel tone={kidTone} padding="lg">
