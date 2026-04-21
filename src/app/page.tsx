@@ -182,7 +182,7 @@ export default function Home() {
                   <path d="M8 10V7a4 4 0 0 1 8 0v3" />
                 </svg>
                 <h3>DRINKS</h3>
-                <p>Something cold from the drink tent.</p>
+                <p>Something cold from the drink station.</p>
               </div>
               <div className={`${styles.perk} ${styles.perk2}`}>
                 <div className={styles.perkCount}>3</div>
@@ -198,7 +198,7 @@ export default function Home() {
                   <path d="M8 5v14M12 5v14M16 5v14" />
                 </svg>
                 <h3>JAIL / PASS</h3>
-                <p>Passes to break out of glow-jail. Use &apos;em all if you get extra mischievous.</p>
+                <p>Passes to break out of jail. Use &apos;em all if you get extra mischievous.</p>
               </div>
               <div className={`${styles.perk} ${styles.perk3}`}>
                 <div className={styles.perkCount}>1</div>
