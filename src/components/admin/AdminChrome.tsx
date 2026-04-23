@@ -13,6 +13,7 @@ function pathToKey(path: string): AdminNavKey {
   if (path.startsWith('/admin/prizes')) return 'prizes'
   if (path.startsWith('/admin/cleanup')) return 'cleanup'
   if (path.startsWith('/admin/bulk')) return 'bulk'
+  if (path.startsWith('/admin/wristbands')) return 'wristbands'
   if (path.startsWith('/admin/settings')) return 'settings'
   return 'dashboard'
 }

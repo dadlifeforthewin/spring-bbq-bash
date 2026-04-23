@@ -10,6 +10,7 @@ export type AdminNavKey =
   | 'prizes'
   | 'cleanup'
   | 'bulk'
+  | 'wristbands'
   | 'settings'
 
 type Props = {
@@ -26,6 +27,7 @@ const LINKS: { key: AdminNavKey; href: string; label: string }[] = [
   { key: 'prizes',    href: '/admin/prizes',    label: 'Prizes' },
   { key: 'cleanup',   href: '/admin/cleanup',   label: 'Cleanup' },
   { key: 'bulk',      href: '/admin/bulk',      label: 'Bulk' },
+  { key: 'wristbands',href: '/admin/wristbands',label: 'Wristbands' },
   { key: 'settings',  href: '/admin/settings',  label: 'Settings' },
 ]
 
