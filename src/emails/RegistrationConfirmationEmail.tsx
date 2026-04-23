@@ -11,15 +11,14 @@ import {
   Text,
   Font,
 } from '@react-email/components'
-import { ATTN_TO_DETAIL_FOOTER } from './StoryEmail'
+const ATTN_TO_DETAIL_CONFIRM_FOOTER =
+  "This site was designed and built by Brian Leach of Attn: To Detail — a small consulting studio that helps founder-led businesses move faster with websites, AI tools, and honest strategy. Proud to donate it to LCA for the night."
 
 export type RegistrationEmailChild = {
   first_name: string
   last_name: string
   age: number | null
   grade: string | null
-  qr_code: string
-  qr_data_url: string
 }
 
 export type RegistrationConfirmationEmailProps = {
@@ -154,26 +153,6 @@ const styles = {
     fontSize: '13px',
     margin: '0 0 14px',
   } as const,
-  qrCard: {
-    backgroundColor: PAPER,
-    borderRadius: '14px',
-    padding: '18px',
-    textAlign: 'center' as const,
-    border: `1px solid ${HAIR}`,
-  } as const,
-  qrImg: {
-    display: 'block',
-    width: '220px',
-    height: '220px',
-    margin: '0 auto 10px',
-  } as const,
-  qrCodeText: {
-    fontFamily: 'SFMono-Regular, "SF Mono", Menlo, Consolas, monospace',
-    fontSize: '12px',
-    color: INK,
-    letterSpacing: '0.1em',
-    margin: 0,
-  } as const,
   perkChips: {
     color: MIST,
     fontSize: '13px',
@@ -277,8 +256,8 @@ export default function RegistrationConfirmationEmail({
 }: RegistrationConfirmationEmailProps) {
   const isMulti = children.length > 1
   const preview = isMulti
-    ? `You're in — wristband codes for your ${children.length} kids.`
-    : `You're in — ${children[0].first_name}'s wristband code inside.`
+    ? `You're in — Spring BBQ Bash details + edit link inside.`
+    : `You're in — ${children[0].first_name}'s Spring BBQ Bash details inside.`
 
   return (
     <Html>
@@ -330,14 +309,14 @@ export default function RegistrationConfirmationEmail({
             <Text style={styles.greeting}>Hi {primary_parent_name} —</Text>
             <Text style={styles.lead}>
               {isMulti
-                ? `You're registered. Below is a wristband code for each of them — save this email, screenshot it, or print it. Volunteers will scan these at check-in.`
-                : `You're registered. Their wristband code is below — save this email, screenshot it, or print it. Volunteers will scan it at check-in.`}
+                ? `You're registered. Wristbands will be waiting at the check-in table Saturday — just give the kids' names. This email is your receipt and edit link if anything needs to change.`
+                : `You're registered. Their wristband will be waiting at the check-in table Saturday — just give their name. This email is your receipt and edit link if anything needs to change.`}
             </Text>
 
-            <Text style={styles.callout}>{isMulti ? 'Wristband codes' : 'Wristband code'}</Text>
+            <Text style={styles.callout}>{isMulti ? 'Registered kids' : 'Registered'}</Text>
 
             {children.map((child, i) => (
-              <Section key={child.qr_code + i} style={styles.childBlock}>
+              <Section key={`${child.first_name}-${child.last_name}-${i}`} style={styles.childBlock}>
                 <span style={styles.childHeaderBar}>{child.first_name}</span>
                 <Heading as="h2" style={styles.childName}>
                   {child.first_name} {child.last_name}
@@ -347,15 +326,6 @@ export default function RegistrationConfirmationEmail({
                     .filter(Boolean)
                     .join(' · ')}
                 </Text>
-
-                <div style={styles.qrCard}>
-                  <Img
-                    src={child.qr_data_url}
-                    alt={`QR code for ${child.first_name}`}
-                    style={styles.qrImg}
-                  />
-                  <Text style={styles.qrCodeText}>{child.qr_code}</Text>
-                </div>
 
                 <Text style={styles.perkChips}>
                   2 drinks · 3 jail / pass · 1 prize wheel spin · 1 DJ shoutout
@@ -389,7 +359,7 @@ export default function RegistrationConfirmationEmail({
 
             <div style={styles.footer}>
               <Text style={styles.footerText}>
-                <span style={styles.footerStrong}>{ATTN_TO_DETAIL_FOOTER}</span>
+                <span style={styles.footerStrong}>{ATTN_TO_DETAIL_CONFIRM_FOOTER}</span>
               </Text>
               <Text style={styles.footerText}>
                 <Link href="mailto:brian@attntodetail.ai" style={styles.footerLink}>
@@ -413,7 +383,7 @@ export default function RegistrationConfirmationEmail({
 
 export function subjectForRegistration(children: RegistrationEmailChild[]): string {
   if (children.length === 1) {
-    return `You're in — ${children[0].first_name}'s wristband code for Spring BBQ Bash`
+    return `You're in — ${children[0].first_name} is registered for Spring BBQ Bash`
   }
-  return `You're in — wristband codes for your ${children.length} kids at Spring BBQ Bash`
+  return `You're in — ${children.length} kids registered for Spring BBQ Bash`
 }

@@ -1,4 +1,3 @@
-import QRCode from 'qrcode'
 import { render } from '@react-email/render'
 import { resend, emailFrom } from '@/lib/resend'
 import { serverClient } from '@/lib/supabase'
@@ -26,22 +25,7 @@ export type SendRegistrationInput = {
     age: number | null
     grade: string | null
     child_id: string
-    qr_code: string
   }[]
-}
-
-// Turn a QR string into a black-on-paper PNG data URL suitable for
-// inline <img> in an HTML email. High error-correction so a slightly
-// squished render still scans; white background so the image reads
-// cleanly on both light and dark client chromes (Gmail strips our
-// background sometimes).
-async function qrDataUrl(value: string): Promise<string> {
-  return QRCode.toDataURL(value, {
-    errorCorrectionLevel: 'M',
-    margin: 2,
-    width: 440, // 2x the display size for retina
-    color: { dark: '#0B0A1F', light: '#F5F2FF' },
-  })
 }
 
 export async function sendRegistrationConfirmation(input: SendRegistrationInput) {
@@ -55,17 +39,12 @@ export async function sendRegistrationConfirmation(input: SendRegistrationInput)
 
   const event_name = eventRow?.name ?? 'LCA Spring BBQ Bash'
 
-  // Generate QR images in parallel — each is independent.
-  const emailChildren: RegistrationEmailChild[] = await Promise.all(
-    input.children.map(async (c) => ({
-      first_name: c.first_name,
-      last_name: c.last_name,
-      age: c.age,
-      grade: c.grade,
-      qr_code: c.qr_code,
-      qr_data_url: await qrDataUrl(c.qr_code),
-    })),
-  )
+  const emailChildren: RegistrationEmailChild[] = input.children.map((c) => ({
+    first_name: c.first_name,
+    last_name: c.last_name,
+    age: c.age,
+    grade: c.grade,
+  }))
 
   const html = await render(
     RegistrationConfirmationEmail({

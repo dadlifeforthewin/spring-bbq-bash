@@ -24,7 +24,6 @@ export async function POST(req: NextRequest) {
   const created: { child_id: string; qr_code: string }[] = []
   const emailChildren: {
     child_id: string
-    qr_code: string
     first_name: string
     last_name: string
     age: number | null
@@ -104,7 +103,6 @@ export async function POST(req: NextRequest) {
     created.push({ child_id: created_child.id, qr_code: created_child.qr_code })
     emailChildren.push({
       child_id: created_child.id,
-      qr_code: created_child.qr_code,
       first_name: child.first_name,
       last_name: child.last_name,
       age: child.age ?? null,
