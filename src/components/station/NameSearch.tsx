@@ -102,20 +102,52 @@ export default function NameSearch({ tone = 'cyan', onSelect, disabled = false }
 
   return (
     <div className="flex flex-col gap-2">
+      {/* Prominent "Search by name" label — the previous low-contrast eyebrow
+       *  didn't read as a form label. Promoted to a clear section heading
+       *  matching other station section headings. */}
       <div className="flex items-center gap-2">
-        <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-mist [font-family:var(--font-mono),JetBrains_Mono,monospace]">
-          or search by name
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="h-4 w-4 text-mist"
+        >
+          <circle cx="11" cy="11" r="7" />
+          <path d="m20 20-3.5-3.5" />
+        </svg>
+        <span className="text-xs font-bold uppercase tracking-[0.16em] text-paper [font-family:var(--font-mono),JetBrains_Mono,monospace]">
+          Search by name
         </span>
         <span className="h-px flex-1 bg-ink-hair" />
       </div>
-      <Input
-        type="search"
-        value={q}
-        onChange={(e) => { setQ(e.target.value); if (!touched) setTouched(true) }}
-        placeholder="Kid's first or last name"
-        aria-label="search child by name"
-        disabled={disabled}
-      />
+      {/* Input with leading icon; type=text (not search) to avoid Safari's
+       *  default search-field appearance that mis-positions the caret until
+       *  the first tap. */}
+      <div className="relative">
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-faint"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+            <circle cx="11" cy="11" r="7" />
+            <path d="m20 20-3.5-3.5" />
+          </svg>
+        </span>
+        <Input
+          type="text"
+          inputMode="search"
+          value={q}
+          onChange={(e) => { setQ(e.target.value); if (!touched) setTouched(true) }}
+          placeholder="Type a first or last name"
+          aria-label="search child by name"
+          disabled={disabled}
+          className="pl-11"
+        />
+      </div>
       {statusText && (
         <p className="text-xs text-faint [font-family:var(--font-mono),JetBrains_Mono,monospace]">
           {statusText}
