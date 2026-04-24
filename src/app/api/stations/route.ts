@@ -1,0 +1,28 @@
+import { serverClient } from '@/lib/supabase'
+
+// Public stations metadata for the picker. The stations table is locked for
+// the event so we cache aggressively at the edge: served from Vercel's CDN
+// for 5 min, then revalidated in the background. The picker also caches the
+// response in localStorage for instant remount.
+export async function GET() {
+  const sb = serverClient()
+  const { data, error } = await sb
+    .from('stations')
+    .select('slug, name, sort_order')
+    .order('sort_order', { ascending: true })
+
+  if (error) {
+    return Response.json({ stations: [] }, { status: 500 })
+  }
+
+  return new Response(
+    JSON.stringify({ stations: data ?? [] }),
+    {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=3600',
+      },
+    },
+  )
+}

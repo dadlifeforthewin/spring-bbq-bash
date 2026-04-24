@@ -2,11 +2,10 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import StationPicker from '@/components/station/StationPicker'
 
-// Router push spy — recreated per test so each assertion gets a clean call list.
-const pushSpy = vi.fn()
-
+// Picker uses next/router only for prefetch warming; tests don't assert
+// on prefetch calls.
 vi.mock('next/navigation', () => ({
-  useRouter: () => ({ push: (...args: unknown[]) => pushSpy(...args), replace: vi.fn() }),
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn(), prefetch: vi.fn() }),
 }))
 
 type Station = { slug: string; name: string }
@@ -27,7 +26,6 @@ const STATIONS: Station[] = [
 
 describe('<StationPicker>', () => {
   beforeEach(() => {
-    pushSpy.mockReset()
     try { localStorage.clear() } catch {}
   })
 
@@ -37,34 +35,32 @@ describe('<StationPicker>', () => {
 
   it('routes prize_wheel tile to /station/prize_wheel (not /station/activity)', () => {
     render(<StationPicker stations={STATIONS} />)
-    fireEvent.click(screen.getByRole('button', { name: /prize wheel/i }))
-    expect(pushSpy).toHaveBeenCalledWith('/station/prize_wheel')
+    const link = screen.getByRole('link', { name: /prize wheel/i })
+    expect(link).toHaveAttribute('href', '/station/prize_wheel')
   })
 
   it('renders cleanup tile and routes it to /station/cleanup', () => {
     render(<StationPicker stations={STATIONS} />)
-    const btn = screen.getByRole('button', { name: /cleanup crew/i })
-    expect(btn).toBeInTheDocument()
+    const link = screen.getByRole('link', { name: /cleanup crew/i })
+    expect(link).toBeInTheDocument()
     // cleanup sub copy distinguishes it from the generic "Log the visit" fallback
     expect(screen.getByText(/end-of-night checklist/i)).toBeInTheDocument()
-    fireEvent.click(btn)
-    expect(pushSpy).toHaveBeenCalledWith('/station/cleanup')
+    expect(link).toHaveAttribute('href', '/station/cleanup')
   })
 
   it('renders dedicated glyphs (no SparkGlyph fallback) for all 8 previously-unstyled slugs', () => {
     // Each station tile's <svg> carries a glyph-specific data-glyph attribute;
     // this test asserts the 8 unstyled slugs render a non-spark glyph.
     const { container } = render(<StationPicker stations={STATIONS} />)
-    const buttons = Array.from(container.querySelectorAll('button'))
+    const links = Array.from(container.querySelectorAll('a'))
 
-    // Helper: find the button whose visible name contains the slug's human label.
+    // Helper: find the link whose visible name contains the slug's human label.
     const svgFor = (labelRegex: RegExp) => {
-      const btn = buttons.find((b) => labelRegex.test(b.textContent ?? ''))
-      expect(btn, `missing tile for ${labelRegex}`).toBeTruthy()
-      return btn!.querySelector('svg')
+      const link = links.find((a) => labelRegex.test(a.textContent ?? ''))
+      expect(link, `missing tile for ${labelRegex}`).toBeTruthy()
+      return link!.querySelector('svg')
     }
 
-    // All 8 tiles should render *some* svg (dedicated glyph present, not a missing component)
     expect(svgFor(/cornhole/i)).toBeTruthy()
     expect(svgFor(/face painting/i)).toBeTruthy()
     expect(svgFor(/arts & crafts/i)).toBeTruthy()
@@ -77,13 +73,13 @@ describe('<StationPicker>', () => {
 
   it('persists selected slug to localStorage on tap', () => {
     render(<StationPicker stations={STATIONS} />)
-    fireEvent.click(screen.getByRole('button', { name: /prize wheel/i }))
+    fireEvent.click(screen.getByRole('link', { name: /prize wheel/i }))
     expect(localStorage.getItem('sbbq_station')).toBe('prize_wheel')
   })
 
   it('falls back to /station/activity for unknown slugs (FALLBACK preserved)', () => {
     render(<StationPicker stations={[{ slug: 'future_station_xyz', name: 'Future' }]} />)
-    fireEvent.click(screen.getByRole('button', { name: /future/i }))
-    expect(pushSpy).toHaveBeenCalledWith('/station/activity')
+    const link = screen.getByRole('link', { name: /future/i })
+    expect(link).toHaveAttribute('href', '/station/activity')
   })
 })

@@ -1,20 +1,16 @@
 import { isVolunteerAuthed } from '@/lib/volunteer-auth'
-import { serverClient } from '@/lib/supabase'
 import VolunteerLogin from '@/components/station/VolunteerLogin'
 import StationPicker from '@/components/station/StationPicker'
 
+// Page is dynamic only because of the cookie check — no DB query happens
+// here anymore. The stations list is fetched client-side from /api/stations
+// (edge-cached + localStorage-cached) so subsequent "Back to stations"
+// navs render instantly from cache while a background refresh runs.
 export const dynamic = 'force-dynamic'
 
-export default async function StationPage() {
+export default function StationPage() {
   if (!isVolunteerAuthed()) {
     return <VolunteerLogin />
   }
-
-  const sb = serverClient()
-  const { data: stations } = await sb
-    .from('stations')
-    .select('slug, name, sort_order')
-    .order('sort_order', { ascending: true })
-
-  return <StationPicker stations={(stations ?? []).map((s) => ({ slug: s.slug, name: s.name }))} />
+  return <StationPicker />
 }

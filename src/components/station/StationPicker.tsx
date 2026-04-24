@@ -1,6 +1,6 @@
 'use client'
 import Link from 'next/link'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { clsx } from '@/components/glow/clsx'
 import { GlyphGlow } from '@/components/glow/GlyphGlow'
@@ -71,13 +71,65 @@ const toneHoverText: Record<Tone, string> = {
   mint:    'hover:text-neon-mint',
 }
 
-export default function StationPicker({ stations }: { stations: Station[] }) {
-  const router = useRouter()
+const CACHE_KEY = 'sbbq_stations_cache_v1'
+const CACHE_TTL_MS = 5 * 60 * 1000 // 5 min — stations table is locked for the event
 
-  // Eagerly prefetch every station route on mount. Volunteers tap stations
-  // dozens of times per shift; warming the chunks + RSC payloads upfront
-  // turns each tap from a cold network round-trip into a near-instant nav.
+type CacheShape = { ts: number; stations: Station[] }
+
+function readCache(): Station[] | null {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as CacheShape
+    if (Date.now() - parsed.ts > CACHE_TTL_MS) return null
+    if (!Array.isArray(parsed.stations)) return null
+    return parsed.stations
+  } catch {
+    return null
+  }
+}
+
+function writeCache(stations: Station[]) {
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), stations }))
+  } catch {}
+}
+
+// Optional prop: production callers (page.tsx) pass nothing and the picker
+// self-fetches from /api/stations with localStorage caching. Test callers
+// pass a fixed list to bypass the fetch entirely.
+export default function StationPicker({ stations: stationsProp }: { stations?: Station[] } = {}) {
+  const router = useRouter()
+  // SSR + first-paint render with [] (or the test prop); client mount swaps
+  // in the cached list so "Back to stations" feels instant.
+  const [stations, setStations] = useState<Station[]>(stationsProp ?? [])
+
   useEffect(() => {
+    // If the parent supplied stations directly, skip the fetch + cache flow.
+    if (stationsProp) return
+
+    const cached = readCache()
+    if (cached) setStations(cached)
+
+    // Always background-refresh from the API. Edge-cached for 5min so the
+    // network cost is cheap; updates the localStorage copy for next nav.
+    fetch('/api/stations')
+      .then((r) => r.json())
+      .then((data: { stations?: Station[] }) => {
+        if (Array.isArray(data?.stations)) {
+          setStations(data.stations)
+          writeCache(data.stations)
+        }
+      })
+      .catch(() => { /* keep cached or empty fallback */ })
+  }, [stationsProp])
+
+  // Eagerly prefetch every station route once we have the list. Volunteers
+  // tap stations dozens of times per shift; warming the chunks + RSC
+  // payloads upfront turns each tap from a cold network round-trip into a
+  // near-instant nav.
+  useEffect(() => {
+    if (stations.length === 0) return
     const seen = new Set<string>()
     for (const s of stations) {
       const route = routeFor(s.slug)
