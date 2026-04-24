@@ -11,6 +11,33 @@
 - **Apple Wallet placeholder removed** — the `/register/confirm` "Add pass to Apple Wallet" button was a `preventDefault` noop with copy "Coming this week," but the path requires Apple Developer Program enrollment ($99/yr, 24-48hr+ approval) + Pass Type ID + signing cert + brand artwork + signed `.pkpass` generation — none of which can complete before tomorrow's event. Removed the button + its dead CSS rather than ship a known-broken affordance with a misleading promise. Honest copy in the README/design-docs "Questions / extensions" list (it falsely claimed pkpass needs no Apple Developer account). Runbook references in `docs/runbooks/event-dry-run.md` updated. Files: `src/app/register/confirm/page.tsx`, `src/app/register/confirm/page.module.css`, `README.md`, `docs/design/README.md`, `docs/runbooks/event-dry-run.md`. **Post-event queue:** real Apple Wallet implementation requires (1) Apple Developer Program enrollment, (2) Pass Type ID + cert generation, (3) icon/logo/strip artwork at @1x/@2x/@3x, (4) `passkit-generator` (or equivalent) wired into a `/api/passes/[child_id]` route returning `application/vnd.apple.pkpass`. Earliest realistic ship: ~1 week post-event once cert is in hand.
 - **Verified:** typecheck clean; 113/114 unit tests pass (the one failure is a pre-existing `PrizeWheelStation` QR-scanner mock issue unrelated to this wave); mobile Playwright smoke covers all four states — landing-top, landing-scrolled (sticky visible), register-empty (5 yellow rows + placeholder), register-complete (5 cyan rows + submit button). Screenshots in `/tmp/sbbq-*.png`.
 
+## 2026-04-24 — afternoon wave (continued)
+
+Pushed across multiple commits:
+- **Wristband print rebuild** for Mr-Label MR201 sheets (9.84"×7.48", 10 per sheet, custom paper size, true-physical-size preview). Print-setup guide above the preview with exact paper-size + scale + margin instructions. (`2cf5afa`)
+- **`/station/help` page + HelpLink button** wired into every station's PageHead. Source of truth: `src/app/station/help/page.tsx`; print-ready paper version at `docs/runbooks/volunteer-cheatsheet.md` cross-referenced both ways. (`e7aaf09`)
+- **Apple Wallet placeholder dropped** from `/register/confirm` (was advertising "Coming this week" but cert path requires Apple Developer enrollment that can't complete pre-event). Real implementation deferred — scheduled remote agent fires 2026-05-08 to follow up. (`ce6e3a4`, `4d20423`)
+- **Login forms** now have a readonly `Account` field above the password (LCA Volunteer / LCA Admin) so password managers can save the credential. (`e22d45d`)
+- **NameSearch UX fix** — bolder "SEARCH BY NAME" label + leading magnifying-glass icon inside the input + `type="text"` (with `inputMode="search"`) to fix the iOS Safari caret-mispositioning bug on `type="search"`. (`df36b06`)
+- **Station nav perceived-speed wave** — `<Link prefetch>` on every picker tile, eager `router.prefetch()` on picker mount for all 9 station routes, `loading.tsx` for instant nav feedback, `/api/stations` endpoint with edge-cache (`s-maxage=300, swr=3600`), localStorage cache of stations list with 5-min TTL so "Back to stations" renders instantly from cache while a background refresh runs. Picker page slimmed to just an auth check (no Supabase query at request time). (`afe1fdd`, `cda8c62`)
+- **QRScanner camera-permission tip** — one-time inline tip card "When iOS asks, pick Allow on Every Visit" using `navigator.permissions.query({name:'camera'})` + localStorage flag. Browser owns the actual permission decision. (`afe1fdd`)
+- **Station picker reorder** — migration `0016_reorder_stations.sql` updates `sort_order` so order is: check-in → jail → drinks → pizza → cake_walk → prize_wheel → dj_shoutout → cornhole → face_painting → arts_crafts → video_games → dance_competition → quiet_corner → photo → roaming → cleanup → check_out. (NEEDS APPLY in Supabase Studio — see "Pending Brian actions" below.)
+
+## Pending Brian actions (2026-04-24 evening)
+
+1. **Apply migration `0016_reorder_stations.sql`** in Supabase Studio → SQL Editor (paste + run). Picker reorders next time anyone navigates to /station (5-min localStorage TTL on cached list, or volunteers can clear site data).
+2. **Delete the Gasser kids** so they re-register through the now-fixed email flow:
+   ```sql
+   -- verify first
+   select id, first_name, last_name, qr_code from children
+   where last_name = 'Gasser' and first_name in ('Addelyn', 'Liam');
+   -- then delete (FK cascade on child_id should clean guardians, signatures, photos, ticket-redemptions)
+   delete from children
+   where last_name = 'Gasser' and first_name in ('Addelyn', 'Liam');
+   ```
+3. **Real-iPhone dry-run** through the runbook (`docs/runbooks/event-dry-run.md`) — overdue. Tonight is the last realistic window.
+4. **Volunteer + wristband prep** — `/admin/wristbands` for printing on the Mr-Label sheets; `/station/help` is the in-app cheat sheet.
+
 **Plan:** `docs/plans/2026-04-16-kid-profile-rebuild-plan.md` · **Spec:** `docs/specs/2026-04-16-kid-profile-rebuild-design.md` · **Glow-redesign:** `docs/STATUS-glow-redesign.md` (merged 2026-04-20, kept for archaeology)
 **Vercel production branch:** `kid-profile-rebuild` — every push auto-deploys to prod.
 
