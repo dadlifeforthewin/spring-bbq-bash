@@ -128,17 +128,6 @@ export default function StationPicker({ stations }: { stations: Station[] }) {
           })}
         </ul>
       )}
-
-      {/* Quick reference */}
-      <SignPanel tone="gold" padding="md">
-        <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-neon-gold [font-family:var(--font-mono),JetBrains_Mono,monospace]">
-          Quick reference
-        </div>
-        <p className="mt-2 text-sm text-mist leading-relaxed">
-          Every kid arrives with 2 drinks, 3 jail/pass tokens, 1 prize-wheel spin (logged at check-in),
-          and 1 DJ shoutout. Other stations just log the visit for the keepsake email.
-        </p>
-      </SignPanel>
     </div>
   )
 }

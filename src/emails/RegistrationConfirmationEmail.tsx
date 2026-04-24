@@ -515,10 +515,6 @@ export default function RegistrationConfirmationEmail({
                 <strong style={{ color: PAPER }}>Till then:</strong> watch the countdown on the
                 site tick down. Saturday&apos;s already been warned.
               </Text>
-              <Text style={styles.whatsNextLine}>
-                <strong style={{ color: PAPER }}>One more thing:</strong> a little something is landing in
-                your inbox the morning after the party. Watch for it — we think you&apos;ll like it.
-              </Text>
             </div>
 
             <div style={styles.footer}>

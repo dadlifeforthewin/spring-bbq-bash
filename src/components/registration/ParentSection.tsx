@@ -79,7 +79,7 @@ export default function ParentSection({
           />
           {!optional && (
             <span className={s.fieldHint}>
-              Make sure this is a real inbox — there&apos;s something worth catching the morning after.
+              Your confirmation and edit link will land here.
             </span>
           )}
         </label>

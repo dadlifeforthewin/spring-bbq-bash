@@ -281,21 +281,6 @@ export default function RegistrationForm({ qrOverride }: { qrOverride?: string }
             />
           </div>
 
-          {/* Tiny morning-after teaser — preserves the keepsake surprise
-              by talking around it. No "AI story" / "keepsake email" reveal. */}
-          <div
-            className={s.card}
-            style={{ marginTop: 20, display: 'flex', alignItems: 'flex-start', gap: 12 }}
-          >
-            <div style={{ fontSize: 22 }} aria-hidden>✨</div>
-            <div>
-              <div className={s.cardEyebrow} style={{ color: 'var(--glow-yellow)' }}>One more thing…</div>
-              <div className={s.cardSub} style={{ color: 'var(--ink)' }}>
-                A little something is landing in your inbox the morning after the party. Watch for it — we think you&apos;ll like it.
-              </div>
-            </div>
-          </div>
-
           {error && (
             <div role="alert" className={s.errorPill}>
               <div className={s.errorTitle}>{error.title}</div>
