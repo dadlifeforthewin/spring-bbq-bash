@@ -1,4 +1,6 @@
 'use client'
+import Link from 'next/link'
+import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { clsx } from '@/components/glow/clsx'
 import { GlyphGlow } from '@/components/glow/GlyphGlow'
@@ -72,9 +74,22 @@ const toneHoverText: Record<Tone, string> = {
 export default function StationPicker({ stations }: { stations: Station[] }) {
   const router = useRouter()
 
-  const pick = (s: Station) => {
-    try { localStorage.setItem(STATION_STORAGE_KEY, s.slug) } catch {}
-    router.push(routeFor(s.slug))
+  // Eagerly prefetch every station route on mount. Volunteers tap stations
+  // dozens of times per shift; warming the chunks + RSC payloads upfront
+  // turns each tap from a cold network round-trip into a near-instant nav.
+  useEffect(() => {
+    const seen = new Set<string>()
+    for (const s of stations) {
+      const route = routeFor(s.slug)
+      if (seen.has(route)) continue
+      seen.add(route)
+      router.prefetch(route)
+    }
+    router.prefetch('/station/help')
+  }, [stations, router])
+
+  const remember = (slug: string) => {
+    try { localStorage.setItem(STATION_STORAGE_KEY, slug) } catch {}
   }
 
   return (
@@ -108,13 +123,14 @@ export default function StationPicker({ stations }: { stations: Station[] }) {
             const meta = ROUTING[s.slug] ?? FALLBACK
             return (
               <li key={s.slug}>
-                <button
-                  type="button"
-                  onClick={() => pick(s)}
+                <Link
+                  href={routeFor(s.slug)}
+                  prefetch
+                  onClick={() => remember(s.slug)}
                   className={clsx(
-                    'group flex w-full flex-col items-center gap-2 rounded-2xl border bg-ink-2/60 p-4 text-center',
+                    'group flex w-full flex-col items-center gap-2 rounded-2xl border bg-ink-2/60 p-4 text-center no-underline',
                     'border-ink-hair hover:border-current transition-[transform,border-color,color] duration-200',
-                    'motion-safe:active:scale-[0.97] motion-safe:hover:-translate-y-0.5',
+                    'motion-safe:active:scale-[0.97] motion-safe:hover:-translate-y-0.5 touch-manipulation',
                     toneHoverText[meta.tone],
                   )}
                 >
@@ -127,7 +143,7 @@ export default function StationPicker({ stations }: { stations: Station[] }) {
                   <span className="text-[10px] uppercase tracking-[0.14em] text-mist">
                     {meta.sub}
                   </span>
-                </button>
+                </Link>
               </li>
             )
           })}
