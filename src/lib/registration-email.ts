@@ -12,7 +12,7 @@ import { siteUrl } from '@/lib/site-url'
 // (we only keep timestamptz columns for check-in windows), so we pin
 // these here rather than derive + format on every send. If the event
 // relocates or the window shifts, update these two lines.
-const EVENT_TIME = '5:00–8:00 PM'
+const EVENT_TIME = 'Doors 4:45 · Party 5–8 PM'
 const EVENT_LOCATION = 'Lincoln Christian Academy'
 
 export type SendRegistrationInput = {

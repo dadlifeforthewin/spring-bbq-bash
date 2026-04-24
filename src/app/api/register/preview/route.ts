@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
     RegistrationConfirmationEmail({
       event_name: 'LCA Spring BBQ Bash',
       event_date: '2026-04-25',
-      event_time: '5:00–8:00 PM',
+      event_time: 'Doors 4:45 · Party 5–8 PM',
       event_location: 'Lincoln Christian Academy',
       event_logo_url: null,
       primary_parent_name: 'Jane Carter',

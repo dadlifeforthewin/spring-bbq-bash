@@ -202,7 +202,7 @@ export default function RegistrationForm({ qrOverride }: { qrOverride?: string }
             </span>
           </h1>
           <p className={s.heroSub}>
-            Saturday, April 25, 2026 · 5:00 – 8:00 PM. Fill this out once per family. Every kid arrives with the full
+            Saturday, April 25, 2026 · Doors 4:45 · Party 5:00 – 8:00 PM. Fill this out once per family. Every kid arrives with the full
             Glow Party Edition perks — you just tell us who&apos;s coming and sign the waiver.
           </p>
         </header>

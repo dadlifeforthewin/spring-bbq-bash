@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react'
 import styles from './page.module.css'
 
 // 5pm Pacific Daylight Time on Saturday, April 25, 2026 (DST → UTC-7).
-const TARGET_MS = new Date('2026-04-25T17:00:00-07:00').getTime()
+const TARGET_MS = new Date('2026-04-25T16:45:00-07:00').getTime()
 
 function pad(n: number) {
   return String(n).padStart(2, '0')
@@ -80,7 +80,7 @@ export default function Home() {
 
             <div className={styles.tagline}>
               <span className={styles.taglineStar} aria-hidden="true">✦</span>
-              <span>Sat · April 25 · 5–8 PM</span>
+              <span>Sat · April 25 · Doors 4:45 · Glow 5–8 PM</span>
               <span className={styles.taglineStar} aria-hidden="true">✦</span>
               <span>Dress comfy to glow</span>
               <span className={styles.taglineStar} aria-hidden="true">✦</span>
@@ -133,7 +133,7 @@ export default function Home() {
             <div className={`${styles.stat} ${styles.statTime}`}>
               <div className={styles.statLbl}>When</div>
               <div className={styles.statVal}>5–8 PM</div>
-              <div className={styles.statSub}>Sat, Apr 25, 2026</div>
+              <div className={styles.statSub}>Sat, Apr 25 · Doors 4:45</div>
             </div>
             <div className={`${styles.stat} ${styles.statWhere}`}>
               <div className={styles.statLbl}>Check-in</div>

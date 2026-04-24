@@ -160,7 +160,7 @@ export default function ConfirmPage() {
         <div className={s.marquee}>
           <span className={`${s.marqueeLine} ${s.marqueeYoure}`}>YOU&apos;RE</span>
           <span className={`${s.marqueeLine} ${s.marqueeIn}`}>IN</span>
-          <div className={s.marqueeKicker}>April 25 · 5 – 8 PM · The Lot</div>
+          <div className={s.marqueeKicker}>April 25 · Doors 4:45 · 5–8 PM · The Lot</div>
         </div>
 
         {/* Gate-pass card */}
