@@ -1,6 +1,6 @@
 # Spring BBQ Bash — volunteer cheat sheet
 
-**Last updated:** 2026-04-18
+**Last updated:** 2026-04-23
 **Tonight:** Saturday April 25, 2026 · 5:00–8:00 PM
 **Your URL:** https://spring-bbq-bash.vercel.app/station
 **Volunteer password:** `SpringBBQ2026$`
@@ -73,7 +73,7 @@ If the card has a **yellow allergy banner**, read it before handing them food or
 3. Tap cyan **"Redeem drink ticket"**.
 4. Green toast: "Drink redeemed — N left." Pour the drink. Done.
 
-**If they have 0 left:** Red banner says "No drink tickets left on this wristband." The button is disabled. Send the parent to the **Reload** desk — they can buy more drink tickets there with cash, Venmo, or FACTS.
+**If they have 0 left:** Red banner says "No drink tickets left on this wristband." The button is disabled. Send the parent to the admin (Brian) — admin can comp extra tickets from the child detail page.
 
 ---
 
@@ -153,21 +153,9 @@ If the card has a **yellow allergy banner**, read it before handing them food or
 
 ---
 
-## 💵 Reload (drink tickets only — by the cash box)
+## 💵 Comp reloads (admin only)
 
-**Your job:** Sell more drink tickets to parents whose kids ran out.
-
-**In the app:**
-1. Scan kid's QR.
-2. Card shows current drink balance + the family's FACTS allowance (e.g., "$10 authorized — $6 remaining").
-3. Type the **number of tickets** to add and the **dollar amount charged**.
-4. Tap a payment method: **Cash / Venmo / FACTS / Comp**.
-   - **FACTS** is disabled if the family didn't authorize it or the allowance is used up.
-   - **Comp** = no charge (admin only — escalate if a parent asks for it).
-5. Type your name. Tap magenta **"Add N drink tickets"**.
-6. Green toast confirms the new balance.
-
-**Reload only adds drink tickets.** Jail, prize wheel, and DJ are fixed at the start of the night and cannot be reloaded. If a parent asks, point them to the admin.
+No volunteer station for this. If a parent wants more drink tickets or any other reload, send them to the admin (Brian). Admin comps tickets from the child detail page in `/admin/children`. Jail, prize wheel, and DJ cannot be reloaded at all — they're one-per-kid for the night.
 
 ---
 
