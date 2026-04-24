@@ -1,18 +1,43 @@
 import {
   Body,
+  Column,
   Container,
   Head,
   Heading,
+  Hr,
   Html,
   Img,
   Link,
   Preview,
+  Row,
   Section,
   Text,
   Font,
 } from '@react-email/components'
+
 const ATTN_TO_DETAIL_CONFIRM_FOOTER =
   "This site was designed and built by Brian Leach of Attn: To Detail — a small consulting studio that helps founder-led businesses move faster with websites, AI tools, and honest strategy. Proud to donate it to LCA for the night."
+
+// Absolute URL for hosted email assets. Images rendered by react-email must be
+// reachable from the recipient's inbox, so we point at production regardless
+// of where the template is being rendered (prod send or admin preview).
+const EMAIL_ASSET_BASE = 'https://spring-bbq-bash.vercel.app/email'
+const GLYPHS = {
+  drinks:    { src: `${EMAIL_ASSET_BASE}/drinks.png`,      color: '#00E6F7' },
+  jail:      { src: `${EMAIL_ASSET_BASE}/jail.png`,        color: '#FF2E93' },
+  prizeWheel:{ src: `${EMAIL_ASSET_BASE}/prize-wheel.png`, color: '#FFE147' },
+  dj:        { src: `${EMAIL_ASSET_BASE}/dj.png`,          color: '#9B5CFF' },
+} as const
+
+function formatGradeMeta(age: number | null, grade: string | null): string {
+  const ageLabel = age != null ? `Age ${age}` : null
+  // Raw numeric grade inputs ("2") look broken next to "Age 7"; prefix "Grade".
+  // Leave non-numeric entries ("K", "2nd", "Grade 5") alone.
+  const gradeLabel = grade
+    ? /^\d+$/.test(grade) ? `Grade ${grade}` : grade
+    : null
+  return [ageLabel, gradeLabel].filter(Boolean).join(' · ')
+}
 
 export type RegistrationEmailChild = {
   first_name: string
@@ -139,42 +164,63 @@ const styles = {
     padding: '16px 32px 0',
     margin: 0,
   } as const,
-  childBlock: {
-    padding: '16px 32px 8px',
+  childBlockOuter: {
+    padding: '10px 32px 12px',
   } as const,
-  childHeaderBar: {
-    display: 'inline-block',
-    padding: '4px 10px',
-    borderRadius: '999px',
-    border: `1px solid ${MAGENTA}66`,
-    backgroundColor: `${MAGENTA}14`,
-    color: MAGENTA,
-    fontFamily: bodyFont,
-    fontSize: '10px',
-    fontWeight: 700,
-    letterSpacing: '0.22em',
-    textTransform: 'uppercase' as const,
-    marginBottom: '10px',
+  childCard: {
+    border: `1px solid ${HAIR}`,
+    borderRadius: '14px',
+    backgroundColor: INK_3,
+    backgroundImage: `linear-gradient(180deg, ${INK_3} 0%, ${INK_2} 100%)`,
+    padding: '22px 22px 20px',
   } as const,
   childName: {
     fontFamily: displayFont,
     fontWeight: 800,
-    fontSize: '24px',
+    fontSize: '22px',
     lineHeight: '1.1',
     letterSpacing: '-0.015em',
     color: PAPER,
-    margin: '0 0 2px',
+    margin: '0',
   } as const,
   childMeta: {
     color: MIST,
-    fontSize: '13px',
-    margin: '0 0 14px',
+    fontFamily: bodyFont,
+    fontSize: '12px',
+    letterSpacing: '0.04em',
+    margin: '4px 0 18px',
   } as const,
-  perkChips: {
+  perkDivider: {
+    height: '1px',
+    border: 'none',
+    background: `linear-gradient(90deg, transparent 0%, ${HAIR} 20%, ${HAIR} 80%, transparent 100%)`,
+    margin: '0 0 18px',
+  } as const,
+  perkCell: {
+    width: '25%',
+    textAlign: 'center' as const,
+    padding: '0 4px',
+    verticalAlign: 'top' as const,
+  } as const,
+  perkIconImg: {
+    display: 'block',
+    margin: '0 auto 8px',
+  } as const,
+  perkNumber: {
+    fontFamily: displayFont,
+    fontWeight: 800,
+    fontSize: '26px',
+    lineHeight: '1',
+    margin: '0 0 4px',
+  } as const,
+  perkLabel: {
+    fontFamily: bodyFont,
+    fontSize: '10px',
+    fontWeight: 700,
+    letterSpacing: '0.2em',
+    textTransform: 'uppercase' as const,
     color: MIST,
-    fontSize: '13px',
-    lineHeight: '22px',
-    margin: '12px 0 0',
+    margin: 0,
   } as const,
   detailsPill: {
     display: 'inline-block',
@@ -336,19 +382,40 @@ export default function RegistrationConfirmationEmail({
             <Text style={styles.callout}>✦ The Lineup ✦</Text>
 
             {children.map((child, i) => (
-              <Section key={`${child.first_name}-${child.last_name}-${i}`} style={styles.childBlock}>
-                <Heading as="h3" style={styles.childName}>
-                  {child.first_name} {child.last_name}
-                </Heading>
-                <Text style={styles.childMeta}>
-                  {[child.age != null ? `Age ${child.age}` : null, child.grade || null]
-                    .filter(Boolean)
-                    .join(' · ')}
-                </Text>
+              <Section key={`${child.first_name}-${child.last_name}-${i}`} style={styles.childBlockOuter}>
+                <div style={styles.childCard}>
+                  <Heading as="h3" style={styles.childName}>
+                    {child.first_name} {child.last_name}
+                  </Heading>
+                  <Text style={styles.childMeta}>
+                    {formatGradeMeta(child.age, child.grade)}
+                  </Text>
 
-                <Text style={styles.perkChips}>
-                  🥤 2 drinks · 🚨 3 jail / pass · 🎡 1 spin · 📻 1 DJ shoutout
-                </Text>
+                  <Hr style={styles.perkDivider} />
+
+                  <Row>
+                    <Column style={styles.perkCell}>
+                      <Img src={GLYPHS.drinks.src} alt="" width={40} height={40} style={styles.perkIconImg} />
+                      <Text style={{ ...styles.perkNumber, color: GLYPHS.drinks.color }}>2</Text>
+                      <Text style={styles.perkLabel}>Drinks</Text>
+                    </Column>
+                    <Column style={styles.perkCell}>
+                      <Img src={GLYPHS.jail.src} alt="" width={40} height={40} style={styles.perkIconImg} />
+                      <Text style={{ ...styles.perkNumber, color: GLYPHS.jail.color }}>3</Text>
+                      <Text style={styles.perkLabel}>Jail / Pass</Text>
+                    </Column>
+                    <Column style={styles.perkCell}>
+                      <Img src={GLYPHS.prizeWheel.src} alt="" width={40} height={40} style={styles.perkIconImg} />
+                      <Text style={{ ...styles.perkNumber, color: GLYPHS.prizeWheel.color }}>1</Text>
+                      <Text style={styles.perkLabel}>Spin</Text>
+                    </Column>
+                    <Column style={styles.perkCell}>
+                      <Img src={GLYPHS.dj.src} alt="" width={40} height={40} style={styles.perkIconImg} />
+                      <Text style={{ ...styles.perkNumber, color: GLYPHS.dj.color }}>1</Text>
+                      <Text style={styles.perkLabel}>DJ</Text>
+                    </Column>
+                  </Row>
+                </div>
               </Section>
             ))}
 
