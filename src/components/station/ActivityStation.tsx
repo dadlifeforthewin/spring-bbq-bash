@@ -5,6 +5,7 @@ import { Input, Textarea } from '@/components/glow/Input'
 import { Button } from '@/components/glow/Button'
 import { Chip } from '@/components/glow/Chip'
 import { PageHead } from '@/components/glow/PageHead'
+import { HelpLink } from '@/components/glow/HelpLink'
 import { NeonScanner } from '@/components/glow/NeonScanner'
 import { GlyphGlow } from '@/components/glow/GlyphGlow'
 import { SectionHeading } from '@/components/glow/SectionHeading'
@@ -219,6 +220,7 @@ export default function ActivityStation() {
           back={{ href: '/station', label: 'Stations' }}
           title="NO STATION"
           sub="Pick a station from the picker first so the app knows which activity to log."
+          right={<HelpLink />}
         />
         <div className="rounded-2xl border border-neon-gold/40 bg-ink-2/70 p-5 space-y-3">
           <p className="text-sm text-mist">No station is selected for this device.</p>
@@ -281,7 +283,7 @@ export default function ActivityStation() {
         back={{ href: '/station', label: 'Stations' }}
         title={meta.title.toUpperCase()}
         sub={meta.eyebrow}
-        right={<Chip tone={meta.tone} glow>{redeemedLabel}</Chip>}
+        right={<><Chip tone={meta.tone} glow>{redeemedLabel}</Chip><HelpLink /></>}
       />
 
       <div className="flex justify-center py-2">

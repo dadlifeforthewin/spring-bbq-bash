@@ -1,6 +1,10 @@
 # Spring BBQ Bash — volunteer cheat sheet
 
-**Last updated:** 2026-04-23
+> **Print-ready paper version of the in-app help.** The same content lives at
+> `src/app/station/help/page.tsx` (route: `/station/help`, linked from every
+> station's PageHead). Keep both files in sync when copy changes.
+
+**Last updated:** 2026-04-24
 **Tonight:** Saturday April 25, 2026 · 5:00–8:00 PM
 **Your URL:** https://spring-bbq-bash.vercel.app/station
 **Volunteer password:** `SpringBBQ2026$`

@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import {
   PageHead,
+  HelpLink,
   NeonScanner,
   SignPanel,
   Chip,
@@ -183,6 +184,7 @@ export default function LookupStation() {
         back={{ href: '/station', label: 'stations' }}
         title="KID LOOKUP"
         sub="Scan any wristband to see what the kid has done tonight."
+        right={<HelpLink />}
       />
 
       {error && (

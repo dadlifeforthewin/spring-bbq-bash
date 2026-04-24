@@ -5,6 +5,7 @@ import { Input } from '@/components/glow/Input'
 import { Button } from '@/components/glow/Button'
 import {
   PageHead,
+  HelpLink,
   NeonScanner,
   SignPanel,
   Chip,
@@ -125,7 +126,7 @@ export default function CheckOutStation() {
         back={{ href: '/station', label: 'stations' }}
         title="CHECK-OUT STATION"
         sub="Scan the wristband and confirm who's picking up."
-        right={<Chip tone="mint" glow>OUT · {recentPickups.length}</Chip>}
+        right={<><Chip tone="mint" glow>OUT · {recentPickups.length}</Chip><HelpLink /></>}
       />
 
       {!data ? (

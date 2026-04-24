@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import PhotoViewfinder, { PhotoViewfinderHandle } from './PhotoViewfinder'
 import {
   PageHead,
+  HelpLink,
   NeonScanner,
   SignPanel,
   Chip,
@@ -133,7 +134,7 @@ export default function RoamingStation() {
         back={{ href: '/station', label: 'stations' }}
         title="ROAMING"
         sub="Shoot freely. We'll sort the matches after the event."
-        right={<Chip tone="uv" glow>QUEUE · {queuedCount}</Chip>}
+        right={<><Chip tone="uv" glow>QUEUE · {queuedCount}</Chip><HelpLink /></>}
       />
 
       <NeonScanner

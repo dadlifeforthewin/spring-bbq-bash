@@ -2,6 +2,7 @@
 import { useRouter } from 'next/navigation'
 import { clsx } from '@/components/glow/clsx'
 import { GlyphGlow } from '@/components/glow/GlyphGlow'
+import { HelpLink } from '@/components/glow/HelpLink'
 import { NeonWordmark } from '@/components/glow/NeonWordmark'
 import { SignPanel } from '@/components/glow/SignPanel'
 import {
@@ -78,11 +79,15 @@ export default function StationPicker({ stations }: { stations: Station[] }) {
 
   return (
     <div className="flex flex-col gap-6 px-4 pb-8">
-      {/* NeonWordmark hero */}
-      <div className="flex flex-col items-center gap-3 pt-4 pb-2 text-center">
+      {/* Top bar with HelpLink — first opportunity for a volunteer to find help */}
+      <div className="flex items-center justify-between pt-2">
         <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-mist [font-family:var(--font-mono),JetBrains_Mono,monospace]">
           VOLUNTEER HUB
         </span>
+        <HelpLink />
+      </div>
+      {/* NeonWordmark hero */}
+      <div className="flex flex-col items-center gap-3 pt-2 pb-2 text-center">
         <NeonWordmark tone="cyan" size="md" as="h1">BASH &amp; GLOW</NeonWordmark>
         <p className="text-sm text-mist">Tap your station.</p>
       </div>

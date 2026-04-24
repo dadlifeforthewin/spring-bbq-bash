@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react'
 import {
   PageHead,
+  HelpLink,
   NeonScanner,
   SignPanel,
   Input,
@@ -196,7 +197,7 @@ export default function PrizeWheelStation() {
         back={{ href: '/station', label: 'stations' }}
         title="PRIZE WHEEL"
         sub="Scan kid · tap the prize they won."
-        right={<Chip tone="gold" glow>ONE · PER KID</Chip>}
+        right={<><Chip tone="gold" glow>ONE · PER KID</Chip><HelpLink /></>}
       />
 
       <div className="flex justify-center py-1">

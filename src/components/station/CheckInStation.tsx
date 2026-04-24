@@ -7,6 +7,7 @@ import { Button } from '@/components/glow/Button'
 import { PageHead } from '@/components/glow/PageHead'
 import { NeonScanner } from '@/components/glow/NeonScanner'
 import { Chip } from '@/components/glow/Chip'
+import { HelpLink } from '@/components/glow/HelpLink'
 import { SectionHeading } from '@/components/glow/SectionHeading'
 import NameSearch from './NameSearch'
 import StationPhotoCapture from './StationPhotoCapture'
@@ -140,7 +141,7 @@ export default function CheckInStation() {
         back={{ href: '/station', label: 'stations' }}
         title="CHECK-IN STATION"
         sub="Scan a family's QR, or tap Walk-in to register a new kid."
-        right={<Chip tone="cyan" glow>LIVE · {checkedInCount}</Chip>}
+        right={<><Chip tone="cyan" glow>LIVE · {checkedInCount}</Chip><HelpLink /></>}
       />
 
       {!data ? (

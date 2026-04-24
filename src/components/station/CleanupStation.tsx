@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
   PageHead,
+  HelpLink,
   SignPanel,
   BigToggle,
   Chip,
@@ -125,7 +126,7 @@ export default function CleanupStation() {
         back={{ href: '/station', label: 'stations' }}
         title="CLEANUP CREW"
         sub="Check items as you finish. Toggle off if something was marked by mistake."
-        right={<Chip tone="gold" glow>{chipLabel}</Chip>}
+        right={<><Chip tone="gold" glow>{chipLabel}</Chip><HelpLink /></>}
       />
 
       {/* Dashed hairline divider below the head */}

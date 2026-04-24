@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { clsx } from '@/components/glow/clsx'
 import {
   PageHead,
+  HelpLink,
   NeonScanner,
   Chip,
   Button,
@@ -138,6 +139,7 @@ export default function PhotoStation() {
           back={{ href: '/station', label: 'stations' }}
           title="PHOTO BOOTH"
           sub="No station selected."
+          right={<HelpLink />}
         />
         <p className="rounded-xl border border-warn/60 bg-warn/10 px-3 py-2 text-sm text-warn">
           Pick a station from the picker first.{' '}
@@ -153,7 +155,7 @@ export default function PhotoStation() {
         back={{ href: '/station', label: 'stations' }}
         title="PHOTO BOOTH"
         sub="Tap to snap. Consent-off kids get text-only receipts."
-        right={<Chip tone="magenta" glow>TAKEN · {takenCount}</Chip>}
+        right={<><Chip tone="magenta" glow>TAKEN · {takenCount}</Chip><HelpLink /></>}
       />
 
       <NeonScanner tone="magenta" aspect="portrait" hint="Tap to snap · 3-2-1" scanning={!capturing}>
