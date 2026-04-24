@@ -348,48 +348,6 @@
   flex-direction: column;
   gap: 12px;
 }
-.walletBtn {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  padding: 12px 14px;
-  border-radius: 12px;
-  background: var(--bg);
-  border: 1px solid var(--line);
-  color: var(--ink);
-  font-family: var(--font-sans), sans-serif;
-  font-size: 13px;
-  cursor: pointer;
-  transition: border-color 180ms ease;
-  text-decoration: none;
-}
-.walletBtn:hover { border-color: rgba(255,255,255,0.18); }
-.walletBtnIcon {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  background: #000;
-  display: grid;
-  place-items: center;
-  color: #fff;
-  font-size: 14px;
-  flex-shrink: 0;
-}
-.walletBtnText { flex: 1; min-width: 0; }
-.walletBtnTitle { display: block; font-size: 13px; color: var(--ink); }
-.walletBtnSub {
-  display: block;
-  font-size: 11px;
-  color: var(--ink-dim);
-  margin-top: 2px;
-}
-.walletBtnArrow {
-  font-size: 16px;
-  color: var(--glow-cyan);
-  flex-shrink: 0;
-}
-
 .cta {
   display: inline-flex;
   align-items: center;

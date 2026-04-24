@@ -189,7 +189,7 @@ supabase/
 ## Questions / extensions
 
 Happy to add any of these on request:
-- **Apple Wallet / Google Wallet passes** (free, no Apple Developer account needed via the pkpass open format)
+- **Apple Wallet / Google Wallet passes** for the per-kid gate pass (Apple Wallet requires an Apple Developer Program membership + signing cert; Google Wallet requires a Google service account)
 - **Photo of child** on check-in
 - **Per-volunteer login** instead of a shared password
 - **Live ticker** on the admin dashboard with sound alert for new check-ins

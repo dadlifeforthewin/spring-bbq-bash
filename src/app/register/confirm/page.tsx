@@ -240,24 +240,8 @@ export default function ConfirmPage() {
           </div>
         </section>
 
-        {/* Wallet + actions */}
+        {/* Actions */}
         <div className={s.actionStack}>
-          {/* Apple Wallet — placeholder until .pkpass generation lands */}
-          <a
-            href="#"
-            className={s.walletBtn}
-            onClick={(e) => e.preventDefault()}
-            aria-disabled="true"
-            title="Apple Wallet pass coming soon"
-          >
-            <span className={s.walletBtnIcon} aria-hidden>★</span>
-            <span className={s.walletBtnText}>
-              <span className={s.walletBtnTitle}>Add pass to Apple Wallet</span>
-              <span className={s.walletBtnSub}>Coming this week · printed copy below works at the gate too</span>
-            </span>
-            <span className={s.walletBtnArrow} aria-hidden>›</span>
-          </a>
-
           <a className={s.cta} href={icsDataUrl} download="spring-bbq-bash.ics">
             ADD TO CALENDAR · APR 25
           </a>
