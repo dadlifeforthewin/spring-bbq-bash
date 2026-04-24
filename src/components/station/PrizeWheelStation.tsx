@@ -225,6 +225,7 @@ export default function PrizeWheelStation() {
             aspect="portrait"
             scanning={ui.kind === 'idle'}
             hint={ui.kind === 'loading' ? 'Looking up…' : 'Scan wristband or paste QR'}
+            onScan={(decoded) => { if (ui.kind !== 'idle') return; setQr(decoded); doLookup(undefined, decoded) }}
           >
             <form onSubmit={doLookup} className="flex w-full max-w-xs flex-col gap-3 px-4">
               <Input

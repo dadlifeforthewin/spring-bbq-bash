@@ -202,6 +202,7 @@ export default function LookupStation() {
             aspect="portrait"
             scanning={!busy}
             hint={busy ? 'Looking up…' : 'Scan wristband or enter code'}
+            onScan={(decoded) => { if (busy) return; setQr(decoded); doLookup(undefined, decoded) }}
           >
             <form
               onSubmit={doLookup}

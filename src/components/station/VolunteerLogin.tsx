@@ -33,7 +33,7 @@ export default function VolunteerLogin() {
   }
 
   return (
-    <main className="flex min-h-[70dvh] items-center">
+    <main className="pt-16 pb-24 sm:pt-24">
       <form onSubmit={onSubmit} className="w-full space-y-6">
           <div className="text-center space-y-4">
             <div className="inline-flex justify-center">

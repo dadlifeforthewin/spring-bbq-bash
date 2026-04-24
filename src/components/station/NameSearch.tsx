@@ -35,6 +35,21 @@ export default function NameSearch({ tone = 'cyan', onSelect, disabled = false }
   const [error, setError] = useState<string | null>(null)
   const [touched, setTouched] = useState(false)
   const abortRef = useRef<AbortController | null>(null)
+  const resultsRef = useRef<HTMLUListElement>(null)
+
+  // iOS keyboard occludes the bottom ~40% of the viewport when the name input
+  // is focused. Results render below the input in document flow, so without
+  // an explicit scroll they land behind the keyboard. Pull the first match
+  // into center-view on every row update.
+  useEffect(() => {
+    if (rows.length === 0) return
+    const first = resultsRef.current?.firstElementChild as HTMLElement | null
+    if (!first) return
+    const raf = requestAnimationFrame(() => {
+      first.scrollIntoView({ block: 'center', behavior: 'smooth' })
+    })
+    return () => cancelAnimationFrame(raf)
+  }, [rows])
 
   useEffect(() => {
     if (!touched) return
@@ -107,7 +122,7 @@ export default function NameSearch({ tone = 'cyan', onSelect, disabled = false }
         </p>
       )}
       {rows.length > 0 && (
-        <ul className="flex flex-col gap-1.5 max-h-64 overflow-y-auto rounded-xl border border-ink-hair bg-ink-2/60 p-1.5">
+        <ul ref={resultsRef} className="flex flex-col gap-1.5 max-h-64 overflow-y-auto rounded-xl border border-ink-hair bg-ink-2/60 p-1.5">
           {rows.map((r) => {
             const statusTone: Tone | 'quiet' =
               r.checked_out_at ? 'mint'

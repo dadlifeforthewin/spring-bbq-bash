@@ -130,7 +130,13 @@ export default function CheckOutStation() {
 
       {!data ? (
         <>
-          <NeonScanner tone="mint" aspect="portrait" hint="Align wristband QR" scanning>
+          <NeonScanner
+            tone="mint"
+            aspect="portrait"
+            hint="Align wristband QR"
+            scanning
+            onScan={(decoded) => { if (busy || data) return; setQr(decoded); doLookup(undefined, decoded) }}
+          >
             <div className="flex flex-col items-center gap-4 w-full px-4">
               <form onSubmit={doLookup} className="flex w-full gap-2">
                 <Input

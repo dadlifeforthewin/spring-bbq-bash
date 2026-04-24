@@ -1,4 +1,6 @@
+'use client'
 import { HTMLAttributes } from 'react'
+import QRScanner from '../QRScanner'
 import { clsx } from './clsx'
 
 type Tone = 'magenta' | 'cyan' | 'uv' | 'gold' | 'mint'
@@ -9,6 +11,13 @@ type Props = HTMLAttributes<HTMLDivElement> & {
   aspect?: Aspect
   hint?: React.ReactNode
   scanning?: boolean
+  /**
+   * When provided, the frame activates a live camera QR scanner and calls
+   * onScan(decodedText) on each decode. Children still render (stacked below
+   * the camera) and serve as a manual-entry fallback when camera access is
+   * denied or the decode fails. Omit to keep the frame purely decorative.
+   */
+  onScan?: (decodedText: string) => void
 }
 
 const cornerToneClasses: Record<Tone, string> = {
@@ -32,8 +41,9 @@ const aspectClasses: Record<Aspect, string> = {
   portrait: 'aspect-[3/4]',
 }
 
-export function NeonScanner({ tone = 'cyan', aspect = 'portrait', hint, scanning = true, className, children, ...rest }: Props) {
+export function NeonScanner({ tone = 'cyan', aspect = 'portrait', hint, scanning = true, onScan, className, children, ...rest }: Props) {
   const cornerBase = 'absolute h-8 w-8 border-2'
+  const stackCamera = !!onScan
   return (
     <div
       {...rest}
@@ -47,7 +57,17 @@ export function NeonScanner({ tone = 'cyan', aspect = 'portrait', hint, scanning
       <span data-role="corner" className={clsx(cornerBase, 'top-3 right-3 border-t-2 border-r-2 border-b-0 border-l-0 rounded-tr-[6px]', cornerToneClasses[tone])} />
       <span data-role="corner" className={clsx(cornerBase, 'bottom-3 left-3 border-b-2 border-l-2 border-t-0 border-r-0 rounded-bl-[6px]', cornerToneClasses[tone])} />
       <span data-role="corner" className={clsx(cornerBase, 'bottom-3 right-3 border-b-2 border-r-2 border-t-0 border-l-0 rounded-br-[6px]', cornerToneClasses[tone])} />
-      <div className="absolute inset-3 flex items-center justify-center">{children}</div>
+      <div className={clsx(
+        'absolute inset-3 flex items-center justify-center',
+        stackCamera && 'flex-col gap-3',
+      )}>
+        {stackCamera && (
+          <div className="flex w-full flex-1 items-center justify-center min-h-0">
+            <QRScanner onScan={onScan!} />
+          </div>
+        )}
+        {children}
+      </div>
       {scanning && (
         <span
           data-role="beam"

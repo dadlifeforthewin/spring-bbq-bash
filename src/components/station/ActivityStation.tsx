@@ -280,7 +280,13 @@ export default function ActivityStation() {
         </GlyphGlow>
       </div>
 
-      <NeonScanner tone={meta.tone} aspect="square" hint="Scan wristband" scanning={!data}>
+      <NeonScanner
+        tone={meta.tone}
+        aspect="square"
+        hint="Scan wristband"
+        scanning={!data}
+        onScan={data ? undefined : (decoded) => { if (busy) return; setQr(decoded); doLookup(undefined, decoded) }}
+      >
         <div className="flex flex-col items-center gap-4 w-full px-4">
           {!data ? (
             <form onSubmit={doLookup} className="flex flex-col gap-3 w-full">

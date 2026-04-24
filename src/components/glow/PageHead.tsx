@@ -23,15 +23,19 @@ export function PageHead({ title, sub, back, right, className, ...rest }: Props)
           <Link
             href={back.href}
             className={clsx(
-              'inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-mist',
+              'inline-flex items-center gap-1.5 min-h-[44px] rounded-xl border border-ink-hair bg-ink-2/70 px-3 py-2',
+              'text-xs font-semibold uppercase tracking-[0.16em] text-paper',
               '[font-family:var(--font-mono),JetBrains_Mono,monospace]',
-              'hover:text-paper transition-colors',
+              'hover:border-neon-cyan/50 hover:text-neon-cyan hover:shadow-[0_0_14px_rgba(0,230,247,.25)] transition-colors',
+              'active:scale-[0.98] touch-manipulation',
             )}
+            aria-label={`Back to ${back.label}`}
           >
-            ← {back.label}
+            <span aria-hidden className="text-base leading-none">←</span>
+            <span>Back to {back.label}</span>
           </Link>
         )}
-        <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-paper leading-tight mt-1">
+        <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-paper leading-tight mt-3">
           {title}
         </h1>
         {sub && <p className="text-sm text-mist leading-relaxed mt-1 max-w-prose">{sub}</p>}

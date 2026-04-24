@@ -172,7 +172,13 @@ export default function CheckInStation() {
         right={<Chip tone="cyan" glow>LIVE · {checkedInCount}</Chip>}
       />
 
-      <NeonScanner tone="cyan" aspect="portrait" hint="Align QR · auto-capture" scanning={!data && !lookupError}>
+      <NeonScanner
+        tone="cyan"
+        aspect="portrait"
+        hint="Align QR · auto-capture"
+        scanning={!data && !lookupError}
+        onScan={(decoded) => { if (busy || data) return; setQr(decoded); doLookup(undefined, decoded) }}
+      >
         <div className="flex w-full flex-col gap-3 px-4">
           <form onSubmit={doLookup} className="flex gap-2">
             <Input
