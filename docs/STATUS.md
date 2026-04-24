@@ -25,17 +25,9 @@ Pushed across multiple commits:
 
 ## Pending Brian actions (2026-04-24 evening)
 
-1. **Apply migration `0016_reorder_stations.sql`** in Supabase Studio → SQL Editor (paste + run). Picker reorders next time anyone navigates to /station (5-min localStorage TTL on cached list, or volunteers can clear site data).
-2. **Delete the Gasser kids** so they re-register through the now-fixed email flow:
-   ```sql
-   -- verify first
-   select id, first_name, last_name, qr_code from children
-   where last_name = 'Gasser' and first_name in ('Addelyn', 'Liam');
-   -- then delete (FK cascade on child_id should clean guardians, signatures, photos, ticket-redemptions)
-   delete from children
-   where last_name = 'Gasser' and first_name in ('Addelyn', 'Liam');
-   ```
-3. **Real-iPhone dry-run** through the runbook (`docs/runbooks/event-dry-run.md`) — overdue. Tonight is the last realistic window.
+1. ✅ **DONE 2026-04-24 afternoon.** Migration `0016_reorder_stations.sql` applied via Supabase Studio. Picker reorders on next nav to /station (5-min localStorage TTL — volunteers on existing sessions may need to clear site data if they need the new order immediately).
+2. ✅ **DONE 2026-04-24 afternoon.** Gasser kids (`Addelyn`, `Liam`) deleted via Supabase Studio. FK cascade cleaned guardians, signatures, photos, ticket redemptions. They will re-register through the now-fixed both-parents email flow.
+3. **Real-iPhone dry-run** through the runbook (`docs/runbooks/event-dry-run.md`) — overdue. Tonight is the last realistic window. (Smoke replay green 2026-04-24 — 21 prod surfaces screenshot-verified in `/tmp/sbbq-smoke-*.png`; real-iPhone run is the remaining verification.)
 4. **Volunteer + wristband prep** — `/admin/wristbands` for printing on the Mr-Label sheets; `/station/help` is the in-app cheat sheet.
 
 **Plan:** `docs/plans/2026-04-16-kid-profile-rebuild-plan.md` · **Spec:** `docs/specs/2026-04-16-kid-profile-rebuild-design.md` · **Glow-redesign:** `docs/STATUS-glow-redesign.md` (merged 2026-04-20, kept for archaeology)
@@ -182,6 +174,7 @@ Surfaced during the runbook write-up by an agent reading the live code against t
 
 - **Phase 8** — audit log sweep (verify every sensitive action writes to `audit_log`) + retention purge cron (face embeddings at 30 days, photos/stories/profiles at 90 days, waiver records at 7 years).
 - **Phase 4 admin quick-actions** — "Add tickets" (comp reload shortcut), "Resend email", "Trigger story preview" on `/admin/children/[id]` — skeletons only right now.
+- **Admin "Force-refresh station devices" button** (captured 2026-04-24) — when admin changes station order/list via a migration or `/admin/stations` edit, volunteer devices currently hold a 5-min localStorage cache of the stations list. Add a server-side version marker (e.g., `events.stations_version` int or a `kv_config` row), bump it from an admin button, and have the picker drop its localStorage cache when the version it cached doesn't match the version it sees on mount. ~50 lines across `/api/stations` + `StationPicker.tsx` + admin action + migration. Deferred from pre-event build — event-night workaround is "reload the station page" or Safari "Clear site data" (both fast, but manual per-device).
 - **Legacy page cleanup** — `/admin/catalog`, `/admin/tickets`, `/admin/wristbands`, `/checkin`, `/zone/*` from the pre-rebuild era still exist with the old `sbbq_auth` cookie. Either delete or route to the new equivalents.
 - **Supabase Realtime** — dashboard + catalog currently poll every 5s. Realtime channels would be instant.
 - **Bulk photo ZIP download** — plan 4.5 called for a server-side ZIP stream; "Download all photos" button in the keepsake email links to `null` currently.

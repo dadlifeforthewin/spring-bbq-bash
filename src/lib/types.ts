@@ -216,7 +216,8 @@ export type Prize = {
 export type PrizeRedemption = {
   id: string
   child_id: string
-  prize_id: string
+  prize_id: string | null
+  prize_label: string | null
   volunteer_name: string | null
   updated_at: string
 }

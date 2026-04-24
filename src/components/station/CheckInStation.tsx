@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import ChildCard from './ChildCard'
 import { Input } from '@/components/glow/Input'
@@ -9,8 +9,11 @@ import { NeonScanner } from '@/components/glow/NeonScanner'
 import { Chip } from '@/components/glow/Chip'
 import { HelpLink } from '@/components/glow/HelpLink'
 import { SectionHeading } from '@/components/glow/SectionHeading'
+import { SignPanel } from '@/components/glow/SignPanel'
 import NameSearch from './NameSearch'
 import StationPhotoCapture from './StationPhotoCapture'
+
+const SUCCESS_AUTO_RETURN_MS = 1800
 
 type Lookup = {
   child: {
@@ -56,6 +59,13 @@ export default function CheckInStation() {
   const [showNameSearch, setShowNameSearch] = useState(false)
 
   const checkedInCount = recentArrivals.length
+  const successTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (successTimerRef.current) clearTimeout(successTimerRef.current)
+    }
+  }, [])
 
   function handleWalkin() {
     router.push('/register')
@@ -115,12 +125,23 @@ export default function CheckInStation() {
         },
         ...prev,
       ])
+      // Auto-return to the scanner so the volunteer doesn't have to hunt for
+      // a "Done" affordance that scrolls off the bottom of the phone.
+      if (successTimerRef.current) clearTimeout(successTimerRef.current)
+      successTimerRef.current = setTimeout(() => {
+        successTimerRef.current = null
+        reset()
+      }, SUCCESS_AUTO_RETURN_MS)
     } finally {
       setBusy(false)
     }
   }
 
   function reset() {
+    if (successTimerRef.current) {
+      clearTimeout(successTimerRef.current)
+      successTimerRef.current = null
+    }
     setQr('')
     setData(null)
     setDropoff(null)
@@ -207,6 +228,29 @@ export default function CheckInStation() {
             <Button tone="ghost" size="lg" fullWidth onClick={handleManualLookup}>Manual lookup</Button>
           </div>
         </>
+      ) : success ? (
+        <SignPanel tone="mint" padding="lg" className="motion-safe:animate-rise">
+          <div className="flex flex-col items-center gap-3 text-center">
+            <span
+              aria-hidden
+              className="inline-flex h-16 w-16 items-center justify-center rounded-full border-2 border-neon-mint text-neon-mint shadow-glow-mint text-3xl"
+            >
+              ✓
+            </span>
+            <div className="font-display text-3xl font-bold text-neon-mint tracking-wide">
+              CHECKED IN ✓
+            </div>
+            <div className="space-y-0.5">
+              <div className="font-display text-xl text-paper">
+                {data.child.first_name} {data.child.last_name}
+              </div>
+              <div className="text-sm text-mist">Returning to scanner…</div>
+            </div>
+            <Button tone="cyan" size="lg" fullWidth onClick={reset}>
+              Scan next wristband
+            </Button>
+          </div>
+        </SignPanel>
       ) : (
         <>
           {/* Post-scan: scanner unmounts, kid details take the stage. */}
@@ -282,12 +326,6 @@ export default function CheckInStation() {
                 <p className="rounded-xl border border-danger/60 bg-danger/10 px-3 py-2 text-sm text-danger">{checkInError}</p>
               )}
             </>
-          )}
-
-          {success && (
-            <p className="rounded-xl border border-neon-mint/60 bg-neon-mint/10 px-3 py-2 text-sm text-neon-mint shadow-glow-mint animate-rise">
-              ✨ Checked in! Tap Done above to scan the next wristband.
-            </p>
           )}
 
           {/* Inline per-kid photo capture — tag the shot to the check-in station. */}

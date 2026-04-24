@@ -31,6 +31,7 @@ type ChildRow = {
   jail_tickets_remaining: number
   prize_wheel_used_at: string | null
   dj_shoutout_used_at: string | null
+  raffle_prize_name: string | null
   checked_in_at: string | null
   checked_out_at: string | null
 }
@@ -117,6 +118,7 @@ export default function ChildEditor({ id }: { id: string }) {
         facts_max_amount: c.facts_max_amount,
         drink_tickets_remaining: c.drink_tickets_remaining,
         jail_tickets_remaining: c.jail_tickets_remaining,
+        raffle_prize_name: c.raffle_prize_name?.trim() || null,
         guardians: data.guardians,
         pickup_authorizations: data.pickup_authorizations,
       }
@@ -252,6 +254,28 @@ export default function ChildEditor({ id }: { id: string }) {
           onChange={(e) => setChild({ facts_max_amount: Math.max(0, Math.min(10, Number(e.target.value) || 0)) })}
           className="max-w-[10rem]"
         />
+      </section>
+
+      <section className="space-y-3 rounded-2xl border border-ink-hair bg-ink-2/70 backdrop-blur-sm p-5">
+        <SectionHeading num="03b" title="Raffle winner" tone="gold" />
+        <p className="text-xs text-mist">
+          For the 3 raffle winners only. Check the box and type the prize they won.
+        </p>
+        <Checkbox
+          checked={c.raffle_prize_name !== null}
+          onChange={(e) => setChild({ raffle_prize_name: e.target.checked ? (c.raffle_prize_name ?? '') : null })}
+          label="Won the raffle"
+        />
+        {c.raffle_prize_name !== null && (
+          <Input
+            label="Prize won"
+            value={c.raffle_prize_name}
+            onChange={(e) => setChild({ raffle_prize_name: e.target.value })}
+            placeholder="e.g. Glow scooter, $25 gift card"
+            aria-label="raffle prize name"
+            autoFocus
+          />
+        )}
       </section>
 
       <section className="space-y-3 rounded-2xl border border-ink-hair bg-ink-2/70 backdrop-blur-sm p-5">

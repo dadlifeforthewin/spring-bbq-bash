@@ -48,6 +48,7 @@ const patchSchema = z.object({
   ticket_balance: z.number().int().min(0).optional(),
   drink_tickets_remaining: z.number().int().min(0).max(20).optional(),
   jail_tickets_remaining: z.number().int().min(0).max(20).optional(),
+  raffle_prize_name: z.string().trim().max(120).nullable().optional().or(z.literal('')),
   guardians: z.array(z.object({
     id: z.string().uuid().optional(),
     name: z.string().min(1).max(120),

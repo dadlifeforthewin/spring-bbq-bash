@@ -13,16 +13,6 @@ import {
 import { PrizeWheelGlyph } from '@/components/glow/glyphs'
 import NameSearch from './NameSearch'
 
-// ---- shapes ----
-type Prize = {
-  id: string
-  label: string
-  sub: string | null
-  sort_order: number
-  active: boolean
-  created_at: string
-}
-
 type LookupChild = {
   id: string
   first_name: string
@@ -37,26 +27,21 @@ type LookupPayload = {
   child: LookupChild
   redemption: {
     id: string
-    prize_id: string
     volunteer_name: string | null
     updated_at: string
   } | null
   prize_label: string | null
 }
 
-// The state machine drives the entire view: idle -> loading -> grid | already_redeemed | error
-// Tapping a chip flips to 'affirming' for 2 seconds, then back to idle.
-// 'update_mode' is the special grid variant where the current prize is marked selected.
 type UiState =
   | { kind: 'idle' }
   | { kind: 'loading' }
   | { kind: 'error'; message: string }
-  | { kind: 'grid'; payload: LookupPayload }
+  | { kind: 'entering'; payload: LookupPayload; isUpdate: boolean }
   | { kind: 'already_redeemed'; payload: LookupPayload }
-  | { kind: 'update_mode'; payload: LookupPayload }
   | { kind: 'affirming'; childName: string; prizeLabel: string; updated: boolean }
 
-const AFFIRM_MS = 2000
+const AFFIRM_MS = 1500
 
 function fmtTime(iso: string | null): string {
   if (!iso) return ''
@@ -64,45 +49,13 @@ function fmtTime(iso: string | null): string {
 }
 
 export default function PrizeWheelStation() {
-  const [prizes, setPrizes] = useState<Prize[] | null>(null)
-  const [prizesLoaded, setPrizesLoaded] = useState(false)
   const [qr, setQr] = useState('')
   const [volunteer, setVolunteer] = useState('')
+  const [prizeInput, setPrizeInput] = useState('')
   const [ui, setUi] = useState<UiState>({ kind: 'idle' })
   const [posting, setPosting] = useState(false)
   const affirmTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Load the active prize catalog once on mount.
-  useEffect(() => {
-    let cancelled = false
-    ;(async () => {
-      try {
-        const res = await fetch('/api/stations/prize-wheel/prizes')
-        if (!res.ok) {
-          if (!cancelled) {
-            setPrizes([])
-            setPrizesLoaded(true)
-          }
-          return
-        }
-        const body = (await res.json()) as { prizes: Prize[] }
-        if (!cancelled) {
-          setPrizes(body.prizes)
-          setPrizesLoaded(true)
-        }
-      } catch {
-        if (!cancelled) {
-          setPrizes([])
-          setPrizesLoaded(true)
-        }
-      }
-    })()
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
-  // Clear any pending affirmation timer on unmount.
   useEffect(() => {
     return () => {
       if (affirmTimerRef.current) {
@@ -118,7 +71,6 @@ export default function PrizeWheelStation() {
     if (!trimmed) return
     setUi({ kind: 'loading' })
     try {
-      // Step 1: resolve the QR to a child via existing endpoint.
       const childRes = await fetch(`/api/children/by-qr/${encodeURIComponent(trimmed)}`)
       if (!childRes.ok) {
         const body = await childRes.json().catch(() => ({}))
@@ -127,7 +79,6 @@ export default function PrizeWheelStation() {
       }
       const childBody = (await childRes.json()) as { child: { id: string } }
 
-      // Step 2: fetch prize-wheel-specific state (redemption + prize label).
       const lookupRes = await fetch(
         `/api/stations/prize-wheel/lookup?child_id=${encodeURIComponent(childBody.child.id)}`,
       )
@@ -140,7 +91,8 @@ export default function PrizeWheelStation() {
       if (payload.redemption) {
         setUi({ kind: 'already_redeemed', payload })
       } else {
-        setUi({ kind: 'grid', payload })
+        setPrizeInput('')
+        setUi({ kind: 'entering', payload, isUpdate: false })
       }
     } catch {
       setUi({ kind: 'error', message: 'Network error' })
@@ -148,13 +100,21 @@ export default function PrizeWheelStation() {
   }
 
   function resetToIdle() {
+    if (affirmTimerRef.current) {
+      clearTimeout(affirmTimerRef.current)
+      affirmTimerRef.current = null
+    }
     setQr('')
+    setPrizeInput('')
     setUi({ kind: 'idle' })
   }
 
-  async function redeem(prize: Prize) {
-    if (ui.kind !== 'grid' && ui.kind !== 'update_mode') return
+  async function redeem() {
+    if (ui.kind !== 'entering') return
+    const label = prizeInput.trim()
+    if (!label) return
     const payload = ui.payload
+    const isUpdate = ui.isUpdate
     setPosting(true)
     try {
       const res = await fetch('/api/stations/prize-wheel/redeem', {
@@ -162,22 +122,20 @@ export default function PrizeWheelStation() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           child_id: payload.child.id,
-          prize_id: prize.id,
+          prize_label: label,
           volunteer_name: volunteer.trim() || undefined,
         }),
       })
       const body = await res.json().catch(() => ({}))
       if (!res.ok) {
-        setUi({ kind: 'error', message: (body as { error?: string }).error ?? 'Redeem failed' })
+        setUi({ kind: 'error', message: (body as { error?: string }).error ?? 'Save failed' })
         return
       }
-      const responseBody = body as { prize: { id: string; label: string }; updated: boolean }
-      // Kick over to the affirmation card. Auto-clear after 2s.
       setUi({
         kind: 'affirming',
         childName: `${payload.child.first_name} ${payload.child.last_name}`,
-        prizeLabel: responseBody.prize.label,
-        updated: responseBody.updated,
+        prizeLabel: label,
+        updated: isUpdate,
       })
       affirmTimerRef.current = setTimeout(() => {
         affirmTimerRef.current = null
@@ -188,7 +146,6 @@ export default function PrizeWheelStation() {
     }
   }
 
-  // ---- render branches ----
   const scanning = ui.kind === 'idle' || ui.kind === 'loading'
 
   return (
@@ -196,7 +153,7 @@ export default function PrizeWheelStation() {
       <PageHead
         back={{ href: '/station', label: 'stations' }}
         title="PRIZE WHEEL"
-        sub="Scan kid · tap the prize they won."
+        sub="Scan kid · type the prize they won."
         right={<><Chip tone="gold" glow>ONE · PER KID</Chip><HelpLink /></>}
       />
 
@@ -206,20 +163,7 @@ export default function PrizeWheelStation() {
         </GlyphGlow>
       </div>
 
-      {/* Empty-catalog gate — the rest of the station is meaningless without prizes. */}
-      {prizesLoaded && (prizes?.length ?? 0) === 0 ? (
-        <SignPanel tone="gold">
-          <div className="space-y-2">
-            <div className="text-xs font-semibold uppercase tracking-[0.22em] text-neon-gold [font-family:var(--font-mono),JetBrains_Mono,monospace]">
-              Empty catalog
-            </div>
-            <p className="font-display text-xl text-paper">No prizes configured</p>
-            <p className="text-sm text-mist">
-              Open <code className="rounded bg-ink-2 px-1.5 py-0.5 text-neon-cyan">/admin/prizes</code> to add them.
-            </p>
-          </div>
-        </SignPanel>
-      ) : scanning ? (
+      {scanning ? (
         <>
           <NeonScanner
             tone="gold"
@@ -272,31 +216,35 @@ export default function PrizeWheelStation() {
       ) : ui.kind === 'already_redeemed' ? (
         <AlreadyRedeemedCard
           payload={ui.payload}
-          onChange={() => setUi({ kind: 'update_mode', payload: ui.payload })}
+          onChange={() => {
+            setPrizeInput(ui.payload.prize_label ?? '')
+            setUi({ kind: 'entering', payload: ui.payload, isUpdate: true })
+          }}
           onScanNext={resetToIdle}
         />
-      ) : ui.kind === 'grid' || ui.kind === 'update_mode' ? (
-        <ChipGrid
-          prizes={prizes ?? []}
-          currentPrizeId={
-            ui.kind === 'update_mode' ? ui.payload.redemption?.prize_id ?? null : null
-          }
+      ) : ui.kind === 'entering' ? (
+        <PrizeForm
           childName={`${ui.payload.child.first_name} ${ui.payload.child.last_name}`}
+          isUpdate={ui.isUpdate}
+          prizeInput={prizeInput}
+          setPrizeInput={setPrizeInput}
           volunteer={volunteer}
           setVolunteer={setVolunteer}
           posting={posting}
-          onPick={redeem}
+          onSave={redeem}
           onCancel={resetToIdle}
-          isUpdate={ui.kind === 'update_mode'}
         />
       ) : ui.kind === 'affirming' ? (
-        <AffirmationCard childName={ui.childName} prizeLabel={ui.prizeLabel} updated={ui.updated} />
+        <AffirmationCard
+          childName={ui.childName}
+          prizeLabel={ui.prizeLabel}
+          updated={ui.updated}
+          onScanNext={resetToIdle}
+        />
       ) : null}
     </main>
   )
 }
-
-// ---- sub-components ----
 
 function AlreadyRedeemedCard({
   payload,
@@ -340,29 +288,36 @@ function AlreadyRedeemedCard({
   )
 }
 
-function ChipGrid({
-  prizes,
-  currentPrizeId,
+function PrizeForm({
   childName,
+  isUpdate,
+  prizeInput,
+  setPrizeInput,
   volunteer,
   setVolunteer,
   posting,
-  onPick,
+  onSave,
   onCancel,
-  isUpdate,
 }: {
-  prizes: Prize[]
-  currentPrizeId: string | null
   childName: string
+  isUpdate: boolean
+  prizeInput: string
+  setPrizeInput: (s: string) => void
   volunteer: string
   setVolunteer: (s: string) => void
   posting: boolean
-  onPick: (p: Prize) => void
+  onSave: () => void
   onCancel: () => void
-  isUpdate: boolean
 }) {
+  const canSave = prizeInput.trim().length > 0 && !posting
   return (
-    <div className="space-y-4">
+    <form
+      className="space-y-4"
+      onSubmit={(e) => {
+        e.preventDefault()
+        if (canSave) onSave()
+      }}
+    >
       <SignPanel tone="gold" padding="md">
         <div className="flex items-baseline justify-between gap-3">
           <div>
@@ -371,48 +326,19 @@ function ChipGrid({
             </div>
             <h2 className="font-display text-xl font-bold text-paper mt-1">{childName}</h2>
           </div>
-          {isUpdate && (
-            <Chip tone="cyan">updating</Chip>
-          )}
+          {isUpdate && <Chip tone="cyan">updating</Chip>}
         </div>
       </SignPanel>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        {prizes.map((p) => {
-          const selected = currentPrizeId === p.id
-          return (
-            <button
-              key={p.id}
-              type="button"
-              aria-pressed={selected}
-              disabled={posting}
-              onClick={() => onPick(p)}
-              className={[
-                'relative rounded-2xl border-2 bg-ink-2/70 backdrop-blur-sm px-3 py-4 text-left transition',
-                'disabled:opacity-40 disabled:cursor-not-allowed',
-                'focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-neon-gold/40',
-                selected
-                  ? 'border-neon-cyan shadow-glow-cyan ring-2 ring-neon-cyan/40'
-                  : 'border-neon-gold/60 shadow-glow-gold hover:bg-neon-gold/10',
-              ].join(' ')}
-            >
-              <div className="font-display text-base font-bold text-paper leading-tight">
-                {p.label}
-              </div>
-              {p.sub && (
-                <div className="mt-1 text-[11px] uppercase tracking-wider text-mist [font-family:var(--font-mono),JetBrains_Mono,monospace]">
-                  {p.sub}
-                </div>
-              )}
-              {selected && (
-                <span className="absolute top-1.5 right-2 text-[10px] font-semibold uppercase tracking-wider text-neon-cyan [font-family:var(--font-mono),JetBrains_Mono,monospace]">
-                  current
-                </span>
-              )}
-            </button>
-          )
-        })}
-      </div>
+      <Input
+        label="What did they win?"
+        value={prizeInput}
+        onChange={(e) => setPrizeInput(e.target.value)}
+        placeholder="e.g. Glow yo-yo, Candy bag, Small plush"
+        aria-label="prize won"
+        autoFocus
+        required
+      />
 
       <Input
         label="Your name (staff, optional)"
@@ -421,10 +347,13 @@ function ChipGrid({
         aria-label="volunteer name"
       />
 
-      <Button tone="ghost" size="md" fullWidth onClick={onCancel}>
+      <Button type="submit" tone="gold" size="xl" fullWidth disabled={!canSave} loading={posting}>
+        {isUpdate ? 'Save change' : 'Save prize'}
+      </Button>
+      <Button type="button" tone="ghost" size="md" fullWidth onClick={onCancel}>
         Cancel · scan next
       </Button>
-    </div>
+    </form>
   )
 }
 
@@ -432,16 +361,15 @@ function AffirmationCard({
   childName,
   prizeLabel,
   updated,
+  onScanNext,
 }: {
   childName: string
   prizeLabel: string
   updated: boolean
+  onScanNext: () => void
 }) {
   return (
-    <div
-      data-testid="prize-affirmation"
-      className="motion-safe:animate-rise"
-    >
+    <div data-testid="prize-affirmation" className="motion-safe:animate-rise space-y-3">
       <SignPanel tone="mint" padding="lg">
         <div className="flex flex-col items-center text-center gap-3">
           <span
@@ -464,6 +392,9 @@ function AffirmationCard({
           </div>
         </div>
       </SignPanel>
+      <Button tone="gold" size="lg" fullWidth onClick={onScanNext}>
+        Scan next wristband
+      </Button>
     </div>
   )
 }

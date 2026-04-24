@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import ChildCard from './ChildCard'
 import { Input, Textarea } from '@/components/glow/Input'
 import { Button } from '@/components/glow/Button'
@@ -8,6 +8,7 @@ import { PageHead } from '@/components/glow/PageHead'
 import { HelpLink } from '@/components/glow/HelpLink'
 import { NeonScanner } from '@/components/glow/NeonScanner'
 import { GlyphGlow } from '@/components/glow/GlyphGlow'
+import { SignPanel } from '@/components/glow/SignPanel'
 import { SectionHeading } from '@/components/glow/SectionHeading'
 import {
   DrinksGlyph,
@@ -92,6 +93,8 @@ const STATION_GLYPH: Record<string, GlyphComponent> = {
 const METERED = new Set(['drinks', 'jail'])
 const ONE_TIME = new Set(['prize_wheel', 'dj_shoutout'])
 
+const SUCCESS_AUTO_RETURN_MS = 1800
+
 type LogEntry = { name: string; label: string; ts: string }
 
 export default function ActivityStation() {
@@ -109,12 +112,19 @@ export default function ActivityStation() {
   const [songRequest, setSongRequest] = useState('')
   const [volunteer, setVolunteer] = useState('')
   const [showNameSearch, setShowNameSearch] = useState(false)
+  const successTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     try {
       setSlug(localStorage.getItem(STATION_STORAGE_KEY))
     } catch {
       setSlug(null)
+    }
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      if (successTimerRef.current) clearTimeout(successTimerRef.current)
     }
   }, [])
 
@@ -198,12 +208,29 @@ export default function ActivityStation() {
         { name: `${data.child.first_name} ${data.child.last_name}`, label: successMsg, ts: new Date().toLocaleTimeString() },
         ...prev,
       ].slice(0, 10))
+
+      // For one-time and free stations, auto-return to the scanner so the
+      // volunteer doesn't have to hunt for a "Done" button. Metered stations
+      // (drinks, jail) keep the success card up and let the volunteer choose
+      // "Use another" or "Scan next" since multi-redeem-per-kid is common.
+      const isMetered = METERED.has(slug)
+      if (!isMetered) {
+        if (successTimerRef.current) clearTimeout(successTimerRef.current)
+        successTimerRef.current = setTimeout(() => {
+          successTimerRef.current = null
+          reset()
+        }, SUCCESS_AUTO_RETURN_MS)
+      }
     } finally {
       setBusy(false)
     }
   }
 
   function reset() {
+    if (successTimerRef.current) {
+      clearTimeout(successTimerRef.current)
+      successTimerRef.current = null
+    }
     setQr('')
     setData(null)
     setLookupError(null)
@@ -211,6 +238,14 @@ export default function ActivityStation() {
     setSuccess(null)
     setJailAction('send')
     setSongRequest('')
+  }
+
+  function dismissSuccess() {
+    if (successTimerRef.current) {
+      clearTimeout(successTimerRef.current)
+      successTimerRef.current = null
+    }
+    setSuccess(null)
   }
 
   if (!slug || !meta) {
@@ -349,6 +384,42 @@ export default function ActivityStation() {
             </form>
           </NeonScanner>
         </>
+      ) : success ? (
+        <SignPanel tone="mint" padding="lg" className="motion-safe:animate-rise">
+          <div className="flex flex-col items-center gap-3 text-center">
+            <span
+              aria-hidden
+              className="inline-flex h-16 w-16 items-center justify-center rounded-full border-2 border-neon-mint text-neon-mint shadow-glow-mint text-3xl"
+            >
+              ✓
+            </span>
+            <div className="font-display text-2xl font-bold text-neon-mint tracking-wide">
+              {success}
+            </div>
+            <div className="space-y-0.5">
+              <div className="font-display text-xl text-paper">
+                {data.child.first_name} {data.child.last_name}
+              </div>
+              {!METERED.has(slug) && (
+                <div className="text-sm text-mist">Returning to scanner…</div>
+              )}
+            </div>
+            {METERED.has(slug) ? (
+              <div className="grid grid-cols-2 gap-3 w-full pt-1">
+                <Button tone={meta.tone} size="lg" fullWidth onClick={dismissSuccess}>
+                  Use another →
+                </Button>
+                <Button tone="ghost" size="lg" fullWidth onClick={reset}>
+                  Scan next ↻
+                </Button>
+              </div>
+            ) : (
+              <Button tone="cyan" size="lg" fullWidth onClick={reset}>
+                Scan next wristband
+              </Button>
+            )}
+          </div>
+        </SignPanel>
       ) : (
         <>
           {/* Post-scan: scanner unmounts, kid details take the stage. */}
@@ -474,11 +545,6 @@ export default function ActivityStation() {
 
           {actionError && (
             <p className="rounded-xl border border-danger/60 bg-danger/10 px-3 py-2 text-sm text-danger">{actionError}</p>
-          )}
-          {success && (
-            <p className="rounded-xl border border-neon-mint/60 bg-neon-mint/10 px-3 py-2 text-sm text-neon-mint shadow-glow-mint motion-safe:animate-rise">
-              ✨ {success}
-            </p>
           )}
 
           {/* Generic per-kid photo capture — tag the shot to whatever station

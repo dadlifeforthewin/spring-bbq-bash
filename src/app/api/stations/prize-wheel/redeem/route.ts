@@ -4,14 +4,14 @@ import { serverClient } from '@/lib/supabase'
 import { isVolunteerAuthed } from '@/lib/volunteer-auth'
 
 // POST /api/stations/prize-wheel/redeem
-// First redemption: inserts prize_redemptions row, sets children.prize_wheel_used_at,
-// writes a station_events row. Re-edit: updates prize_redemptions (preserving id),
-// DOES NOT overwrite prize_wheel_used_at, and writes a SECOND station_events row
-// so the audit trail shows the swap.
+// Volunteer-typed free-text prize label (catalog dropdown retired 2026-04-24).
+// First redemption inserts a row + stamps children.prize_wheel_used_at.
+// Re-edit updates the row (preserving id, NOT overwriting used_at) and writes
+// a second station_events row to keep the audit trail.
 
 const schema = z.object({
   child_id: z.string().uuid(),
-  prize_id: z.string().uuid(),
+  prize_label: z.string().trim().min(1).max(120),
   volunteer_name: z.string().max(120).optional().or(z.literal('')),
 })
 
@@ -28,7 +28,6 @@ export async function POST(req: NextRequest) {
 
   const sb = serverClient()
 
-  // 1. Child guard.
   const { data: child } = await sb
     .from('children')
     .select('id, checked_in_at, checked_out_at, prize_wheel_used_at')
@@ -38,23 +37,12 @@ export async function POST(req: NextRequest) {
   if (!child.checked_in_at) return Response.json({ error: 'not checked in' }, { status: 409 })
   if (child.checked_out_at) return Response.json({ error: 'already checked out' }, { status: 409 })
 
-  // 2. Prize guard.
-  const { data: prize } = await sb
-    .from('prizes')
-    .select('id, label, active')
-    .eq('id', parsed.data.prize_id)
-    .maybeSingle()
-  if (!prize) return Response.json({ error: 'prize not found' }, { status: 404 })
-  if (!prize.active) return Response.json({ error: 'prize not active' }, { status: 409 })
-
   const volunteer = parsed.data.volunteer_name || null
+  const label = parsed.data.prize_label.trim()
 
-  // 3. Upsert prize_redemptions (unique on child_id). The pre-read is only used
-  // to compute isUpdate for the response; the write goes through Postgres
-  // ON CONFLICT so concurrent tablet taps can't both win an INSERT race.
   const { data: existing } = await sb
     .from('prize_redemptions')
-    .select('id, prize_id')
+    .select('id, prize_label')
     .eq('child_id', parsed.data.child_id)
     .maybeSingle()
 
@@ -66,7 +54,7 @@ export async function POST(req: NextRequest) {
     .upsert(
       {
         child_id: parsed.data.child_id,
-        prize_id: parsed.data.prize_id,
+        prize_label: label,
         volunteer_name: volunteer,
         updated_at: nowIso,
       },
@@ -74,26 +62,23 @@ export async function POST(req: NextRequest) {
     )
   if (upsertErr) return Response.json({ error: 'db error', details: upsertErr.message }, { status: 500 })
 
-  // 4. Stamp children.prize_wheel_used_at ONLY on first redemption.
   if (!child.prize_wheel_used_at) {
     await sb.from('children').update({ prize_wheel_used_at: nowIso }).eq('id', parsed.data.child_id)
   }
 
-  // 5. Always insert a station_events row — the second one on re-edit forms
-  // the audit trail.
   await sb.from('station_events').insert({
     child_id: parsed.data.child_id,
     station: 'prize_wheel',
     event_type: 'ticket_spend',
     tickets_delta: 0,
-    item_name: prize.label,
+    item_name: label,
     volunteer_name: volunteer,
     notes: null,
   })
 
   return Response.json({
     ok: true,
-    prize: { id: prize.id, label: prize.label },
+    prize_label: label,
     updated: isUpdate,
   })
 }

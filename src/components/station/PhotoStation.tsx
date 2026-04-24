@@ -120,13 +120,20 @@ export default function PhotoStation() {
       const uploaded = { photo_id: data.photo_id, count: data.tagged_child_ids.length }
       setLastUpload(uploaded)
       setTakenCount((n) => n + uploaded.count)
-      setScanned([])
+      // Keep the scanned kids in place so the volunteer can take more shots of
+      // the same group without re-scanning everyone — most photo moments are
+      // 2–3 quick shots in a row of the same kids.
     } finally {
       setBusy(false)
     }
   }
 
-  function handleRetake() {
+  function handleMorePhotos() {
+    setLastUpload(null)
+    setUploadError(null)
+  }
+
+  function handleDoneGroup() {
     setLastUpload(null)
     setScanned([])
     setUploadError(null)
@@ -253,27 +260,39 @@ export default function PhotoStation() {
         aria-label="volunteer name"
       />
 
-      <div className="grid grid-cols-2 gap-3">
-        <Button
-          tone="magenta"
-          size="lg"
-          fullWidth
-          onClick={handleSnap}
-          disabled={capturing || scanned.length === 0 || anyBlocked}
-          loading={capturing}
-        >
-          Snap!
-        </Button>
-        <Button tone="ghost" size="lg" fullWidth onClick={handleRetake}>Retake last</Button>
-      </div>
+      {!lastUpload && (
+        <div className="grid grid-cols-2 gap-3">
+          <Button
+            tone="magenta"
+            size="lg"
+            fullWidth
+            onClick={handleSnap}
+            disabled={capturing || scanned.length === 0 || anyBlocked}
+            loading={capturing}
+          >
+            Snap!
+          </Button>
+          <Button tone="ghost" size="lg" fullWidth onClick={handleDoneGroup}>Clear group</Button>
+        </div>
+      )}
 
       {uploadError && (
         <p className="rounded-xl border border-danger/60 bg-danger/10 px-3 py-2 text-sm text-danger">{uploadError}</p>
       )}
       {lastUpload && (
-        <p className="rounded-xl border border-neon-mint/60 bg-neon-mint/10 px-3 py-2 text-sm text-neon-mint shadow-glow-mint animate-rise">
-          ✨ Uploaded · tagged {lastUpload.count} {lastUpload.count === 1 ? 'kid' : 'kids'}.
-        </p>
+        <div className="rounded-2xl border-2 border-neon-mint/60 bg-neon-mint/10 px-4 py-4 shadow-glow-mint motion-safe:animate-rise space-y-3">
+          <p className="text-center font-display text-lg text-neon-mint font-bold">
+            ✨ Uploaded · tagged {lastUpload.count} {lastUpload.count === 1 ? 'kid' : 'kids'}
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            <Button tone="magenta" size="lg" fullWidth onClick={handleMorePhotos}>
+              More photos →
+            </Button>
+            <Button tone="ghost" size="lg" fullWidth onClick={handleDoneGroup}>
+              Done · new group
+            </Button>
+          </div>
+        </div>
       )}
 
       {anyBlocked && (

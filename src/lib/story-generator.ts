@@ -163,7 +163,7 @@ export async function buildPayload(childId: string): Promise<GeneratorPayload> {
   const [{ data: child }, { data: evt }, { data: guardians }] = await Promise.all([
     sb
       .from('children')
-      .select('id, first_name, last_name, age, grade, checked_in_dropoff_type')
+      .select('id, first_name, last_name, age, grade, checked_in_dropoff_type, raffle_prize_name')
       .eq('id', childId)
       .maybeSingle(),
     sb.from('events').select('name, faith_tone_level').limit(1).maybeSingle(),
@@ -185,15 +185,26 @@ export async function buildPayload(childId: string): Promise<GeneratorPayload> {
     .eq('child_id', childId)
     .limit(200)
 
-  // Prize redemption (optional): if the kid spun the wheel, the joined
-  // prize label flows into the stats line of the keepsake email.
+  // Prize redemption (optional): the volunteer-typed free-text label flows
+  // into the stats line. Older rows (pre-2026-04-24) used the prizes catalog
+  // FK — fall back to that label so historical data still renders.
+  // If the kid was also a raffle winner, append the raffle prize for an
+  // even bigger flex in the keepsake.
   const { data: redemption } = await sb
     .from('prize_redemptions')
-    .select('prizes(label)')
+    .select('prize_label, prizes(label)')
     .eq('child_id', childId)
     .maybeSingle()
-  const prize_won: string | null =
-    (redemption as { prizes?: { label?: string } | null } | null)?.prizes?.label ?? null
+  const wheelPrize: string | null =
+    (redemption as { prize_label?: string | null; prizes?: { label?: string } | null } | null)?.prize_label
+    ?? (redemption as { prizes?: { label?: string } | null } | null)?.prizes?.label
+    ?? null
+  const rafflePrize: string | null = (child.raffle_prize_name ?? null) || null
+  const prize_won: string | null = (() => {
+    if (wheelPrize && rafflePrize) return `${wheelPrize} (wheel), ${rafflePrize} (raffle 🎉)`
+    if (rafflePrize) return `${rafflePrize} (raffle 🎉)`
+    return wheelPrize
+  })()
 
   const timeline: TimelineRow[] = (events ?? []).map((e) => ({
     station: e.station,
