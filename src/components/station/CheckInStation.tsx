@@ -1,16 +1,15 @@
 'use client'
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import ChildCard from './ChildCard'
-import PhotoViewfinder, { PhotoViewfinderHandle } from './PhotoViewfinder'
 import { Input } from '@/components/glow/Input'
 import { Button } from '@/components/glow/Button'
-import { Card, CardEyebrow } from '@/components/glow/Card'
 import { PageHead } from '@/components/glow/PageHead'
 import { NeonScanner } from '@/components/glow/NeonScanner'
 import { Chip } from '@/components/glow/Chip'
 import { SectionHeading } from '@/components/glow/SectionHeading'
 import NameSearch from './NameSearch'
+import StationPhotoCapture from './StationPhotoCapture'
 
 type Lookup = {
   child: {
@@ -46,16 +45,14 @@ export default function CheckInStation() {
   const [qr, setQr] = useState('')
   const [data, setData] = useState<Lookup | null>(null)
   const [dropoff, setDropoff] = useState<DropoffType | null>(null)
+  const [dropoffPersonName, setDropoffPersonName] = useState('')
   const [staffName, setStaffName] = useState('')
   const [lookupError, setLookupError] = useState<string | null>(null)
   const [checkInError, setCheckInError] = useState<string | null>(null)
-  const [mugshotError, setMugshotError] = useState<string | null>(null)
-  const [mugshotTaken, setMugshotTaken] = useState(false)
-  const [mugshotUploading, setMugshotUploading] = useState(false)
   const [success, setSuccess] = useState(false)
   const [busy, setBusy] = useState(false)
   const [recentArrivals, setRecentArrivals] = useState<Arrival[]>([])
-  const viewfinderRef = useRef<PhotoViewfinderHandle>(null)
+  const [showNameSearch, setShowNameSearch] = useState(false)
 
   const checkedInCount = recentArrivals.length
 
@@ -69,9 +66,9 @@ export default function CheckInStation() {
 
   async function doLookup(e?: React.FormEvent, overrideQr?: string) {
     e?.preventDefault()
-    setLookupError(null); setCheckInError(null); setMugshotError(null)
-    setSuccess(false); setMugshotTaken(false)
-    setData(null); setDropoff(null)
+    setLookupError(null); setCheckInError(null)
+    setSuccess(false)
+    setData(null); setDropoff(null); setDropoffPersonName('')
     const value = (overrideQr ?? qr).trim()
     if (!value) return
     setBusy(true)
@@ -88,34 +85,6 @@ export default function CheckInStation() {
     }
   }
 
-  async function takeMugshot() {
-    if (!data) return
-    setMugshotError(null)
-    setMugshotUploading(true)
-    try {
-      const blob = await viewfinderRef.current?.capture()
-      if (!blob) {
-        setMugshotError('Capture failed — try again.')
-        return
-      }
-      const form = new FormData()
-      form.set('photo', blob, 'mugshot.jpg')
-      form.set('child_ids', JSON.stringify([data.child.id]))
-      form.set('station', 'jail')
-      form.set('capture_mode', 'station_scan')
-      if (staffName.trim()) form.set('volunteer_name', staffName.trim())
-      const res = await fetch('/api/photos/upload', { method: 'POST', body: form })
-      const body = await res.json()
-      if (!res.ok) {
-        setMugshotError(body.error ?? 'Upload failed')
-        return
-      }
-      setMugshotTaken(true)
-    } finally {
-      setMugshotUploading(false)
-    }
-  }
-
   async function doCheckIn() {
     if (!data || !dropoff) return
     setCheckInError(null)
@@ -127,6 +96,8 @@ export default function CheckInStation() {
         body: JSON.stringify({
           child_id: data.child.id,
           dropoff_type: dropoff,
+          dropoff_person_name:
+            dropoff === 'other_approved_adult' ? dropoffPersonName.trim() : undefined,
           staff_name: staffName,
         }),
       })
@@ -152,16 +123,16 @@ export default function CheckInStation() {
     setQr('')
     setData(null)
     setDropoff(null)
-    setStaffName('')
+    setDropoffPersonName('')
     setLookupError(null)
     setCheckInError(null)
-    setMugshotError(null)
-    setMugshotTaken(false)
     setSuccess(false)
+    // staffName persists across scans — volunteer types it once per shift.
   }
 
-  const needsMugshot = !!data && data.child.photo_consent_app && !data.child.checked_in_at
-  const mugshotReady = !needsMugshot || mugshotTaken
+  const otherAdultNameMissing =
+    dropoff === 'other_approved_adult' && dropoffPersonName.trim().length === 0
+  const canCheckIn = !!dropoff && !otherAdultNameMissing && !busy
 
   return (
     <main className="flex flex-col gap-5">
@@ -172,46 +143,82 @@ export default function CheckInStation() {
         right={<Chip tone="cyan" glow>LIVE · {checkedInCount}</Chip>}
       />
 
-      <NeonScanner
-        tone="cyan"
-        aspect="portrait"
-        hint="Align QR · auto-capture"
-        scanning={!data && !lookupError}
-        onScan={(decoded) => { if (busy || data) return; setQr(decoded); doLookup(undefined, decoded) }}
-      >
-        <div className="flex w-full flex-col gap-3 px-4">
-          <form onSubmit={doLookup} className="flex gap-2">
-            <Input
-              type="text"
-              value={qr}
-              onChange={(e) => setQr(e.target.value)}
-              placeholder="Scan or paste QR"
-              aria-label="QR code"
-              className="flex-1"
-            />
-            <Button type="submit" tone="ghost" size="md" loading={busy}>Look up</Button>
-          </form>
+      {!data ? (
+        <>
+          {/* Manual name-search toggle — compact neon link above the scanner.
+              Collapsed by default so the QR camera stays the primary surface. */}
+          <div className="flex justify-center">
+            {showNameSearch ? (
+              <div className="w-full">
+                <NameSearch
+                  tone="cyan"
+                  disabled={busy}
+                  onSelect={(qrCode) => { setQr(qrCode); doLookup(undefined, qrCode) }}
+                />
+                <div className="mt-2 text-center">
+                  <button
+                    type="button"
+                    onClick={() => setShowNameSearch(false)}
+                    className="text-[10px] font-bold uppercase tracking-[0.2em] text-mist hover:text-paper transition [font-family:var(--font-mono),JetBrains_Mono,monospace]"
+                  >
+                    Hide search ↑
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setShowNameSearch(true)}
+                className="rounded-full px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-neon-cyan hover:shadow-glow-cyan transition [font-family:var(--font-mono),JetBrains_Mono,monospace]"
+              >
+                Can&apos;t scan? Search by name →
+              </button>
+            )}
+          </div>
 
-          {lookupError && (
-            <p className="rounded-xl border border-danger/60 bg-danger/10 px-3 py-2 text-sm text-danger">{lookupError}</p>
-          )}
-        </div>
-      </NeonScanner>
-      {!data && (
-        <NameSearch
-          tone="cyan"
-          disabled={busy}
-          onSelect={(qrCode) => { setQr(qrCode); doLookup(undefined, qrCode) }}
-        />
-      )}
+          <NeonScanner
+            tone="cyan"
+            aspect="portrait"
+            hint="Align QR · auto-capture"
+            scanning
+            onScan={(decoded) => { if (busy) return; setQr(decoded); doLookup(undefined, decoded) }}
+          >
+            <div className="flex w-full flex-col gap-3 px-4">
+              <form onSubmit={doLookup} className="flex gap-2">
+                <Input
+                  type="text"
+                  value={qr}
+                  onChange={(e) => setQr(e.target.value)}
+                  placeholder="Scan or paste QR"
+                  aria-label="QR code"
+                  className="flex-1"
+                />
+                <Button type="submit" tone="ghost" size="md" loading={busy}>Look up</Button>
+              </form>
+              {lookupError && (
+                <p className="rounded-xl border border-danger/60 bg-danger/10 px-3 py-2 text-sm text-danger">{lookupError}</p>
+              )}
+            </div>
+          </NeonScanner>
 
-      <div className="grid grid-cols-2 gap-3">
-        <Button tone="magenta" size="lg" fullWidth onClick={handleWalkin}>Walk-in</Button>
-        <Button tone="ghost" size="lg" fullWidth onClick={handleManualLookup}>Manual lookup</Button>
-      </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Button tone="magenta" size="lg" fullWidth onClick={handleWalkin}>Walk-in</Button>
+            <Button tone="ghost" size="lg" fullWidth onClick={handleManualLookup}>Manual lookup</Button>
+          </div>
+        </>
+      ) : (
+        <>
+          {/* Post-scan: scanner unmounts, kid details take the stage. */}
+          <Button
+            type="button"
+            tone="ghost"
+            size="lg"
+            fullWidth
+            onClick={reset}
+          >
+            ✓ Done — Scan next wristband
+          </Button>
 
-      {data && (
-        <div className="space-y-4">
           <ChildCard child={data.child} primary_parent={data.primary_parent ?? { name: '—', phone: null }} />
 
           {data.child.checked_in_at ? (
@@ -227,30 +234,7 @@ export default function CheckInStation() {
                 aria-label="staff name"
               />
 
-              {needsMugshot ? (
-                <section className="space-y-3 rounded-2xl border border-neon-magenta/30 bg-ink-2/70 p-4 shadow-[0_0_30px_-10px_rgba(255,46,147,.5)]">
-                  <CardEyebrow className="text-neon-magenta">Jail mugshot</CardEyebrow>
-                  <PhotoViewfinder ref={viewfinderRef} facingMode="environment" />
-                  <Button
-                    tone={mugshotTaken ? 'mint' : 'magenta'}
-                    size="lg"
-                    fullWidth
-                    onClick={takeMugshot}
-                    disabled={mugshotUploading || mugshotTaken}
-                  >
-                    {mugshotTaken ? '📸 Mugshot saved' : mugshotUploading ? 'Uploading…' : '📸 Take mugshot'}
-                  </Button>
-                  {mugshotError && (
-                    <p className="rounded-xl border border-danger/60 bg-danger/10 px-3 py-2 text-sm text-danger">{mugshotError}</p>
-                  )}
-                </section>
-              ) : !data.child.photo_consent_app ? (
-                <Card tone="glow-magenta" padded className="text-sm text-danger">
-                  🚫 No photo consent — mugshot is skipped. Check-in still completes.
-                </Card>
-              ) : null}
-
-              <fieldset className="space-y-2 rounded-2xl border border-ink-hair bg-ink-2/70 p-4">
+              <fieldset className="space-y-3 rounded-2xl border border-ink-hair bg-ink-2/70 p-4">
                 <legend className="text-xs font-semibold uppercase tracking-widest text-mist">Dropoff</legend>
                 <div className="grid grid-cols-2 gap-2">
                   {DROPOFF_OPTIONS.map((o) => (
@@ -267,6 +251,18 @@ export default function CheckInStation() {
                     </label>
                   ))}
                 </div>
+
+                {dropoff === 'other_approved_adult' && (
+                  <Input
+                    label="Name of approved adult"
+                    value={dropoffPersonName}
+                    onChange={(e) => setDropoffPersonName(e.target.value)}
+                    placeholder="Full name of the person dropping off"
+                    aria-label="dropoff person name"
+                    required
+                    autoFocus
+                  />
+                )}
               </fieldset>
 
               <Button
@@ -275,7 +271,7 @@ export default function CheckInStation() {
                 size="xl"
                 fullWidth
                 onClick={doCheckIn}
-                disabled={!dropoff || !mugshotReady || busy}
+                disabled={!canCheckIn}
                 loading={busy}
               >
                 Check In
@@ -288,16 +284,20 @@ export default function CheckInStation() {
           )}
 
           {success && (
-            <>
-              <p className="rounded-xl border border-neon-mint/60 bg-neon-mint/10 px-3 py-2 text-sm text-neon-mint shadow-glow-mint animate-rise">
-                ✨ Checked in! Next kid?
-              </p>
-              <Button tone="ghost" size="md" fullWidth onClick={reset}>
-                Scan next wristband
-              </Button>
-            </>
+            <p className="rounded-xl border border-neon-mint/60 bg-neon-mint/10 px-3 py-2 text-sm text-neon-mint shadow-glow-mint animate-rise">
+              ✨ Checked in! Tap Done above to scan the next wristband.
+            </p>
           )}
-        </div>
+
+          {/* Inline per-kid photo capture — tag the shot to the check-in station. */}
+          <StationPhotoCapture
+            childId={data.child.id}
+            childFirstName={data.child.first_name}
+            station="check_in"
+            tone="cyan"
+            volunteerName={staffName}
+          />
+        </>
       )}
 
       <section className="flex flex-col gap-2">
