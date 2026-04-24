@@ -273,8 +273,8 @@ export default function RegistrationConfirmationEmail({
 }: RegistrationConfirmationEmailProps) {
   const isMulti = children.length > 1
   const preview = isMulti
-    ? `You're in — Spring BBQ Bash details + edit link inside.`
-    : `You're in — ${children[0].first_name}'s Spring BBQ Bash details inside.`
+    ? `You're on the list — Saturday night is about to glow.`
+    : `${children[0].first_name}'s on the list — Saturday night is about to glow.`
 
   return (
     <Html>
@@ -314,7 +314,6 @@ export default function RegistrationConfirmationEmail({
                 />
               )}
               <Text style={styles.sparks}>✦ ✦ ✦</Text>
-              <Text style={styles.heroEyebrow}>Registered · Lincoln Christian Academy</Text>
               <Heading as="h1" style={styles.heroYoureIn}>
                 YOU&apos;RE IN
               </Heading>
@@ -327,19 +326,18 @@ export default function RegistrationConfirmationEmail({
               </Text>
             </Section>
 
-            <Text style={styles.greeting}>Hi {primary_parent_name} —</Text>
+            <Text style={styles.greeting}>Hey {primary_parent_name} —</Text>
             <Text style={styles.lead}>
               {isMulti
-                ? `You're registered. Wristbands will be waiting at the check-in table Saturday — just give the kids' names. This email is your receipt and edit link if anything needs to change.`
-                : `You're registered. Their wristband will be waiting at the check-in table Saturday — just give their name. This email is your receipt and edit link if anything needs to change.`}
+                ? `Saturday night is about to glow, and your crew is on the list. Neon wristbands will be waiting at the check-in table — just give the kids' names on the way in. This email's your receipt; tap the button below if anything needs to change.`
+                : `Saturday night is about to glow, and ${children[0].first_name}'s on the list. A neon wristband will be waiting at the check-in table — just give their name on the way in. This email's your receipt; tap the button below if anything needs to change.`}
             </Text>
 
-            <Text style={styles.callout}>{isMulti ? 'Registered kids' : 'Registered'}</Text>
+            <Text style={styles.callout}>✦ The Lineup ✦</Text>
 
             {children.map((child, i) => (
               <Section key={`${child.first_name}-${child.last_name}-${i}`} style={styles.childBlock}>
-                <span style={styles.childHeaderBar}>{child.first_name}</span>
-                <Heading as="h2" style={styles.childName}>
+                <Heading as="h3" style={styles.childName}>
                   {child.first_name} {child.last_name}
                 </Heading>
                 <Text style={styles.childMeta}>
@@ -349,7 +347,7 @@ export default function RegistrationConfirmationEmail({
                 </Text>
 
                 <Text style={styles.perkChips}>
-                  2 drinks · 3 jail / pass · 1 prize wheel spin · 1 DJ shoutout
+                  🥤 2 drinks · 🚨 3 jail / pass · 🎡 1 spin · 📻 1 DJ shoutout
                 </Text>
               </Section>
             ))}
@@ -362,15 +360,16 @@ export default function RegistrationConfirmationEmail({
 
             <Section style={styles.editSection}>
               <Link href={edit_url} style={styles.editButton}>
-                Update registration
+                Edit your registration
               </Link>
             </Section>
 
             <div style={styles.whatsNext}>
-              <Text style={styles.whatsNextHeading}>What happens next</Text>
+              <Text style={styles.whatsNextHeading}>The run of show</Text>
               <Text style={styles.whatsNextLine}>
-                <strong style={{ color: PAPER }}>Saturday:</strong> arrive between 5 and 5:30 at the
-                courtyard by the water fountain, scan in, and let the kids loose.
+                <strong style={{ color: PAPER }}>4:45pm Saturday:</strong> check-in opens in the
+                courtyard by the water fountain. Roll up anytime between 4:45 and 5:30 — grab
+                the wristbands, scan in, and let them run into the glow.
               </Text>
               <Text style={styles.whatsNextLine}>
                 <strong style={{ color: PAPER }}>One more thing:</strong> a little something is landing in
@@ -392,7 +391,7 @@ export default function RegistrationConfirmationEmail({
                 </Link>
               </Text>
               <Text style={styles.finePrint}>
-                Need to change anything? Use the &quot;Update registration&quot; button above or reply to this email.
+                Need to change anything? Hit the button above or reply to this email.
               </Text>
             </div>
           </Container>
@@ -404,7 +403,7 @@ export default function RegistrationConfirmationEmail({
 
 export function subjectForRegistration(children: RegistrationEmailChild[]): string {
   if (children.length === 1) {
-    return `You're in — ${children[0].first_name} is registered for Spring BBQ Bash`
+    return `🎉 You're on the list — ${children[0].first_name} is set for Spring BBQ Bash`
   }
-  return `You're in — ${children.length} kids registered for Spring BBQ Bash`
+  return `🎉 You're on the list — all ${children.length} kids set for Spring BBQ Bash`
 }
