@@ -61,36 +61,53 @@ const styles = {
     boxShadow: `0 20px 80px -20px rgba(155,92,255,0.35)`,
   } as const,
   hero: {
-    padding: '36px 32px 24px',
+    padding: '44px 32px 28px',
     textAlign: 'center' as const,
-    background: `radial-gradient(80% 120% at 50% 0%, ${UV}33 0%, ${INK_2} 60%), ${INK_2}`,
+    background: `radial-gradient(80% 120% at 50% 0%, ${MAGENTA}2A 0%, ${UV}22 40%, ${INK_2} 75%), ${INK_2}`,
   } as const,
-  eyebrow: {
+  sparks: {
+    color: GOLD,
+    fontSize: '14px',
+    letterSpacing: '0.6em',
+    margin: '0 0 10px',
+    textShadow: `0 0 12px ${GOLD}AA`,
+  } as const,
+  heroEyebrow: {
     display: 'inline-block',
     color: MIST,
     fontFamily: bodyFont,
-    fontSize: '11px',
-    fontWeight: 600,
-    letterSpacing: '0.22em',
+    fontSize: '10px',
+    fontWeight: 700,
+    letterSpacing: '0.3em',
     textTransform: 'uppercase' as const,
-    margin: '0 0 12px',
+    margin: '0 0 14px',
+  } as const,
+  heroYoureIn: {
+    fontFamily: displayFont,
+    fontWeight: 800,
+    fontSize: '56px',
+    lineHeight: '0.95',
+    letterSpacing: '-0.025em',
+    color: PAPER,
+    margin: '0 0 18px',
+    textShadow: `0 0 6px ${PAPER}CC, 0 0 18px ${CYAN}, 0 0 40px ${MAGENTA}B3, 0 0 72px ${MAGENTA}66`,
   } as const,
   wordmark: {
     fontFamily: displayFont,
-    fontWeight: 800,
-    fontSize: '30px',
-    lineHeight: '1.08',
-    letterSpacing: '-0.015em',
+    fontWeight: 700,
+    fontSize: '22px',
+    lineHeight: '1.1',
+    letterSpacing: '0.01em',
     color: PAPER,
-    margin: '0 0 6px',
+    margin: '0 0 4px',
   } as const,
   wordmarkSub: {
     fontFamily: displayFont,
     fontWeight: 700,
-    fontSize: '16px',
-    letterSpacing: '0.12em',
+    fontSize: '14px',
+    letterSpacing: '0.24em',
     color: GOLD,
-    textShadow: `0 0 14px ${GOLD}66`,
+    textShadow: `0 0 14px ${GOLD}80`,
     textTransform: 'uppercase' as const,
     margin: '0 0 14px',
   } as const,
@@ -296,8 +313,12 @@ export default function RegistrationConfirmationEmail({
                   style={{ margin: '0 auto 18px' }}
                 />
               )}
-              <Text style={styles.eyebrow}>You&apos;re in · Lincoln Christian Academy</Text>
-              <Heading as="h1" style={styles.wordmark}>
+              <Text style={styles.sparks}>✦ ✦ ✦</Text>
+              <Text style={styles.heroEyebrow}>Registered · Lincoln Christian Academy</Text>
+              <Heading as="h1" style={styles.heroYoureIn}>
+                YOU&apos;RE IN
+              </Heading>
+              <Heading as="h2" style={styles.wordmark}>
                 {event_name}
               </Heading>
               <Text style={styles.wordmarkSub}>Glow Party Edition</Text>
@@ -352,8 +373,8 @@ export default function RegistrationConfirmationEmail({
                 courtyard by the water fountain, scan in, and let the kids loose.
               </Text>
               <Text style={styles.whatsNextLine}>
-                <strong style={{ color: PAPER }}>Sunday morning:</strong> we&apos;ll send a keepsake
-                email with a short recap of the night plus any photos taken.
+                <strong style={{ color: PAPER }}>One more thing:</strong> a little something is landing in
+                your inbox the morning after the party. Watch for it — we think you&apos;ll like it.
               </Text>
             </div>
 
