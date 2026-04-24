@@ -29,6 +29,19 @@ const GLYPHS = {
   dj:        { src: `${EMAIL_ASSET_BASE}/dj.png`,          color: '#9B5CFF' },
 } as const
 
+// Color variants for the per-kid neon name animation + static fallback. Each
+// variant defines the primary glow color (inner halo) and the secondary color
+// (outer bloom); these match the @keyframes definitions in the Head <style>
+// block, so a kid rendered with .neonFlickerB inline-styled with variant[1]'s
+// primary will animate consistently from static → animated without a color
+// pop on load.
+const NEON_VARIANTS = [
+  { className: 'neonFlickerA', primary: '#00E6F7', secondaryRgba: 'rgba(255, 46, 147, 0.35)' }, // cyan → magenta
+  { className: 'neonFlickerB', primary: '#FF2E93', secondaryRgba: 'rgba(155, 92, 255, 0.35)' }, // magenta → uv
+  { className: 'neonFlickerC', primary: '#9B5CFF', secondaryRgba: 'rgba(255, 225, 71, 0.35)' }, // uv → gold
+  { className: 'neonFlickerD', primary: '#FFE147', secondaryRgba: 'rgba(0, 230, 247, 0.35)' },  // gold → cyan
+] as const
+
 function formatGradeMeta(age: number | null, grade: string | null): string {
   const ageLabel = age != null ? `Age ${age}` : null
   // Raw numeric grade inputs ("2") look broken next to "Age 7"; prefix "Grade".
@@ -183,7 +196,8 @@ const styles = {
     letterSpacing: '-0.015em',
     color: PAPER,
     margin: '0',
-    textShadow: `0 0 4px ${PAPER}CC, 0 0 14px ${CYAN}, 0 0 28px ${MAGENTA}66`,
+    // textShadow is set inline per kid so each gets a unique glow color —
+    // see NEON_VARIANTS + the render loop below.
   } as const,
   childMeta: {
     color: MIST,
@@ -354,27 +368,47 @@ export default function RegistrationConfirmationEmail({
           fontStyle="normal"
         />
         {/*
-          Neon-flicker animation on the kid's name — plays in clients that
-          respect @keyframes (Apple Mail, the admin HTML preview). Gmail /
-          Outlook strip keyframes and fall back to the static text-shadow
-          declared inline on styles.childName. Reduced-motion users never
-          see the animation.
+          Neon-flicker animation on kid names — plays in clients that respect
+          @keyframes (Apple Mail, the admin HTML preview). Gmail/Outlook strip
+          keyframes and fall back to the static text-shadow declared inline
+          per kid. Reduced-motion users never see the animation.
+
+          Four variants (A/B/C/D) rotate through the neon palette so multi-
+          kid families don't all flicker in sync or in the same color. Each
+          variant starts on its primary color, flickers off briefly, returns
+          in its secondary color, flickers off again, then returns home.
+          Different durations (5.5–8s) keep them drifting apart visually.
         */}
         <style dangerouslySetInnerHTML={{ __html: `
-@keyframes neonFlicker {
-  0%, 19%, 21%, 23%, 80%, 83%, 100% {
-    opacity: 1;
-    text-shadow: 0 0 4px rgba(245, 242, 255, 0.8), 0 0 14px #00E6F7, 0 0 28px rgba(255, 46, 147, 0.4);
-  }
-  20%, 22%, 82% {
-    opacity: 0.45;
-    text-shadow: 0 0 2px rgba(245, 242, 255, 0.2);
-  }
+@keyframes neonFlickerA {
+  0%, 19% { opacity: 1; text-shadow: 0 0 4px rgba(245,242,255,0.8), 0 0 14px #00E6F7, 0 0 28px rgba(255,46,147,0.35); }
+  20%, 22%, 81% { opacity: 0.4; text-shadow: 0 0 2px rgba(245,242,255,0.2); }
+  23%, 80% { opacity: 1; text-shadow: 0 0 4px rgba(245,242,255,0.8), 0 0 14px #FF2E93, 0 0 28px rgba(155,92,255,0.35); }
+  83%, 100% { opacity: 1; text-shadow: 0 0 4px rgba(245,242,255,0.8), 0 0 14px #00E6F7, 0 0 28px rgba(255,46,147,0.35); }
+}
+@keyframes neonFlickerB {
+  0%, 19% { opacity: 1; text-shadow: 0 0 4px rgba(245,242,255,0.8), 0 0 14px #FF2E93, 0 0 28px rgba(155,92,255,0.35); }
+  20%, 22%, 81% { opacity: 0.4; text-shadow: 0 0 2px rgba(245,242,255,0.2); }
+  23%, 80% { opacity: 1; text-shadow: 0 0 4px rgba(245,242,255,0.8), 0 0 14px #9B5CFF, 0 0 28px rgba(255,225,71,0.35); }
+  83%, 100% { opacity: 1; text-shadow: 0 0 4px rgba(245,242,255,0.8), 0 0 14px #FF2E93, 0 0 28px rgba(155,92,255,0.35); }
+}
+@keyframes neonFlickerC {
+  0%, 19% { opacity: 1; text-shadow: 0 0 4px rgba(245,242,255,0.8), 0 0 14px #9B5CFF, 0 0 28px rgba(255,225,71,0.35); }
+  20%, 22%, 81% { opacity: 0.4; text-shadow: 0 0 2px rgba(245,242,255,0.2); }
+  23%, 80% { opacity: 1; text-shadow: 0 0 4px rgba(245,242,255,0.8), 0 0 14px #FFE147, 0 0 28px rgba(0,230,247,0.35); }
+  83%, 100% { opacity: 1; text-shadow: 0 0 4px rgba(245,242,255,0.8), 0 0 14px #9B5CFF, 0 0 28px rgba(255,225,71,0.35); }
+}
+@keyframes neonFlickerD {
+  0%, 19% { opacity: 1; text-shadow: 0 0 4px rgba(245,242,255,0.8), 0 0 14px #FFE147, 0 0 28px rgba(0,230,247,0.35); }
+  20%, 22%, 81% { opacity: 0.4; text-shadow: 0 0 2px rgba(245,242,255,0.2); }
+  23%, 80% { opacity: 1; text-shadow: 0 0 4px rgba(245,242,255,0.8), 0 0 14px #00E6F7, 0 0 28px rgba(255,46,147,0.35); }
+  83%, 100% { opacity: 1; text-shadow: 0 0 4px rgba(245,242,255,0.8), 0 0 14px #FFE147, 0 0 28px rgba(0,230,247,0.35); }
 }
 @media (prefers-reduced-motion: no-preference) {
-  .neonFlicker {
-    animation: neonFlicker 6s infinite;
-  }
+  .neonFlickerA { animation: neonFlickerA 6s infinite; }
+  .neonFlickerB { animation: neonFlickerB 7s infinite; }
+  .neonFlickerC { animation: neonFlickerC 8s infinite; }
+  .neonFlickerD { animation: neonFlickerD 5.5s infinite; }
 }
         `}} />
       </Head>
@@ -413,10 +447,16 @@ export default function RegistrationConfirmationEmail({
 
             <Text style={styles.callout}>✦ The Lineup ✦</Text>
 
-            {children.map((child, i) => (
+            {children.map((child, i) => {
+              const variant = NEON_VARIANTS[i % NEON_VARIANTS.length]
+              const nameStyle = {
+                ...styles.childName,
+                textShadow: `0 0 4px rgba(245, 242, 255, 0.8), 0 0 14px ${variant.primary}, 0 0 28px ${variant.secondaryRgba}`,
+              }
+              return (
               <Section key={`${child.first_name}-${child.last_name}-${i}`} style={styles.childBlockOuter}>
                 <div style={styles.childCard}>
-                  <Heading as="h3" className="neonFlicker" style={styles.childName}>
+                  <Heading as="h3" className={variant.className} style={nameStyle}>
                     {child.first_name} {child.last_name}
                   </Heading>
                   <Text style={styles.childMeta}>
@@ -449,7 +489,8 @@ export default function RegistrationConfirmationEmail({
                   </Row>
                 </div>
               </Section>
-            ))}
+              )
+            })}
 
             <div style={{ textAlign: 'center', padding: '8px 32px 0' }}>
               <span style={styles.detailsPill}>
