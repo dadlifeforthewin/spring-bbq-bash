@@ -64,7 +64,7 @@ Ordered by urgency. **#1 is the new P0 (discovered 2026-04-18 during runbook aud
 
 ## Nice-to-have before the event
 
-6. **Replace the text event header in the keepsake email with LCA's actual logo as an image** (`email_logo_url` in `/admin/settings`). Wiring is verified end-to-end (DB column + settings UI + API + email template all work). Brian sources the crest + pastes the URL. **Step-by-step:** `docs/runbooks/lca-logo-setup.md`.
+6. ~~**Replace the text event header in the keepsake email with LCA's actual logo as an image**~~ — **Dropped 2026-04-24** (Brian: "we cannot use the logo for this"). The `email_logo_url` field stays in `/admin/settings`/DB/template (harmless when empty — the email template renders the text header as the fallback path) so a future event can use it. Setup runbook at `docs/runbooks/lca-logo-setup.md` is preserved for future reference.
 7. ✅ **DONE 2026-04-18.** `events.reference_story_text` reseeded with a fictional Olivia Bennett story across 7 real seeded stations (~205 words). Migration 0008 applied. Auto-check rules verified (word count, opener mentions child, ≥2 stations in opener+closer, no banned phrases, no timestamps).
 8. Applitools baseline capture for the parent flow + email (enables regression detection post-event).
 9. Swap the teaser-email copy to final voice once the reveal is confirmed okay. Current copy is the "surprise" direction Brian approved.
