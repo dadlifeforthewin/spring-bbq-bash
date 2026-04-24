@@ -48,11 +48,27 @@ export default function VolunteerLogin() {
             </p>
           </div>
 
+          {/* Fixed account-name field — gives the browser a "username" to
+           *  pair with the password so credential-save works. The shared
+           *  password is per-event, not per-volunteer, so this is a label,
+           *  not a real identity. */}
+          <Input
+            type="text"
+            name="username"
+            value="LCA Volunteer"
+            readOnly
+            autoComplete="username"
+            label="Account"
+            tabIndex={-1}
+          />
+
           <Input
             type="password"
+            name="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             autoFocus
+            autoComplete="current-password"
             aria-label="volunteer password"
             label="Volunteer password"
             placeholder="••••••••"

@@ -51,11 +51,26 @@ export default function AdminLogin() {
             </p>
           </div>
 
+          {/* Fixed account-name field — gives the browser a "username" to
+           *  pair with the password so credential-save works. The shared
+           *  password is per-event, not per-admin. */}
+          <Input
+            type="text"
+            name="username"
+            value="LCA Admin"
+            readOnly
+            autoComplete="username"
+            label="Account"
+            tabIndex={-1}
+          />
+
           <Input
             type="password"
+            name="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             autoFocus
+            autoComplete="current-password"
             aria-label="admin password"
             label="Admin password"
             placeholder="••••••••"
