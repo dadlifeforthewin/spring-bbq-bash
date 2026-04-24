@@ -1,28 +1,41 @@
 # Kid Profile Rebuild — STATUS
 
-**Branch:** `kid-profile-rebuild` · **Last update:** 2026-04-19 (evening session — Resend live + registration email)
-**Live:** https://spring-bbq-bash.vercel.app · **Event:** Saturday, April 25, 2026 (5 days out as of 2026-04-20)
+**Branch:** `kid-profile-rebuild` · **Last update:** 2026-04-23 (T-minus 2 days · STATUS refresh covering 2026-04-20 → 2026-04-23 waves)
+**Live:** https://spring-bbq-bash.vercel.app · **Event:** Saturday, April 25, 2026 (**2 days out as of 2026-04-23**)
 
-> **In-flight: `glow-redesign` branch** — station + admin visual restyle. Foundation phase complete (20 primitives + 8 glyphs, reviewed ✅). See `docs/STATUS-glow-redesign.md` to resume.
-**Plan:** `docs/plans/2026-04-16-kid-profile-rebuild-plan.md` · **Spec:** `docs/specs/2026-04-16-kid-profile-rebuild-design.md`
-**Vercel production branch:** `kid-profile-rebuild` (changed from `main` on 2026-04-19 — every push now auto-deploys to prod)
+**Plan:** `docs/plans/2026-04-16-kid-profile-rebuild-plan.md` · **Spec:** `docs/specs/2026-04-16-kid-profile-rebuild-design.md` · **Glow-redesign:** `docs/STATUS-glow-redesign.md` (merged 2026-04-20, kept for archaeology)
+**Vercel production branch:** `kid-profile-rebuild` — every push auto-deploys to prod.
 
-## Go-live status (2026-04-18 late evening)
+## Go-live status (2026-04-23 — T-minus 2 days)
 
-Phases 1–7 of the plan are shipped. **Two visual rebuilds are now live**: the original D1–D9 glow pass, and on top of that a Glow Party design-system rebuild today (D10 landing + D11 registration) implementing the Claude Design handoff in `docs/design/`. The site represents Attn: To Detail's first public-facing project — donated to LCA for the event. Craft bar: everything the parents see needs to feel like it came from a real studio.
+Phases 1–7 of the plan are shipped, plus Phase 5.5 (Cleanup Crew + Prize Wheel, added + shipped 2026-04-20), plus the full glow-redesign (stations + admin, merged 2026-04-20). Email pipeline is live end-to-end (Resend on `attntodetail.ai`, SPF/DKIM/DMARC verified, `dmarc=pass` on test sends). The site represents Attn: To Detail's first public-facing project — donated to LCA for the event. Craft bar: everything the parents see needs to feel like it came from a real studio.
 
 **What's live right now:**
-- **Landing (`/`)** — Glow Party Edition: neon-sign hero (Monoton title with cyan/pink glow stack), live countdown to Apr 25 5pm PT, 4-up stat strip, wristband perks card (2 DRINKS / 3 JAIL / 1 SPIN / 1 DJ), CTA → /register. Full atmosphere: radial gradient + perspective synthwave grid floor + noise.
-- **Parent flow (`/register`)** — fully restyled to the Glow Party design system. 5-step permission slip:
+- **Landing (`/`)** — Glow Party Edition: neon-sign hero, live countdown to Apr 25 5pm PT, 4-up stat strip (`2 drinks · 3 jail / pass · 1 prize spin · 1 DJ shoutout`), CTA → /register. Atmosphere: radial gradient + perspective synthwave grid floor + noise. Copy hardened: "drink station" (not tent), "jail" (not "glow-jail"), PTO→PTF, courtyard check-in language, warmer parent voice.
+- **Parent flow (`/register`)** — full Glow Party design system. 5-step permission slip + "One more thing…" surprise card:
   1. **Parent** — neon card with cyan-tinted inputs
-  2. **Children** — each kid gets a live `<WristbandPreview>` (name + grade + QR placeholder + 4 perk slots showing the locked ticket model)
+  2. **Children** — each kid gets a live `<WristbandPreview>` (name + grade + QR placeholder + 4 perk slots). **Allergies + special-instructions are Yes/No reveals** (detail field only appears on Yes) — on both `/register` and `/register/edit/[token]`.
   3. **Waiver** — verbatim LCA paper-slip "Permission and Release of Liability"
   4. **Photo permissions** — Backstage Pass treatment: 3 `<BigToggle>` rows + "{N} of 3 · You're on the list" status pill + expandable full LCA Photo/Video Release legal text
-  5. **AI & data use** — yellow-accented neon card with the disclosure + **OPT IN / OPT OUT radio cards (no default — parent must actively choose)** + independent signature + ack checkbox
-- **`/register/confirm`** — Marquee "YOU'RE IN" + per-kid gate-pass card with **REAL QR codes** (qrcode lib) + edit link + ICS calendar download + Print button + Apple Wallet placeholder. **P0 closed.**
-- Volunteer portal at `/station` with emoji station picker and a unified `/station/activity` endpoint for drinks, jail, prize wheel, DJ, and free-visit logging.
-- Admin at `/admin` with dark-mode dashboard, children list showing per-kid perks, story moderation, photo queue, settings.
-- Keepsake email template (`src/emails/StoryEmail.tsx`) — dark hero, Unbounded wordmark, per-child block with photo grid + stats pill + A2D signature footer. Not yet wired to a real inbox (`RESEND_API_KEY` empty).
+  5. **AI & data use** — yellow-accented neon card: disclosure + **OPT IN / OPT OUT radio cards (no default — parent must actively choose)** + independent signature + ack checkbox
+- **`/register/confirm`** — Marquee "YOU'RE IN" + per-kid gate-pass card with **REAL QR codes** (qrcode lib) + edit link + ICS calendar download + Print button + Apple Wallet placeholder.
+- **Registration confirmation email** — per-kid details + edit link + event info. **QR block removed 2026-04-22** now that `/admin/wristbands` is the canonical QR-distribution surface; email copy updated to match.
+- **Stations** — all restyled on the glow design system with a consistent `PageHead` + `NeonScanner` pattern and distinct per-station tone:
+  - `/station` picker — `NeonWordmark` hero + 16-slug glyph grid, DB-driven from the `stations` seed
+  - `/station/check-in` (cyan), `/station/check-out` (mint), `/station/photo` (magenta), `/station/roaming` (uv), `/station/activity` (12-slug driver — drinks/jail/DJ/free stations all route through this)
+  - `/station/profile` — lookup rebuilt with `SignPanel` + `StatTile` grid + `TimelineTrack`
+  - **`/station/cleanup`** (Phase 5.5) — simple toggle-checklist for cleanup crew, no lock mechanism
+  - **`/station/prize_wheel`** (Phase 5.5) — redeem flow with `stats_line.prize_won` written through
+  - **Name-search fallback** — if a wristband won't scan, all 7 kid-facing stations fall back to search-by-name so no kid gets blocked.
+  - **ReloadStation deleted** — comp-reload is now admin-only (see `/admin/wristbands`).
+- **Admin** — fully restyled (Phase 6-8 glow rebuild, 2026-04-20):
+  - New `app/admin/layout.tsx` + `AdminChrome`; legacy `AdminShell` retired.
+  - Dashboard, Photos, Stories all rebuilt with glow primitives; mobile layout bugs on Children table + Stories list fixed.
+  - `/admin/cleanup` + `/admin/prizes` CRUD (Phase 5.5).
+  - **`/admin/wristbands`** (2026-04-22) — bulk-print page for registered kids. Canonical QR-distribution surface.
+  - Settings slimmed 2026-04-20 — legacy fields removed from `/admin/settings` to match current build.
+- **DB state** — transactional tables wiped 2026-04-20 (`bd19198`) for a fresh-start event; schema + seeds intact. Phase 5.5 tables (`prizes`, `prize_redemptions`, `cleanup_completions`) have RLS enabled.
+- Keepsake email template (`src/emails/StoryEmail.tsx`) and Resend cron wired; sending domain `attntodetail.ai` verified; test sends to iCloud landed with `dmarc=pass` on both Resend + SES signatures.
 - **AI opt-out is real, not theater.** `children.ai_consent_granted` (migration 0009) is enforced at every AI touchpoint: story generator early-returns `{skipped: true, reason: 'ai_opted_out'}` before any Anthropic call; photo upload skips face description; photo match candidate query filters opted-out kids; register API doesn't even pre-queue an `ai_stories` row for opted-out kids → no row → no keepsake email for them.
 
 **Ticket model (locked):** every kid starts with 2 drink tickets, 3 jail/pass tickets (one bucket, two uses), 1 prize wheel spin, 1 DJ shoutout. Free stations just log a visit for the keepsake email.
@@ -35,9 +48,9 @@ Ordered by urgency. **#1 is the new P0 (discovered 2026-04-18 during runbook aud
 
 1. ✅ **DONE 2026-04-18 (was P0).** `/register/confirm` renders real per-kid QR codes. Parents leave registration with a printable gate-pass per child + an edit link. Apple Wallet `.pkpass` generation still a placeholder button.
 2. ✅ **DONE 2026-04-19 (evening).** Resend email pipe live end-to-end. Sending domain `attntodetail.ai` verified at Resend (SPF + DKIM + MX + DMARC, all pass, `p=none` DMARC policy, iCloud landed to inbox with `dmarc=pass`). `RESEND_API_KEY` + `EMAIL_FROM=Brian Leach <brian@attntodetail.ai>` + `CRON_SECRET` all set on Vercel production. **Keepsake email** (StoryEmail.tsx) tested end-to-end, subject + body render clean, date polished to "Saturday, April 25, 2026". **Registration confirmation email** (RegistrationConfirmationEmail.tsx) now wired into `/api/register` — parents get per-kid QR codes + edit link + event info immediately on submit, records to `email_sends`. Not yet stress-tested with a real submit from Brian's burner inbox (see #3).
-3. **Full manual dry-run on a real phone.** Runbook reconciled 2026-04-19 to match shipped state. Test family → `/register` (confirms new confirmation email arrives) → check-in with jail mugshot → visit 5+ stations → check out → confirm story generates via `/admin/stories` (now auto-polls every 10s while pending, plus Refresh button) → confirm keepsake email via `/admin/settings` test-send. **Step-by-step:** `docs/runbooks/event-dry-run.md`. Run by Tuesday April 21.
+3. **Full manual dry-run on a real phone.** ⚠️ **Overdue** — original target was Tuesday 2026-04-21; now 2 days to event. Runbook lightly revised 2026-04-20 (`a58852e` — Step 6 swapped stale email open-item for a verification step). Test family → `/register` (confirms new confirmation email arrives, no QR block) → check-in with jail mugshot → visit 5+ stations including Prize Wheel + Cleanup → check out → confirm story generates via `/admin/stories` (auto-polls every 10s while pending, plus Refresh button) → confirm keepsake email via `/admin/settings` test-send. **Step-by-step:** `docs/runbooks/event-dry-run.md`.
 4. **Volunteer device setup.** Each station gets a tablet/phone, logged into `/station`, station slug picked (stored in `localStorage`). Print one cheat-sheet per volunteer. **Print-ready:** `docs/runbooks/volunteer-cheatsheet.md`.
-5. **Wristband printing.** Blank QR wristbands pre-printed in batches of ~20 for walk-up registrations (see spec §2 walk-up flow). Confirm the QR decoder reads them at event-lighting.
+5. **Wristband printing.** `/admin/wristbands` (shipped 2026-04-22) is the canonical bulk-print surface for already-registered kids — generates a printable sheet of QR-bearing wristbands. Separately, pre-print blank QR wristbands in batches of ~20 for walk-up registrations (see spec §2 walk-up flow). Confirm the QR decoder reads them at event-lighting.
 
 **✅ DONE 2026-04-18 (was critical-path #1):** Real LCA permission slip waiver text now lives in `WaiverSection.tsx` (verbatim from LCA paper). New `AISection.tsx` adds the AI & data use disclosure as Step 5. `PhotoConsentSection.tsx` exposes the full LCA Photo/Video Release legal text via an expandable `<details>`. Migration 0007 adds `'ai_consent'` to the signature_type CHECK; API writes 3 signature rows per registration.
 
@@ -47,6 +60,49 @@ Ordered by urgency. **#1 is the new P0 (discovered 2026-04-18 during runbook aud
 7. ✅ **DONE 2026-04-18.** `events.reference_story_text` reseeded with a fictional Olivia Bennett story across 7 real seeded stations (~205 words). Migration 0008 applied. Auto-check rules verified (word count, opener mentions child, ≥2 stations in opener+closer, no banned phrases, no timestamps).
 8. Applitools baseline capture for the parent flow + email (enables regression detection post-event).
 9. Swap the teaser-email copy to final voice once the reveal is confirmed okay. Current copy is the "surprise" direction Brian approved.
+
+## What landed 2026-04-20 → 2026-04-22 (committed + pushed + live)
+
+A three-day push that restyled the whole app, added Phase 5.5, tightened copy, wiped stale DB state, and collapsed the QR-distribution surfaces to one.
+
+### 2026-04-22 — QR surfaces consolidated (2 commits)
+
+| SHA | Subject |
+|---|---|
+| `13d6adb` | `admin: /admin/wristbands bulk-print page for registered kids` — canonical print surface for wristbands once the registration inbox is final |
+| `cc9b4c3` | `email: drop QR from registration confirmation, update copy` — removes the now-redundant QR block from `RegistrationConfirmationEmail.tsx` once `/admin/wristbands` owns distribution |
+
+Operational note: Brian flagged the redundancy after `/admin/wristbands` shipped — the email still rendered a per-kid QR block for no-longer-the-source-of-truth reasons. Removal was the follow-up. Lesson captured in the ai_system HARNESS-TODO under "Workflow-redundancy audit" — candidate for a future LEARNINGS rule after one more recurrence.
+
+### 2026-04-20 — The big wave (≈60 commits)
+
+A single day that merged three streams in order: the `glow-redesign` branch, Phase 5.5 (Cleanup Crew + Prize Wheel, added as in-scope on this day), and a cluster of copy/settings/data hardening.
+
+**Glow-redesign (station + admin visual rebuild, merged via `3ba4b0b` + deployed via `b66d601`):**
+- Foundation primitives: `GridFloor`, `NeonWordmark`, `SectionHeading`, `PageHead`, `SignPanel`, `BigToggle`, `NeonScanner`, `StatTile`, `TimelineTrack`, `AdminNav` + 8 glow station glyphs (`1e9aee1`, `9821121`, `08ec79d`, `f2a8fcf`).
+- Stations rebuilt with distinct per-station tones (cyan check-in, mint check-out, magenta photo, uv roaming) and a consistent `PageHead` + `NeonScanner` → `SignPanel` pattern (`1258837`, `849ad32`, `bfbf7fa`, `a5c2748`, `1be9cc2`, `49f5f1e`).
+- Station picker rebuilt with `NeonWordmark` hero + 16-slug DB-driven glyph grid (`1ec1a65`).
+- `Aurora` + `GridFloor` moved into the station layout; double-paint bug fixed (`909f9a4`, `01a003e`).
+- `ReloadStation` + `StationShell` + `/station/reload` route + reload E2E deleted (`c7f0c2b`) — comp-reload is now admin-only.
+- Admin Phase 6-8: new `layout.tsx` + `AdminChrome` retiring `AdminShell` (`44018f0`), glow dashboard (`50b2a97`), Photo/Stories surfaces restyled (`f3ad28f`), 5 polish pages migrated to primitives (`f603d2d`), mobile layout bugs on Children table + Stories list fixed (`441ac83`). Merged in `c57d31c`.
+
+**Phase 5.5 — Cleanup Crew + Prize Wheel (added + shipped same day):**
+- DB: `prizes` + `prize_redemptions` tables (`7a79477`), `cleanup_completions` + `Station` type (`5e9a9f3`), FK corrections (`5029ef5`), RLS enabled (`cf10895`).
+- Admin CRUD: `/admin/prizes` (`dae2d46`), `/admin/cleanup` (`ee4623b`).
+- Stations: `/station/prize_wheel` with race-safe upsert (`609059b`, `06ea742`), `/station/cleanup` with toggle checklist (`0011dbc`), integration with picker routing + stations seed (`13d4c92`).
+- Glyphs: 9 new station glyphs (`a16169e`).
+- Cleanup simplified: removed lock mechanism, now a plain toggle checklist (`3973796`, `108e073`, `bb8940b`).
+
+**Copy + settings + data hardening (merged via `97480ad`, `036e3b8`, `d76deb1`, `bb7ade0`):**
+- Landing + email copy: PTO→PTF, courtyard check-in, warmer parent voice (`a0252eb`).
+- Landing: "drink tent" → "drink station"; dropped "glow-" prefix from jail (`bca0126`).
+- Settings: removed legacy fields no longer used by current build (`e8e3f43`).
+- DB wipe: transactional tables wiped for fresh-start event, applied to prod (`bd19198`).
+- Stations: name-search fallback across 7 kid-facing stations when a wristband won't scan (`cc6b681`).
+- Register + edit: allergies + special-instructions as Yes/No reveal (`45ef42b`, `fc48c91`).
+- Runbook Step 6: swapped stale email open-item for an email-verification step (`a58852e`).
+
+**Gotcha surfaced during the rebuild:** Tailwind v3 preflight uses `input[type='text']` selectors (specificity 0,1,1) which beat a plain CSS Module `.input` class (0,1,0). Text inputs didn't pick up the new style even though textareas did. Fix: chain the element name (`input.input`) so the rule ties at 0,1,1 and wins on source order. Already noted in the 2026-04-18 session log — re-surfaced here because multiple glow primitives style inputs via CSS Modules.
 
 ## What landed in the 2026-04-19 evening session (committed + pushed + live)
 
@@ -109,7 +165,7 @@ Surfaced during the runbook write-up by an agent reading the live code against t
   - ✅ 3.4 Check-out with pickup validation + `audit_log` (checkout + manual_pickup_override)
   - ✅ 3.5 Photo station + `PhotoViewfinder` + `/api/photos/upload` + check-in mugshot integration (Storage bucket `photos` provisioned in 0000_storage_setup.sql)
   - ✅ 3.6 Spend station + `/api/catalog` GET + `/api/spend` POST
-  - ✅ 3.7 Reload station + `/api/reload` GET/POST with FACTS allowance guard
+  - ✅ 3.7 Reload station + `/api/reload` GET/POST with FACTS allowance guard — **since removed 2026-04-20 (`c7f0c2b`)**; comp-reload is now admin-only, volunteers no longer need this surface.
   - ✅ 3.8 Profile lookup (`/api/children/by-qr/[qr]/timeline` + read-only page)
   - 🟡 3.9 Gate: typecheck clean · 35/35 unit+component · **16/16 E2E** (registration, walkup, edit, volunteer login, check-in+mugshot, check-out, spend, reload, photo upload — all happy + negative paths). Applitools + motion review still not run.
 - **Phase 4 — Admin Screens:** ✅ substantially complete (7/7 built; realtime + zip deferred)
@@ -129,6 +185,13 @@ Surfaced during the runbook write-up by an agent reading the live code against t
   - ✅ 5.6 `/api/checkout` fires `POST /api/stories/generate` in background (cookie forwarded, not awaited).
   - ✅ 5.7 `/admin/stories` list (status filter + score) + `/admin/stories/[id]` editor (text edit, regenerate, approve / send-back / skip).
   - ✅ 5.8 Gate: `tests/e2e/stories.spec.ts` runs the full pipeline against real Claude — register → admin bulk balance → check-in → 5 spends across 4 stations → checkout → generate → asserts `auto_approved|needs_review` + no timestamps + child name present + ≥2 timeline stations mentioned. **23/23 E2E now green** (auto-skips when `ANTHROPIC_API_KEY` is missing).
+- **Phase 5.5 — Cleanup Crew + Prize Wheel:** ✅ complete (added + shipped 2026-04-20)
+  - ✅ 5.5.1 DB: `prizes` + `prize_redemptions` tables + `cleanup_completions` + `Station` type + RLS enabled on all three.
+  - ✅ 5.5.2 Admin: `/admin/prizes` + `/admin/cleanup` CRUD pages + API routes.
+  - ✅ 5.5.3 Stations: `/station/prize_wheel` (redeem/lookup API + `stats_line.prize_won` integration, race-safe ON CONFLICT upsert) + `/station/cleanup` (toggle checklist, lock mechanism removed post-review).
+  - ✅ 5.5.4 Glyphs: 9 new station glyphs added for Phase 5.5 stations.
+  - ✅ 5.5.5 Integration: stations seed updated, `StationPicker` routes the two new slugs, admin nav includes the two new pages.
+  - 🟡 5.5.6 Gate: typecheck clean, ships in production. No dedicated E2E spec yet for cleanup/prize_wheel flows.
 - **Phase 6 — Roaming Photographer + Vision:** ✅ complete (7/7)
   - ✅ 6.1 Face reference extraction — `src/lib/face-matching.ts` (`describeFace`) + upload route: when station=jail + vision_matching_consent=true, fire-and-forget writes `face_references.embedding_data`.
   - ✅ 6.2 Vision summary — `summarizeVision()` called in background on every upload; writes `photos.vision_summary`.
@@ -148,8 +211,8 @@ Surfaced during the runbook write-up by an agent reading the live code against t
 
 ## Phase 7 follow-ups (deferred)
 
-1. **Resend domain verification + DNS** — SPF / DKIM / DMARC setup is a one-time infra step. Document in README when the sending domain is decided.
-2. **`RESEND_API_KEY`, `EMAIL_FROM`, `CRON_SECRET`** — still empty in `.env.local`. Fill before the event and re-run `tests/e2e/send-stories.spec.ts` for a live dry run; do a manual test send to a burner inbox for the visual sanity check.
+1. ✅ **DONE 2026-04-19.** Resend domain verification + DNS for `attntodetail.ai` — SPF, DKIM, MX, DMARC all verified; `dmarc=pass` on both Resend and SES signatures for test sends.
+2. ✅ **DONE 2026-04-19.** `RESEND_API_KEY`, `EMAIL_FROM`, `CRON_SECRET` all set on Vercel production. Still need a final live-fire test from a burner inbox right before the event (see critical path #3).
 3. **Failure retry** — the spec calls for "retry once after 5 minutes; flag in admin dashboard if still failing." Current code records `status='failed'` + `error`. Add a retry job that re-picks failed `email_sends` once and surfaces persistent failures in the admin dashboard.
 4. **Signed zip download** — the "Download all photos" button links to `download_all_url`, but the route isn't built yet (related to Phase 4 follow-up #3). Pass `null` for now and the button just hides.
 5. **Unsubscribe link** — currently rendered if `unsubscribe_url` is supplied. No unsubscribe handler yet; low priority for a one-night event.
@@ -174,7 +237,7 @@ Surfaced during the runbook write-up by an agent reading the live code against t
 
 - **Port pinned to 3050** (avoids A2D :3000 / A&E Cafe :3100 collision)
 - **Supabase CLI linked** to project `jujobpieydbyfsfhycsp` (LCA Spring BBQ) — `supabase db push` applies migrations
-- **`.env.local`** populated: Supabase URL + anon + service_role + `MAGIC_LINK_SECRET` + `SESSION_COOKIE_SECRET` + `VOLUNTEER_PASSWORD` + `ADMIN_PASSWORD` + `ANTHROPIC_API_KEY`. Still empty (fill when needed): `RESEND_API_KEY`, `EMAIL_FROM`.
+- **`.env.local` + Vercel production env** populated: Supabase URL + anon + service_role + `MAGIC_LINK_SECRET` + `SESSION_COOKIE_SECRET` + `VOLUNTEER_PASSWORD` + `ADMIN_PASSWORD` + `ANTHROPIC_API_KEY` + `RESEND_API_KEY` + `EMAIL_FROM` + `CRON_SECRET` — all set 2026-04-19.
 - **Playwright loads `.env.local`** into the test process via `loadEnv` in `playwright.config.ts`, same way `vitest.config.ts` does.
 - **Vitest** loads env via `loadEnv('', cwd, '')` from `vite` in `vitest.config.ts`
 - **Playwright** runs workers=1 locally (CI uses 2 workers + 1 retry). Next.js dev-server races when multiple RSC pages compile in parallel; serial is stable.
@@ -194,7 +257,7 @@ Surfaced during the runbook write-up by an agent reading the live code against t
 
 ## Phase 2 follow-ups (deferred)
 
-1. Replace placeholder waiver copy in `src/components/registration/WaiverSection.tsx` (marked `TODO(plan Phase 2)`) with the real LCA paper-slip text.
+1. ✅ **DONE 2026-04-18.** Placeholder waiver copy in `WaiverSection.tsx` replaced with the real LCA paper-slip text; migration 0007 adds `'ai_consent'` to the `signature_type` CHECK; API writes 3 signature rows per registration.
 2. Phase 7 will wire `buildReceiptPdf` into `/api/register` — generate PDF, upload to Supabase Storage `receipts/<child_id>.pdf` with a 90-day signed URL, attach to the Resend email.
 3. Consent editing is not exposed via `/register/edit/[token]` (`registrationEditSchema` omits photo consent fields).
 4. Manual smoke + Applitools baseline for `/register` — not run this session.
@@ -205,7 +268,7 @@ Surfaced during the runbook write-up by an agent reading the live code against t
 2. **Catalog realtime broadcast** — admin edits currently require station pages to refresh. A Supabase Realtime channel on `catalog_items` would live-update station devices (plan 4.4).
 3. **Bulk photo ZIP download** — plan 4.5 Step: server-side ZIP stream of signed URLs. Not built.
 4. **Quick-actions on child detail** — "Add tickets" shortcut (comp reload), "Print replacement wristband", "Resend registration email", "Trigger AI story preview" — skeletons only; wire each as Phase 5/6/7 builds out the pipelines.
-5. **Pre-existing admin pages** — `src/app/admin/catalog`, `src/app/admin/tickets`, `src/app/admin/wristbands` from the old build still exist and are accessible. They use the legacy `ADMIN_PASSWORD`/`sbbq_auth` cookie flow (different from the new `sbbq_admin` cookie). Decide: port them, delete them, or leave them behind their own gate. Not breaking anything as-is.
+5. ✅ **RESOLVED.** Legacy `/admin/catalog` + `/admin/tickets` removed during the glow-redesign rebuild. `/admin/wristbands` now exists as the new bulk-print page (2026-04-22, `13d6adb`) on the current `sbbq_admin` cookie — no legacy carryover.
 6. **Applitools baselines** for admin dashboard, children list, child editor, bulk page, catalog editor, photo gallery, settings — not run.
 
 ## Phase 3 follow-ups (deferred)
@@ -219,10 +282,10 @@ Surfaced during the runbook write-up by an agent reading the live code against t
 ## How to resume
 
 1. Read this file.
-2. **6 days to event.** First click "Critical path" above. P0 #1 (registration confirm page has no QR codes) is the active shipping blocker; everything else has a runbook in `docs/runbooks/` to walk through.
-3. **For the P0 fix:** read `src/app/register/confirm/page.tsx` + `src/app/api/register/route.ts`. The API already returns `{ created, edit_token }`; the confirm page just needs to consume it. Quickest path: render one QR per kid + a "Print this page" button, plus the edit link. Then layer in the Resend-backed receipt email once Resend is verified.
-4. **For email setup:** `docs/runbooks/resend-setup.md`.
-5. **For the dry-run:** `docs/runbooks/event-dry-run.md` (run by Tuesday April 21).
-6. **For volunteer briefing:** print `docs/runbooks/volunteer-cheatsheet.md` one per station.
-7. Run `git status` from `/Users/brianleach/projects/spring_bbq/spring-bbq-bash` to confirm clean state before starting.
+2. **2 days to event (Saturday 2026-04-25).** Code path is shipped. Remaining work is verification + logistics — see "Before the event" above. Critical path #3 (full manual dry-run) is now overdue and is the first thing to do.
+3. **For the dry-run:** `docs/runbooks/event-dry-run.md`. Reconciled 2026-04-20 — one phone, one laptop, one burner email; ~30 minutes. Exercise the flows touched in the big wave: name-search fallback on stations, Yes/No allergies reveal, Prize Wheel + Cleanup Crew, `/admin/wristbands` bulk-print, no-QR confirmation email.
+4. **For volunteer briefing:** print `docs/runbooks/volunteer-cheatsheet.md` one per station.
+5. **For email final check:** send yourself a test from `/admin/settings` → confirm it lands + renders on both desktop and mobile Gmail/iCloud.
+6. **For wristband printing:** `/admin/wristbands` generates the printable sheet for already-registered kids; separately pre-print blank QR wristbands in batches of ~20 for walk-ups.
+7. Run `git status` from `/Users/brianleach/projects/spring_bbq/spring-bbq-bash` to confirm clean state before starting. (Expect `.fallow/` as the only untracked item — it's a one-off dead-code scan artifact per ai_system HARNESS-TODO, stays untracked.)
 8. Per-task pattern: failing test → implement → tests pass → typecheck → commit + push → update this file.
