@@ -353,6 +353,30 @@ export default function RegistrationConfirmationEmail({
           fontWeight={400}
           fontStyle="normal"
         />
+        {/*
+          Neon-flicker animation on the kid's name — plays in clients that
+          respect @keyframes (Apple Mail, the admin HTML preview). Gmail /
+          Outlook strip keyframes and fall back to the static text-shadow
+          declared inline on styles.childName. Reduced-motion users never
+          see the animation.
+        */}
+        <style dangerouslySetInnerHTML={{ __html: `
+@keyframes neonFlicker {
+  0%, 19%, 21%, 23%, 80%, 83%, 100% {
+    opacity: 1;
+    text-shadow: 0 0 4px rgba(245, 242, 255, 0.8), 0 0 14px #00E6F7, 0 0 28px rgba(255, 46, 147, 0.4);
+  }
+  20%, 22%, 82% {
+    opacity: 0.45;
+    text-shadow: 0 0 2px rgba(245, 242, 255, 0.2);
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .neonFlicker {
+    animation: neonFlicker 6s infinite;
+  }
+}
+        `}} />
       </Head>
       <Preview>{preview}</Preview>
       <Body style={styles.body}>
@@ -383,8 +407,8 @@ export default function RegistrationConfirmationEmail({
             <Text style={styles.greeting}>Hey {parentFirstName} —</Text>
             <Text style={styles.lead}>
               {isMulti
-                ? `Saturday night is gonna be loud. Your crew is officially on the list — neon wristbands waiting at check-in, lights about to drop, music cued up, and a whole lot of glow headed their way. Just give the kids' names when you roll up Saturday and let the night do its thing. This email's your receipt; hit the button below if anything needs to change.`
-                : `Saturday night is gonna be loud. ${children[0].first_name}'s officially on the list — neon wristband waiting at check-in, lights about to drop, music cued up, and a whole lot of glow headed their way. Just give their name when you roll up Saturday and let the night do its thing. This email's your receipt; hit the button below if anything needs to change.`}
+                ? `Saturday night is gonna be loud. Your crew is officially on the list — custom wristbands already printed with their names, lights about to drop, music cued up, and a whole lot of glow headed their way. Just give the kids' names when you roll up and let the night do its thing. This email's your receipt; hit the button below if anything needs to change.`
+                : `Saturday night is gonna be loud. ${children[0].first_name}'s officially on the list — a custom wristband printed with their name is waiting at check-in, lights about to drop, music cued up, and a whole lot of glow headed their way. Just give their name when you roll up and let the night do its thing. This email's your receipt; hit the button below if anything needs to change.`}
             </Text>
 
             <Text style={styles.callout}>✦ The Lineup ✦</Text>
@@ -392,7 +416,7 @@ export default function RegistrationConfirmationEmail({
             {children.map((child, i) => (
               <Section key={`${child.first_name}-${child.last_name}-${i}`} style={styles.childBlockOuter}>
                 <div style={styles.childCard}>
-                  <Heading as="h3" style={styles.childName}>
+                  <Heading as="h3" className="neonFlicker" style={styles.childName}>
                     {child.first_name} {child.last_name}
                   </Heading>
                   <Text style={styles.childMeta}>
