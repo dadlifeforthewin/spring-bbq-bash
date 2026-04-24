@@ -166,15 +166,44 @@ export default function RegistrationForm({ qrOverride }: { qrOverride?: string }
     }
   }
 
-  // Step counter shown in the topbar — purely informational.
-  // Submit button stays enabled per the existing waiver/AI ack rules.
-  const currentStep = (() => {
-    if (aiAck && waiverAck && photoConsent.photo_signature_name) return 5
-    if (waiverAck) return 4
-    if (children.some((c) => c.first_name && c.last_name)) return 3
-    if (primary.name && primary.email && primary.phone) return 2
-    return 1
-  })()
+  // Per-section completion — surfaces "what's left" before the parent hits a
+  // disabled submit button. Each entry mirrors the API's required fields for
+  // that section so the checklist matches what /api/register will reject.
+  const sectionStatus = [
+    {
+      id: 'section-parent',
+      label: 'Parent info',
+      done:
+        primary.name.trim().length > 0 &&
+        primary.phone.trim().length > 0 &&
+        primary.email.trim().length > 0,
+    },
+    {
+      id: 'section-children',
+      label: 'Children',
+      done: children.every(
+        (c) => c.first_name.trim().length > 0 && c.last_name.trim().length > 0,
+      ),
+    },
+    {
+      id: 'section-waiver',
+      label: 'Waiver signature',
+      done: waiverAck && waiverName.trim().length > 0,
+    },
+    {
+      id: 'section-photo',
+      label: 'Photo permissions',
+      done: photoConsent.photo_signature_name.trim().length > 0,
+    },
+    {
+      id: 'section-ai',
+      label: 'AI & data use',
+      done: aiAck && aiName.trim().length > 0 && aiConsent !== null,
+    },
+  ]
+  const completedCount = sectionStatus.filter((s) => s.done).length
+  const allComplete = completedCount === sectionStatus.length
+  const currentStep = Math.min(5, completedCount + (allComplete ? 0 : 1))
 
   return (
     <div className={s.shell}>
@@ -208,77 +237,87 @@ export default function RegistrationForm({ qrOverride }: { qrOverride?: string }
         </header>
 
         <form onSubmit={onSubmit} noValidate>
-          <ParentSection
-            label="Primary Parent / Guardian"
-            eyebrow="Step 1 / 5 · Parents"
-            value={primary}
-            onChange={setPrimary}
-          />
+          <div id="section-parent" className={s.sectionAnchor}>
+            <ParentSection
+              label="Primary Parent / Guardian"
+              eyebrow="Step 1 / 5 · Parents"
+              value={primary}
+              onChange={setPrimary}
+            />
 
-          {secondary ? (
-            <div style={{ marginTop: 18 }}>
-              <ParentSection
-                label="Secondary Parent"
-                eyebrow="Step 1b · Optional"
-                value={secondary}
-                onChange={setSecondary}
-                optional
-              />
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setSecondary({ name: '', phone: '', email: '' })}
-              className={s.addBtn}
-              style={{ marginTop: 18 }}
-            >
-              + Add a secondary parent
-            </button>
-          )}
-
-          <div className={s.kicker} style={{ marginTop: 32 }}>
-            <span className={s.kickerLabel}>Step 2 / 5 · Children</span>
-            <h2 className={s.kickerTitle}>BUILD EACH WRISTBAND</h2>
-            <span className={s.kickerSub}>
-              Each slot lights up as you load it. What you pick is what their wristband does at the gate.
-            </span>
+            {secondary ? (
+              <div style={{ marginTop: 18 }}>
+                <ParentSection
+                  label="Secondary Parent"
+                  eyebrow="Step 1b · Optional"
+                  value={secondary}
+                  onChange={setSecondary}
+                  optional
+                />
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setSecondary({ name: '', phone: '', email: '' })}
+                className={s.addBtn}
+                style={{ marginTop: 18 }}
+              >
+                + Add a secondary parent
+              </button>
+            )}
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-            {children.map((c, i) => (
-              <ChildBlock
-                key={i}
-                index={i}
-                value={c}
-                onChange={(v) => setChildren(children.map((x, idx) => idx === i ? v : x))}
-                onRemove={children.length > 1 ? () => setChildren(children.filter((_, idx) => idx !== i)) : undefined}
-              />
-            ))}
-            <button
-              type="button"
-              onClick={() => setChildren([...children, emptyChild()])}
-              className={s.addBtn}
-            >
-              + Add another child
-            </button>
+          <div id="section-children" className={s.sectionAnchor}>
+            <div className={s.kicker} style={{ marginTop: 32 }}>
+              <span className={s.kickerLabel}>Step 2 / 5 · Children</span>
+              <h2 className={s.kickerTitle}>BUILD EACH WRISTBAND</h2>
+              <span className={s.kickerSub}>
+                Each slot lights up as you load it. What you pick is what their wristband does at the gate.
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+              {children.map((c, i) => (
+                <ChildBlock
+                  key={i}
+                  index={i}
+                  value={c}
+                  onChange={(v) => setChildren(children.map((x, idx) => idx === i ? v : x))}
+                  onRemove={children.length > 1 ? () => setChildren(children.filter((_, idx) => idx !== i)) : undefined}
+                />
+              ))}
+              <button
+                type="button"
+                onClick={() => setChildren([...children, emptyChild()])}
+                className={s.addBtn}
+              >
+                + Add another child
+              </button>
+            </div>
           </div>
 
           <div style={{ marginTop: 32, display: 'flex', flexDirection: 'column', gap: 18 }}>
-            <WaiverSection
-              typedName={waiverName}
-              setTypedName={setWaiverName}
-              ack={waiverAck}
-              setAck={setWaiverAck}
-            />
-            <PhotoConsentSection value={photoConsent} onChange={setPhotoConsent} />
-            <AISection
-              typedName={aiName}
-              setTypedName={setAiName}
-              ack={aiAck}
-              setAck={setAiAck}
-              consent={aiConsent}
-              setConsent={setAiConsent}
-            />
+            <div id="section-waiver" className={s.sectionAnchor}>
+              <WaiverSection
+                typedName={waiverName}
+                setTypedName={setWaiverName}
+                ack={waiverAck}
+                setAck={setWaiverAck}
+              />
+            </div>
+            <div id="section-photo" className={s.sectionAnchor}>
+              <PhotoConsentSection value={photoConsent} onChange={setPhotoConsent} />
+            </div>
+            <div id="section-ai" className={s.sectionAnchor}>
+              <AISection
+                typedName={aiName}
+                setTypedName={setAiName}
+                ack={aiAck}
+                setAck={setAiAck}
+                consent={aiConsent}
+                setConsent={setAiConsent}
+              />
+            </div>
           </div>
 
           {error && (
@@ -294,15 +333,57 @@ export default function RegistrationForm({ qrOverride }: { qrOverride?: string }
             </div>
           )}
 
-          <div style={{ marginTop: 24, display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <button
-              type="submit"
-              className={s.submit}
-              disabled={!waiverAck || !aiAck || aiConsent === null || submitting}
-              aria-disabled={!waiverAck || !aiAck || aiConsent === null || submitting}
-            >
-              {submitting ? 'SUBMITTING…' : 'SUBMIT PERMISSION SLIP →'}
-            </button>
+          <div className={s.finishWrap}>
+            <div className={s.finishHead}>
+              <span className={s.finishLabel}>
+                {allComplete ? 'READY TO SUBMIT' : `FINISH UP · ${completedCount} of ${sectionStatus.length}`}
+              </span>
+              <h2 className={s.finishTitle}>
+                {allComplete
+                  ? 'Every section looks good.'
+                  : 'Before you can submit…'}
+              </h2>
+              {!allComplete && (
+                <p className={s.finishSub}>
+                  Tap anything that still needs attention to jump to it.
+                </p>
+              )}
+            </div>
+
+            <ul className={s.checklist} aria-label="Permission slip progress">
+              {sectionStatus.map((sec) => (
+                <li key={sec.id}>
+                  <a
+                    href={`#${sec.id}`}
+                    className={`${s.checklistRow} ${sec.done ? s.checklistRowDone : s.checklistRowTodo}`}
+                    aria-current={sec.done ? undefined : 'step'}
+                  >
+                    <span className={s.checkBox} aria-hidden="true">
+                      {sec.done ? '✓' : ''}
+                    </span>
+                    <span className={s.checklistLabel}>{sec.label}</span>
+                    <span className={s.checklistState}>
+                      {sec.done ? 'Complete' : 'Needs attention'}
+                    </span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+
+            {allComplete ? (
+              <button
+                type="submit"
+                className={s.submit}
+                disabled={submitting}
+                aria-disabled={submitting}
+              >
+                {submitting ? 'SUBMITTING…' : 'SUBMIT PERMISSION SLIP →'}
+              </button>
+            ) : (
+              <div className={s.submitPlaceholder} role="status">
+                Submit button appears once every section is complete.
+              </div>
+            )}
             <p className={s.metaLine}>
               Auto-saved · You can change any of these later
             </p>

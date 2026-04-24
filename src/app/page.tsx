@@ -146,6 +146,14 @@ export default function Home() {
               <div className={styles.statSub}>Comfy clothes that work with the glow.</div>
             </div>
           </div>
+
+          <div className={styles.heroCtaWrap}>
+            <Link className={styles.bigBtn} href="/register">
+              Fill out permission slip
+              <span className={styles.arrow} aria-hidden="true">→</span>
+            </Link>
+            <span className={styles.heroCtaMeta}>~2 minutes · One slip per family</span>
+          </div>
         </section>
 
         {/* WRISTBAND PERKS */}
@@ -272,6 +280,12 @@ export default function Home() {
           <div>© 2026 · LCA PTF</div>
         </footer>
       </main>
+
+      {/* Mobile-only sticky CTA — catches anyone who scrolls past the hero CTA */}
+      <Link href="/register" className={styles.mobileSticky}>
+        <span>Fill out permission slip</span>
+        <span className={styles.arrow} aria-hidden="true">→</span>
+      </Link>
     </div>
   )
 }

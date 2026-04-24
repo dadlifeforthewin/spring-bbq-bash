@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
 
       const result = await resend().emails.send({
         from: emailFrom(),
-        to: family.primary_parent_email,
+        to: family.recipient_emails,
         subject,
         html,
       })

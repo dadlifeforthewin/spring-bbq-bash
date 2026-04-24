@@ -16,7 +16,7 @@ const EVENT_TIME = 'Doors 4:45 · Party 5–8 PM'
 const EVENT_LOCATION = 'Lincoln Christian Academy'
 
 export type SendRegistrationInput = {
-  to: string
+  to: string | string[]
   primary_parent_name: string
   edit_token: string
   children: {
@@ -28,8 +28,29 @@ export type SendRegistrationInput = {
   }[]
 }
 
+// Lowercase + trim + dedupe email recipients. Couples sometimes share an
+// inbox; without this we'd send Resend `["a@x.com", "A@x.com"]` and bill
+// twice for the same delivery.
+function normalizeRecipients(to: string | string[]): string[] {
+  const arr = Array.isArray(to) ? to : [to]
+  const seen = new Set<string>()
+  const out: string[] = []
+  for (const raw of arr) {
+    const e = (raw ?? '').trim().toLowerCase()
+    if (!e || seen.has(e)) continue
+    seen.add(e)
+    out.push(e)
+  }
+  return out
+}
+
 export async function sendRegistrationConfirmation(input: SendRegistrationInput) {
   const sb = serverClient()
+  const recipients = normalizeRecipients(input.to)
+  if (recipients.length === 0) {
+    return { ok: false as const, error: 'no recipient email' }
+  }
+  const primaryEmail = recipients[0]
 
   const { data: eventRow } = await sb
     .from('events')
@@ -64,10 +85,12 @@ export async function sendRegistrationConfirmation(input: SendRegistrationInput)
 
   // Create the email_sends row in 'sending' state so we have a trail
   // even if Resend times out or the process crashes mid-send.
+  // primary_parent_email keeps the canonical address; secondary recipients
+  // ride along on Resend `to:` but aren't tracked per-row.
   const { data: sendRow } = await sb
     .from('email_sends')
     .insert({
-      primary_parent_email: input.to,
+      primary_parent_email: primaryEmail,
       child_ids: childIds,
       status: 'sending',
     })
@@ -77,7 +100,7 @@ export async function sendRegistrationConfirmation(input: SendRegistrationInput)
   try {
     const result = await resend().emails.send({
       from: emailFrom(),
-      to: input.to,
+      to: recipients,
       subject,
       html,
     })

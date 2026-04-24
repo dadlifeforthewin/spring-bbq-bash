@@ -17,6 +17,8 @@ export type FamilyStoryChild = {
 export type FamilyPayload = {
   primary_parent_email: string
   primary_parent_name: string
+  /** All addresses to deliver to (primary + any secondary). Deduped + lowercased. */
+  recipient_emails: string[]
   family_last_name: string
   children: FamilyStoryChild[]
   story_ids: string[]
@@ -45,16 +47,27 @@ export async function collectReadyFamilies(): Promise<FamilyPayload[]> {
 
   const [{ data: children }, { data: guardians }, { data: photoTags }] = await Promise.all([
     sb.from('children').select('id, first_name, last_name, age').in('id', childIds),
-    sb.from('guardians').select('child_id, name, email, is_primary').in('child_id', childIds).eq('is_primary', true),
+    sb.from('guardians').select('child_id, name, email, is_primary').in('child_id', childIds),
     sb.from('photo_tags').select('child_id, photos(id, storage_path, taken_at)').in('child_id', childIds),
   ])
 
   const childMap = new Map<string, { first_name: string; last_name: string; age: number | null }>()
   for (const c of children ?? []) childMap.set(c.id, { first_name: c.first_name, last_name: c.last_name, age: c.age })
 
+  // Per-child: keep the primary guardian as the "named" parent on the email,
+  // and accumulate every guardian email (primary + secondary) for delivery.
   const primaryGuardianByChild = new Map<string, { name: string; email: string }>()
+  const guardianEmailsByChild = new Map<string, string[]>()
   for (const g of guardians ?? []) {
-    if (g.email) primaryGuardianByChild.set(g.child_id, { name: g.name, email: g.email })
+    if (!g.email) continue
+    const norm = g.email.trim().toLowerCase()
+    if (!norm) continue
+    const list = guardianEmailsByChild.get(g.child_id) ?? []
+    if (!list.includes(norm)) list.push(norm)
+    guardianEmailsByChild.set(g.child_id, list)
+    if (g.is_primary && !primaryGuardianByChild.has(g.child_id)) {
+      primaryGuardianByChild.set(g.child_id, { name: g.name, email: norm })
+    }
   }
 
   const photosByChild = new Map<string, { id: string; storage_path: string; taken_at: string }[]>()
@@ -97,21 +110,36 @@ export async function collectReadyFamilies(): Promise<FamilyPayload[]> {
       photos: signedPhotos,
     }
 
+    const childEmails = guardianEmailsByChild.get(story.child_id) ?? [guardian.email]
+
     const existing = grouped.get(guardian.email)
     if (existing) {
       existing.children.push(payload)
       existing.story_ids.push(story.id)
       existing.child_ids.push(story.child_id)
+      for (const e of childEmails) {
+        if (!existing.recipient_emails.includes(e)) existing.recipient_emails.push(e)
+      }
     } else {
       grouped.set(guardian.email, {
         primary_parent_email: guardian.email,
         primary_parent_name: guardian.name,
+        recipient_emails: [...childEmails],
         family_last_name: child.last_name,
         children: [payload],
         story_ids: [story.id],
         child_ids: [story.child_id],
       })
     }
+  }
+
+  // Ensure the primary email always sorts first so Resend's `to[0]` matches
+  // the canonical address we record in email_sends.primary_parent_email.
+  for (const fam of grouped.values()) {
+    fam.recipient_emails = [
+      fam.primary_parent_email,
+      ...fam.recipient_emails.filter((e) => e !== fam.primary_parent_email),
+    ]
   }
 
   return Array.from(grouped.values())

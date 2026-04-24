@@ -469,6 +469,126 @@ textarea.textarea:focus {
   margin-top: 10px;
 }
 
+/* ========== Section anchors + finish-up checklist ========== */
+.sectionAnchor {
+  scroll-margin-top: 24px;
+}
+
+.finishWrap {
+  margin-top: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.finishHead {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: center;
+}
+.finishLabel {
+  font-family: var(--font-mono), monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--glow-cyan);
+}
+.finishTitle {
+  margin: 0;
+  font-family: var(--font-bungee), sans-serif;
+  font-size: 18px;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+}
+.finishSub {
+  margin: 0;
+  font-size: 13px;
+  color: var(--ink-dim);
+}
+
+.checklist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.checklistRow {
+  display: grid;
+  grid-template-columns: 28px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: rgba(11, 1, 24, 0.55);
+  text-decoration: none;
+  color: var(--ink);
+  transition: border-color 160ms ease, background 160ms ease, transform 120ms ease;
+  min-height: 48px;
+}
+.checklistRow:hover { transform: translateY(-1px); }
+.checklistRow:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--glow-cyan) 65%, transparent);
+  outline-offset: 2px;
+}
+.checklistRowDone {
+  border-color: color-mix(in oklab, var(--glow-cyan) 50%, transparent);
+  background: color-mix(in oklab, var(--glow-cyan) 10%, rgba(11, 1, 24, 0.55));
+}
+.checklistRowTodo {
+  border-color: color-mix(in oklab, var(--glow-yellow) 55%, transparent);
+  background: color-mix(in oklab, var(--glow-yellow) 8%, rgba(11, 1, 24, 0.55));
+}
+.checkBox {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-bungee), sans-serif;
+  font-size: 14px;
+  border: 1.5px solid currentColor;
+}
+.checklistRowDone .checkBox {
+  color: var(--glow-cyan);
+  background: color-mix(in oklab, var(--glow-cyan) 22%, transparent);
+  box-shadow: 0 0 12px color-mix(in oklab, var(--glow-cyan) 50%, transparent);
+}
+.checklistRowTodo .checkBox {
+  color: var(--glow-yellow);
+  background: transparent;
+}
+.checklistLabel {
+  font-family: var(--font-mono), monospace;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+}
+.checklistState {
+  font-family: var(--font-mono), monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+.checklistRowDone .checklistState { color: var(--glow-cyan); }
+.checklistRowTodo .checklistState { color: var(--glow-yellow); }
+
+.submitPlaceholder {
+  text-align: center;
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  padding: 18px;
+  border: 1px dashed var(--line);
+  border-radius: 14px;
+  background: rgba(11, 1, 24, 0.35);
+}
+
 /* ========== Error pill ========== */
 /* ========== AI consent OPT IN / OPT OUT choice ========== */
 .consentChoice {

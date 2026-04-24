@@ -121,8 +121,12 @@ export async function POST(req: NextRequest) {
   // `email_sends.status = 'failed'` but do not block registration — the
   // confirm page also renders the QR codes client-side as a fallback.
   try {
+    const recipientEmails = [
+      parsed.data.primary_parent.email,
+      ...(parsed.data.secondary_parent?.email ? [parsed.data.secondary_parent.email] : []),
+    ]
     const sendResult = await sendRegistrationConfirmation({
-      to: parsed.data.primary_parent.email,
+      to: recipientEmails,
       primary_parent_name: parsed.data.primary_parent.name,
       edit_token: editToken,
       children: emailChildren,

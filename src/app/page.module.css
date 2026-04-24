@@ -598,6 +598,56 @@
   transform: translateX(4px);
 }
 
+/* ========== Hero CTA + mobile sticky ========== */
+.heroCtaWrap {
+  margin-top: 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-align: center;
+}
+.heroCtaMeta {
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--ink-dim);
+  text-transform: uppercase;
+}
+
+.mobileSticky {
+  display: none;
+}
+@media (max-width: 720px) {
+  .mobileSticky {
+    position: fixed;
+    left: 12px;
+    right: 12px;
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    z-index: 40;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 14px 18px;
+    border-radius: 999px;
+    text-decoration: none;
+    font-family: var(--font-bungee), sans-serif;
+    font-size: 13px;
+    letter-spacing: 0.04em;
+    background: linear-gradient(90deg, var(--neon-1), var(--neon-2));
+    color: #0a0717;
+    box-shadow:
+      0 0 0 1px #fff inset,
+      0 8px 28px rgba(0, 0, 0, 0.55),
+      0 0 24px color-mix(in oklab, var(--neon-1) 55%, transparent),
+      0 0 60px color-mix(in oklab, var(--neon-2) 35%, transparent);
+  }
+  .mobileSticky:active {
+    transform: translateY(1px);
+  }
+}
+
 /* ========== Footer ========== */
 .footer {
   margin-top: 60px;
@@ -629,8 +679,12 @@
   .perks { grid-template-columns: 1fr 1fr; }
   .ticker { display: none; }
 }
+@media (max-width: 720px) {
+  /* Reserve room for the sticky CTA bar so it never covers the footer */
+  .shell { padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px)); }
+}
 @media (max-width: 520px) {
-  .shell { padding: 18px 16px 60px; }
+  .shell { padding-left: 16px; padding-right: 16px; padding-top: 18px; }
   .perks { grid-template-columns: 1fr; }
   .signWrap { padding: 28px 20px 22px; }
 }
