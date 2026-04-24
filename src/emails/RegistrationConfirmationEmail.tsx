@@ -172,23 +172,27 @@ const styles = {
     borderRadius: '14px',
     backgroundColor: INK_3,
     backgroundImage: `linear-gradient(180deg, ${INK_3} 0%, ${INK_2} 100%)`,
-    padding: '22px 22px 20px',
+    padding: '24px 22px 20px',
+    textAlign: 'center' as const,
   } as const,
   childName: {
     fontFamily: displayFont,
     fontWeight: 800,
-    fontSize: '22px',
+    fontSize: '26px',
     lineHeight: '1.1',
     letterSpacing: '-0.015em',
     color: PAPER,
     margin: '0',
+    textShadow: `0 0 4px ${PAPER}CC, 0 0 14px ${CYAN}, 0 0 28px ${MAGENTA}66`,
   } as const,
   childMeta: {
     color: MIST,
     fontFamily: bodyFont,
     fontSize: '12px',
-    letterSpacing: '0.04em',
-    margin: '4px 0 18px',
+    fontWeight: 600,
+    letterSpacing: '0.12em',
+    textTransform: 'uppercase' as const,
+    margin: '10px 0 20px',
   } as const,
   perkDivider: {
     height: '1px',
@@ -318,9 +322,13 @@ export default function RegistrationConfirmationEmail({
   attn_to_detail_url = 'https://attntodetail.ai',
 }: RegistrationConfirmationEmailProps) {
   const isMulti = children.length > 1
+  // Parent form captures full name; first name only makes the greeting warmer.
+  // Falls back to the full name if parsing produces nothing usable.
+  const parentFirstName =
+    primary_parent_name.trim().split(/\s+/)[0] || primary_parent_name
   const preview = isMulti
-    ? `You're on the list — Saturday night is about to glow.`
-    : `${children[0].first_name}'s on the list — Saturday night is about to glow.`
+    ? `Saturday night is about to glow — your crew is officially on the list.`
+    : `Saturday night is about to glow — ${children[0].first_name} is officially on the list.`
 
   return (
     <Html>
@@ -372,11 +380,11 @@ export default function RegistrationConfirmationEmail({
               </Text>
             </Section>
 
-            <Text style={styles.greeting}>Hey {primary_parent_name} —</Text>
+            <Text style={styles.greeting}>Hey {parentFirstName} —</Text>
             <Text style={styles.lead}>
               {isMulti
-                ? `Saturday night is about to glow, and your crew is on the list. Neon wristbands will be waiting at the check-in table — just give the kids' names on the way in. This email's your receipt; tap the button below if anything needs to change.`
-                : `Saturday night is about to glow, and ${children[0].first_name}'s on the list. A neon wristband will be waiting at the check-in table — just give their name on the way in. This email's your receipt; tap the button below if anything needs to change.`}
+                ? `Saturday night is gonna be loud. Your crew is officially on the list — neon wristbands waiting at check-in, lights about to drop, music cued up, and a whole lot of glow headed their way. Just give the kids' names when you roll up Saturday and let the night do its thing. This email's your receipt; hit the button below if anything needs to change.`
+                : `Saturday night is gonna be loud. ${children[0].first_name}'s officially on the list — neon wristband waiting at check-in, lights about to drop, music cued up, and a whole lot of glow headed their way. Just give their name when you roll up Saturday and let the night do its thing. This email's your receipt; hit the button below if anything needs to change.`}
             </Text>
 
             <Text style={styles.callout}>✦ The Lineup ✦</Text>
@@ -434,9 +442,13 @@ export default function RegistrationConfirmationEmail({
             <div style={styles.whatsNext}>
               <Text style={styles.whatsNextHeading}>The run of show</Text>
               <Text style={styles.whatsNextLine}>
-                <strong style={{ color: PAPER }}>4:45pm Saturday:</strong> check-in opens in the
-                courtyard by the water fountain. Roll up anytime between 4:45 and 5:30 — grab
-                the wristbands, scan in, and let them run into the glow.
+                <strong style={{ color: PAPER }}>4:45pm Saturday:</strong> doors open in the
+                courtyard by the water fountain. Roll up anytime from 4:45 to 5:30 — clip on
+                the wristbands, scan in, and watch them disappear into the glow.
+              </Text>
+              <Text style={styles.whatsNextLine}>
+                <strong style={{ color: PAPER }}>Till then:</strong> watch the countdown on the
+                site tick down. Saturday&apos;s already been warned.
               </Text>
               <Text style={styles.whatsNextLine}>
                 <strong style={{ color: PAPER }}>One more thing:</strong> a little something is landing in
