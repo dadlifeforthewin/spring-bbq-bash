@@ -12,6 +12,9 @@ type Child = {
   allergies: string | null
 }
 
+// Mr-Label MR201: 10 wristbands per 9.84"×7.48" sheet, single column.
+const BANDS_PER_SHEET = 10
+
 export default function WristbandsPage() {
   const [children, setChildren] = useState<Child[] | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -80,6 +83,20 @@ export default function WristbandsPage() {
     })
   }, [children, search, gradeFilter])
 
+  // Chunk into 10-band physical sheets. Last sheet is padded with `null` so the
+  // grid always renders 10 rows — keeps unused band slots blank rather than
+  // collapsing the page height (which would mis-align the perforations).
+  const pages = useMemo<(Child | null)[][]>(() => {
+    const out: (Child | null)[][] = []
+    for (let i = 0; i < visible.length; i += BANDS_PER_SHEET) {
+      const slice = visible.slice(i, i + BANDS_PER_SHEET)
+      const padded: (Child | null)[] = [...slice]
+      while (padded.length < BANDS_PER_SHEET) padded.push(null)
+      out.push(padded)
+    }
+    return out
+  }, [visible])
+
   const onPrint = () => {
     if (typeof window !== 'undefined') window.print()
   }
@@ -134,6 +151,17 @@ export default function WristbandsPage() {
           opacity: 0.7;
           margin-bottom: 14px;
         }
+        .wb-printguide {
+          margin: 0 0 18px;
+          padding: 12px 14px;
+          border: 1px solid rgba(34, 211, 238, 0.35);
+          background: rgba(34, 211, 238, 0.06);
+          border-radius: 10px;
+          font-size: 12px;
+          line-height: 1.5;
+          color: var(--paper, #f6f2ea);
+        }
+        .wb-printguide strong { color: var(--neon-cyan, #22d3ee); }
         .wb-empty {
           padding: 40px 20px;
           text-align: center;
@@ -142,36 +170,45 @@ export default function WristbandsPage() {
           opacity: 0.75;
         }
 
-        /* Sheet — renders on-screen as a preview, matches print cells. */
-        .wb-sheet {
-          display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 8px;
+        /* Sheet — laid out at TRUE PHYSICAL SIZE for the Mr-Label MR201 product:
+         *   sheet:   9.84in × 7.48in (250 × 190 mm)
+         *   bands:   10in × 0.748in (250 × 19 mm), 10 per sheet, single column
+         *   margins: 0 (spec); inkjet head clip handled inside the cell
+         * Each .wb-page is one printable sheet. CSS grid stacks bands. */
+        .wb-page {
+          width: 9.84in;
+          height: 7.48in;
           background: #fff;
           color: #000;
-          padding: 16px;
-          border-radius: 8px;
+          display: grid;
+          grid-template-rows: repeat(10, 0.748in);
+          grid-template-columns: 1fr;
+          margin: 0 auto 24px;
+          box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45);
+          page-break-after: always;
+          break-after: page;
         }
-        @media (max-width: 640px) {
-          .wb-sheet {
-            grid-template-columns: 1fr;
-          }
+        .wb-page:last-child {
+          page-break-after: auto;
+          break-after: auto;
+          margin-bottom: 0;
         }
         .wb-cell {
           display: grid;
-          grid-template-columns: auto 1fr;
-          gap: 12px;
+          grid-template-columns: 0.7in 1fr auto;
+          gap: 0.12in;
           align-items: center;
-          padding: 14px;
-          border: 1px dashed #d0d0d0;
-          border-radius: 6px;
-          min-height: 160px;
+          padding: 0.05in 0.16in;
+          border-bottom: 1px dashed #c8c8c8;
           break-inside: avoid;
           page-break-inside: avoid;
+          overflow: hidden;
         }
+        .wb-cell:last-child { border-bottom: none; }
+        .wb-cell--blank { background: repeating-linear-gradient(45deg, #fafafa 0 6px, #fff 6px 12px); }
         .wb-qr {
-          width: 130px;
-          height: 130px;
+          width: 0.65in;
+          height: 0.65in;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -190,14 +227,22 @@ export default function WristbandsPage() {
         }
         .wb-info {
           min-width: 0;
+          display: flex;
+          align-items: baseline;
+          gap: 0.18in;
+          flex-wrap: nowrap;
+          overflow: hidden;
         }
         .wb-name {
           font-weight: 800;
-          font-size: 16px;
-          line-height: 1.15;
+          font-size: 18px;
+          line-height: 1;
           text-transform: uppercase;
           letter-spacing: 0.02em;
-          word-break: break-word;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          max-width: 4.5in;
         }
         .wb-grade {
           font-size: 11px;
@@ -205,64 +250,62 @@ export default function WristbandsPage() {
           letter-spacing: 0.14em;
           text-transform: uppercase;
           color: #444;
-          margin-top: 4px;
+          white-space: nowrap;
         }
         .wb-allergy {
           display: inline-block;
-          margin-top: 6px;
-          padding: 2px 6px;
+          padding: 1px 5px;
           border: 1px solid #c00;
           color: #c00;
-          font-size: 10px;
+          font-size: 9px;
           font-weight: 700;
           letter-spacing: 0.1em;
           text-transform: uppercase;
-          border-radius: 4px;
+          border-radius: 3px;
+          white-space: nowrap;
         }
         .wb-code {
-          margin-top: 10px;
           font-family: ui-monospace, monospace;
-          font-size: 9px;
+          font-size: 8px;
           color: #555;
-          word-break: break-all;
           letter-spacing: 0.02em;
+          text-align: right;
+          line-height: 1;
+          max-width: 1.4in;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
 
         @media print {
           @page {
-            size: letter;
-            margin: 0.5in;
+            /* Mr-Label MR201: 9.84in × 7.48in, no margin per spec */
+            size: 9.84in 7.48in;
+            margin: 0;
           }
           html,
           body {
             background: #fff !important;
+            margin: 0 !important;
+            padding: 0 !important;
           }
-          /* Hide admin chrome: nav bar, aurora canvas wrapper, our toolbar. */
+          /* Hide admin chrome + screen-only helpers */
           nav,
           canvas,
           [aria-hidden='true'].fixed,
           .wb-toolbar,
-          .wb-meta {
+          .wb-meta,
+          .wb-printguide {
             display: none !important;
           }
           .wb-root {
             color: #000;
+            margin: 0 !important;
+            padding: 0 !important;
           }
-          /* Force 2-column on print regardless of screen viewport. */
-          .wb-sheet {
-            background: #fff;
-            padding: 0;
-            border-radius: 0;
-            gap: 0;
-            grid-template-columns: repeat(2, 1fr) !important;
-          }
-          .wb-cell {
-            border: 1px dashed #aaa;
-            break-inside: avoid;
-            page-break-inside: avoid;
-          }
-          .wb-qr img {
-            image-rendering: pixelated;
+          .wb-page {
+            box-shadow: none;
+            margin: 0 auto;
           }
         }
       `}</style>
@@ -296,7 +339,15 @@ export default function WristbandsPage() {
       <div className="wb-meta">
         {children === null && !error && 'Loading…'}
         {error && `Error: ${error}`}
-        {children && `${visible.length} of ${children.length} registered kids · 8 per page`}
+        {children && `${visible.length} of ${children.length} registered kids · ${BANDS_PER_SHEET} per sheet · ${pages.length} sheet${pages.length === 1 ? '' : 's'}`}
+      </div>
+
+      <div className="wb-printguide">
+        <strong>Print setup (Mr-Label MR201 ¾" Tyvek, 10 per sheet):</strong> In the
+        print dialog, set <em>paper size</em> to <strong>9.84 × 7.48 in</strong>{' '}
+        (custom; ≈ 250 × 190 mm), <em>scale</em> to <strong>100% / Actual size</strong>{' '}
+        (do NOT "fit to page"), <em>margins</em> to <strong>None</strong>. Each sheet
+        below is laid out at true physical size — what you see is what prints.
       </div>
 
       {children && visible.length === 0 && !error && (
@@ -306,9 +357,12 @@ export default function WristbandsPage() {
         </div>
       )}
 
-      {visible.length > 0 && (
-        <div className="wb-sheet" role="list" aria-label="Wristband sheet">
-          {visible.map((c) => {
+      {pages.map((pageBands, pageIdx) => (
+        <div key={pageIdx} className="wb-page" role="list" aria-label={`Wristband sheet ${pageIdx + 1}`}>
+          {pageBands.map((c, rowIdx) => {
+            if (!c) {
+              return <div key={`blank-${pageIdx}-${rowIdx}`} className="wb-cell wb-cell--blank" aria-hidden="true" />
+            }
             const dataUrl = qrUrls[c.qr_code]
             const fullName = `${c.first_name} ${c.last_name}`.trim()
             return (
@@ -322,18 +376,18 @@ export default function WristbandsPage() {
                   )}
                 </div>
                 <div className="wb-info">
-                  <div className="wb-name">{fullName}</div>
-                  <div className="wb-grade">Grade {c.grade?.trim() || '—'}</div>
+                  <span className="wb-name">{fullName}</span>
+                  <span className="wb-grade">Gr {c.grade?.trim() || '—'}</span>
                   {c.allergies && c.allergies.trim() && (
-                    <div className="wb-allergy">⚠ Allergies</div>
+                    <span className="wb-allergy">⚠ ALLERGY</span>
                   )}
-                  <div className="wb-code">{c.qr_code}</div>
                 </div>
+                <div className="wb-code">{c.qr_code}</div>
               </div>
             )
           })}
         </div>
-      )}
+      ))}
     </div>
   )
 }
