@@ -24,6 +24,10 @@ type Props = {
   station: string
   volunteerName?: string
   tone?: Tone
+  /** Override the collapsed CTA label. Defaults to "Snap a photo of {name}". */
+  ctaLabel?: string
+  /** Override the expanded-panel eyebrow. Defaults to "Photo · {name}". */
+  eyebrowLabel?: string
 }
 
 const TONE_TEXT: Record<Tone, string> = {
@@ -47,6 +51,8 @@ export default function StationPhotoCapture({
   station,
   volunteerName,
   tone = 'cyan',
+  ctaLabel,
+  eyebrowLabel,
 }: Props) {
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -91,7 +97,7 @@ export default function StationPhotoCapture({
           onClick={() => setOpen(true)}
           className={`inline-flex items-center gap-1.5 rounded-full border border-ink-hair bg-ink-2/60 px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] transition ${TONE_TEXT[tone]} ${TONE_RING[tone]} [font-family:var(--font-mono),JetBrains_Mono,monospace]`}
         >
-          📸 {lastTakenAt ? `Snap another of ${childFirstName}` : `Snap a photo of ${childFirstName}`}
+          📸 {lastTakenAt ? `Snap another of ${childFirstName}` : (ctaLabel ?? `Snap a photo of ${childFirstName}`)}
         </button>
         {lastTakenAt && (
           <p className="mt-1 text-[10px] text-mist [font-family:var(--font-mono),JetBrains_Mono,monospace]">
@@ -105,7 +111,7 @@ export default function StationPhotoCapture({
   return (
     <section className="space-y-3 rounded-2xl border border-ink-hair bg-ink-2/70 p-4">
       <div className={`text-[10px] font-bold uppercase tracking-[0.22em] ${TONE_TEXT[tone]} [font-family:var(--font-mono),JetBrains_Mono,monospace]`}>
-        Photo · {childFirstName}
+        {eyebrowLabel ?? `Photo · ${childFirstName}`}
       </div>
       <PhotoViewfinder ref={viewfinderRef} facingMode="environment" />
       <div className="grid grid-cols-2 gap-2">

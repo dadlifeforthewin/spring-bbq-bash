@@ -365,6 +365,22 @@ export default function ActivityStation() {
             primary_parent={data.primary_parent ?? { name: '—', phone: null }}
           />
 
+          {/* Jail-only: mugshot capture is the first thing the jail volunteer
+              should do on a kid's first visit. Promoted above the Send/Pass
+              controls so the photo happens BEFORE the ticket decrement. The
+              mugshot itself does not consume one of the 3 jail tickets. */}
+          {slug === 'jail' && data.child.photo_consent_app && !notCheckedIn && !checkedOut && (
+            <StationPhotoCapture
+              childId={data.child.id}
+              childFirstName={data.child.first_name}
+              station="jail"
+              tone="magenta"
+              volunteerName={volunteer}
+              ctaLabel={`Take jail mugshot · ${data.child.first_name}`}
+              eyebrowLabel="Jail mugshot · separate from the 3 tickets"
+            />
+          )}
+
           {checkedOut && (
             <p className="rounded-xl border border-warn/60 bg-warn/10 px-3 py-2 text-sm text-warn">
               Already checked out at {new Date(data.child.checked_out_at!).toLocaleTimeString()}.
@@ -463,14 +479,18 @@ export default function ActivityStation() {
             </p>
           )}
 
-          {/* Inline per-kid photo capture — tag the shot to this station. */}
-          <StationPhotoCapture
-            childId={data.child.id}
-            childFirstName={data.child.first_name}
-            station={slug}
-            tone={meta.tone}
-            volunteerName={volunteer}
-          />
+          {/* Generic per-kid photo capture — tag the shot to whatever station
+              this volunteer is working. Suppressed on 'jail' so the dedicated
+              jail-mugshot tile above doesn't get visually duplicated. */}
+          {slug !== 'jail' && (
+            <StationPhotoCapture
+              childId={data.child.id}
+              childFirstName={data.child.first_name}
+              station={slug}
+              tone={meta.tone}
+              volunteerName={volunteer}
+            />
+          )}
         </>
       )}
 
