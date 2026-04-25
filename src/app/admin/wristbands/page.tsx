@@ -209,6 +209,7 @@ export default function WristbandsPage() {
          *   margins: 0 (spec); inkjet head clip handled inside the cell
          * Each .wb-page is one printable sheet. CSS grid stacks bands. */
         .wb-page {
+          box-sizing: border-box;
           width: 9.84in;
           height: 7.48in;
           background: #fff;
@@ -220,6 +221,7 @@ export default function WristbandsPage() {
           box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45);
           page-break-after: always;
           break-after: page;
+          overflow: hidden;
         }
         .wb-page:last-child {
           page-break-after: auto;
@@ -227,11 +229,12 @@ export default function WristbandsPage() {
           margin-bottom: 0;
         }
         .wb-cell {
+          box-sizing: border-box;
           display: grid;
-          grid-template-columns: 0.65in 1fr 0.65in 1fr 0.65in;
+          grid-template-columns: 0.6in 1fr 0.6in 1fr 0.6in;
           gap: 0.1in;
           align-items: center;
-          padding: 0.05in 0.14in;
+          padding: 0.03in 0.14in;
           border-bottom: 1px dashed #c8c8c8;
           break-inside: avoid;
           page-break-inside: avoid;
@@ -240,8 +243,8 @@ export default function WristbandsPage() {
         .wb-cell:last-child { border-bottom: none; }
         .wb-cell--blank { background: repeating-linear-gradient(45deg, #fafafa 0 6px, #fff 6px 12px); }
         .wb-qr {
-          width: 0.65in;
-          height: 0.65in;
+          width: 0.6in;
+          height: 0.6in;
           display: flex;
           align-items: center;
           justify-content: center;
