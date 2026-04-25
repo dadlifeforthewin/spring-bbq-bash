@@ -21,6 +21,7 @@ export default function WristbandsPage() {
   const [qrUrls, setQrUrls] = useState<Record<string, string>>({})
   const [search, setSearch] = useState('')
   const [gradeFilter, setGradeFilter] = useState<string>('all')
+  const [spareCount, setSpareCount] = useState<number>(0)
 
   useEffect(() => {
     let alive = true
@@ -38,12 +39,35 @@ export default function WristbandsPage() {
     }
   }, [])
 
+  // Spare walk-up wristbands: synthetic Child rows with freshly-generated UUIDs.
+  // These QRs are not in the DB until a walk-up family scans the wristband and
+  // submits /register/walkup/<qr> (the API does an INSERT, so no collision).
+  // UUIDs regenerate every time the count changes, which is fine — the printed
+  // sheet is the source of truth, not memory across reloads.
+  const spares = useMemo<Child[]>(() => {
+    const n = Math.max(0, Math.min(200, Math.floor(spareCount || 0)))
+    return Array.from({ length: n }, (_, i) => ({
+      id: `spare-${i}`,
+      qr_code: crypto.randomUUID(),
+      first_name: 'WALK-UP',
+      last_name: String(i + 1).padStart(2, '0'),
+      grade: null,
+      allergies: null,
+    }))
+  }, [spareCount])
+
+  // Combined list used for QR generation, paging, and printing.
+  const allChildren = useMemo<Child[] | null>(() => {
+    if (children === null) return null
+    return [...children, ...spares]
+  }, [children, spares])
+
   useEffect(() => {
-    if (!children) return
+    if (!allChildren) return
     let cancelled = false
     ;(async () => {
       const next: Record<string, string> = {}
-      for (const c of children) {
+      for (const c of allChildren) {
         if (!c.qr_code) continue
         try {
           next[c.qr_code] = await QRCode.toDataURL(c.qr_code, {
@@ -61,7 +85,7 @@ export default function WristbandsPage() {
     return () => {
       cancelled = true
     }
-  }, [children])
+  }, [allChildren])
 
   const grades = useMemo(() => {
     if (!children) return []
@@ -73,15 +97,15 @@ export default function WristbandsPage() {
   }, [children])
 
   const visible = useMemo(() => {
-    if (!children) return []
+    if (!allChildren) return []
     const q = search.trim().toLowerCase()
-    return children.filter((c) => {
+    return allChildren.filter((c) => {
       if (gradeFilter !== 'all' && (c.grade ?? '').trim() !== gradeFilter) return false
       if (!q) return true
       const haystack = `${c.first_name} ${c.last_name}`.toLowerCase()
       return haystack.includes(q)
     })
-  }, [children, search, gradeFilter])
+  }, [allChildren, search, gradeFilter])
 
   // Chunk into 10-band physical sheets. Last sheet is padded with `null` so the
   // grid always renders 10 rows — keeps unused band slots blank rather than
@@ -131,6 +155,20 @@ export default function WristbandsPage() {
           padding: 8px 10px;
           border-radius: 8px;
           font: inherit;
+        }
+        .wb-spare-label {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 12px;
+          font-weight: 700;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+          opacity: 0.85;
+        }
+        .wb-spare-input {
+          width: 70px;
+          text-align: center;
         }
         .wb-printbtn {
           background: var(--neon-cyan, #22d3ee);
@@ -331,6 +369,18 @@ export default function WristbandsPage() {
             </option>
           ))}
         </select>
+        <label className="wb-spare-label">
+          Spare walk-ups
+          <input
+            className="wb-input wb-spare-input"
+            type="number"
+            min={0}
+            max={200}
+            step={1}
+            value={spareCount}
+            onChange={(e) => setSpareCount(Number(e.target.value) || 0)}
+          />
+        </label>
         <button className="wb-printbtn" onClick={onPrint} type="button">
           Print
         </button>
@@ -339,7 +389,7 @@ export default function WristbandsPage() {
       <div className="wb-meta">
         {children === null && !error && 'Loading…'}
         {error && `Error: ${error}`}
-        {children && `${visible.length} of ${children.length} registered kids · ${BANDS_PER_SHEET} per sheet · ${pages.length} sheet${pages.length === 1 ? '' : 's'}`}
+        {children && `${children.length} registered + ${spares.length} spare = ${visible.length} shown · ${BANDS_PER_SHEET} per sheet · ${pages.length} sheet${pages.length === 1 ? '' : 's'}`}
       </div>
 
       <div className="wb-printguide">
