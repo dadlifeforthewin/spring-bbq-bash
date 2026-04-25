@@ -49,7 +49,26 @@ export async function POST(req: NextRequest) {
       // Legacy ticket_balance preserved for any residual reads; unused going forward.
       ticket_balance: 0,
     }
-    if (isWalkup) insertRow.qr_code = (parsed.data as unknown as { qr_code: string }).qr_code
+    if (isWalkup) {
+      insertRow.qr_code = (parsed.data as unknown as { qr_code: string }).qr_code
+    } else {
+      // Claim the next-available wristband pool slot atomically. The pool
+      // holds pre-printed QR codes; this binds the new child to the next
+      // physical wristband on Brian's stack. If the pool is empty (or the
+      // RPC isn't deployed yet), fall through and let the children table's
+      // gen_random_uuid() default supply a fresh QR — registration must
+      // not fail just because the pool is exhausted.
+      const { data: claimedQr, error: claimErr } = await sb.rpc('claim_pool_slot', {
+        p_event_id: eventRow.id,
+      })
+      if (claimErr) {
+        console.error('[register] pool claim error:', claimErr.message)
+      } else if (claimedQr) {
+        insertRow.qr_code = claimedQr as unknown as string
+      } else {
+        console.warn('[register] wristband_pool exhausted — child gets a fresh UUID, no printed wristband match')
+      }
+    }
 
     const { data: created_child, error } = await sb
       .from('children')

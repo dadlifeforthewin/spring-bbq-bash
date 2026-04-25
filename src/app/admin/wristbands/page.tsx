@@ -15,21 +15,32 @@ type Child = {
 // Mr-Label MR201: 10 wristbands per 9.84"×7.48" sheet, single column.
 const BANDS_PER_SHEET = 10
 
+type PoolSlot = { qr_code: string; pool_position: number }
+
 export default function WristbandsPage() {
   const [children, setChildren] = useState<Child[] | null>(null)
+  const [pool, setPool] = useState<PoolSlot[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [qrUrls, setQrUrls] = useState<Record<string, string>>({})
   const [search, setSearch] = useState('')
   const [gradeFilter, setGradeFilter] = useState<string>('all')
-  const [spareCount, setSpareCount] = useState<number>(0)
 
   useEffect(() => {
     let alive = true
-    fetch('/api/admin/children?status=all', { credentials: 'include' })
-      .then(async (r) => {
-        if (!r.ok) throw new Error(`${r.status}`)
-        const data = (await r.json()) as { children: Child[] }
-        if (alive) setChildren(data.children ?? [])
+    Promise.all([
+      fetch('/api/admin/children?status=all', { credentials: 'include' }).then(async (r) => {
+        if (!r.ok) throw new Error(`children ${r.status}`)
+        return (await r.json()) as { children: Child[] }
+      }),
+      fetch('/api/admin/wristband-pool', { credentials: 'include' }).then(async (r) => {
+        if (!r.ok) throw new Error(`pool ${r.status}`)
+        return (await r.json()) as { pool: PoolSlot[] }
+      }),
+    ])
+      .then(([childrenData, poolData]) => {
+        if (!alive) return
+        setChildren(childrenData.children ?? [])
+        setPool(poolData.pool ?? [])
       })
       .catch((e) => {
         if (alive) setError(String(e?.message ?? e))
@@ -39,28 +50,26 @@ export default function WristbandsPage() {
     }
   }, [])
 
-  // Spare walk-up wristbands: synthetic Child rows with freshly-generated UUIDs.
-  // These QRs are not in the DB until a walk-up family scans the wristband and
-  // submits /register/walkup/<qr> (the API does an INSERT, so no collision).
-  // UUIDs regenerate every time the count changes, which is fine — the printed
-  // sheet is the source of truth, not memory across reloads.
+  // Unclaimed pool slots, rendered as "WALK-UP NN" wristbands. The QR codes
+  // are persistent in the DB, so a new /register submission claims the
+  // next-available slot and the printed wristband matches the child row.
   const spares = useMemo<Child[]>(() => {
-    const n = Math.max(0, Math.min(200, Math.floor(spareCount || 0)))
-    return Array.from({ length: n }, (_, i) => ({
-      id: `spare-${i}`,
-      qr_code: crypto.randomUUID(),
+    if (!pool) return []
+    return pool.map((p) => ({
+      id: `pool-${p.pool_position}`,
+      qr_code: p.qr_code,
       first_name: 'WALK-UP',
-      last_name: String(i + 1).padStart(2, '0'),
+      last_name: String(p.pool_position).padStart(2, '0'),
       grade: null,
       allergies: null,
     }))
-  }, [spareCount])
+  }, [pool])
 
   // Combined list used for QR generation, paging, and printing.
   const allChildren = useMemo<Child[] | null>(() => {
-    if (children === null) return null
+    if (children === null || pool === null) return null
     return [...children, ...spares]
-  }, [children, spares])
+  }, [children, pool, spares])
 
   useEffect(() => {
     if (!allChildren) return
@@ -155,20 +164,6 @@ export default function WristbandsPage() {
           padding: 8px 10px;
           border-radius: 8px;
           font: inherit;
-        }
-        .wb-spare-label {
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          font-size: 12px;
-          font-weight: 700;
-          letter-spacing: 0.1em;
-          text-transform: uppercase;
-          opacity: 0.85;
-        }
-        .wb-spare-input {
-          width: 70px;
-          text-align: center;
         }
         .wb-printbtn {
           background: var(--neon-cyan, #22d3ee);
@@ -369,18 +364,6 @@ export default function WristbandsPage() {
             </option>
           ))}
         </select>
-        <label className="wb-spare-label">
-          Spare walk-ups
-          <input
-            className="wb-input wb-spare-input"
-            type="number"
-            min={0}
-            max={200}
-            step={1}
-            value={spareCount}
-            onChange={(e) => setSpareCount(Number(e.target.value) || 0)}
-          />
-        </label>
         <button className="wb-printbtn" onClick={onPrint} type="button">
           Print
         </button>
