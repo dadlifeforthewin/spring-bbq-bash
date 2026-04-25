@@ -228,10 +228,10 @@ export default function WristbandsPage() {
         }
         .wb-cell {
           display: grid;
-          grid-template-columns: 0.65in 1fr 0.65in;
-          gap: 0.14in;
+          grid-template-columns: 0.65in 1fr 0.65in 1fr 0.65in;
+          gap: 0.1in;
           align-items: center;
-          padding: 0.05in 0.16in;
+          padding: 0.05in 0.14in;
           border-bottom: 1px dashed #c8c8c8;
           break-inside: avoid;
           page-break-inside: avoid;
@@ -275,7 +275,7 @@ export default function WristbandsPage() {
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
-          max-width: 4.5in;
+          max-width: 3in;
         }
         .wb-grade {
           font-size: 11px;
@@ -386,31 +386,31 @@ export default function WristbandsPage() {
             }
             const dataUrl = qrUrls[c.qr_code]
             const fullName = `${c.first_name} ${c.last_name}`.trim()
+            const qrImg = dataUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={dataUrl} alt={`QR code for ${fullName}`} />
+            ) : (
+              <span className="wb-qr--missing">…</span>
+            )
+            const info = (
+              <>
+                <span className="wb-name">{fullName}</span>
+                <span className="wb-grade">Gr {c.grade?.trim() || '—'}</span>
+                {c.allergies && c.allergies.trim() && (
+                  <span className="wb-allergy">⚠ ALLERGY</span>
+                )}
+              </>
+            )
+            // Three QRs (left, center, right) so wherever the sticky end of
+            // the wristband lands, at least one QR is still scannable. Info
+            // is repeated on both sides of the center QR for the same reason.
             return (
               <div key={c.id} className="wb-cell" role="listitem">
-                <div className="wb-qr">
-                  {dataUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={dataUrl} alt={`QR code for ${fullName}`} />
-                  ) : (
-                    <span className="wb-qr--missing">…</span>
-                  )}
-                </div>
-                <div className="wb-info">
-                  <span className="wb-name">{fullName}</span>
-                  <span className="wb-grade">Gr {c.grade?.trim() || '—'}</span>
-                  {c.allergies && c.allergies.trim() && (
-                    <span className="wb-allergy">⚠ ALLERGY</span>
-                  )}
-                </div>
-                <div className="wb-qr">
-                  {dataUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={dataUrl} alt="" aria-hidden="true" />
-                  ) : (
-                    <span className="wb-qr--missing">…</span>
-                  )}
-                </div>
+                <div className="wb-qr">{qrImg}</div>
+                <div className="wb-info">{info}</div>
+                <div className="wb-qr" aria-hidden="true">{qrImg}</div>
+                <div className="wb-info" aria-hidden="true">{info}</div>
+                <div className="wb-qr" aria-hidden="true">{qrImg}</div>
               </div>
             )
           })}
