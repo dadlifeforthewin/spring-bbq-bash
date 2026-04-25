@@ -228,8 +228,8 @@ export default function WristbandsPage() {
         }
         .wb-cell {
           display: grid;
-          grid-template-columns: 0.7in 1fr auto;
-          gap: 0.12in;
+          grid-template-columns: 0.65in 1fr 0.65in;
+          gap: 0.14in;
           align-items: center;
           padding: 0.05in 0.16in;
           border-bottom: 1px dashed #c8c8c8;
@@ -295,18 +295,6 @@ export default function WristbandsPage() {
           letter-spacing: 0.1em;
           text-transform: uppercase;
           border-radius: 3px;
-          white-space: nowrap;
-        }
-        .wb-code {
-          font-family: ui-monospace, monospace;
-          font-size: 8px;
-          color: #555;
-          letter-spacing: 0.02em;
-          text-align: right;
-          line-height: 1;
-          max-width: 1.4in;
-          overflow: hidden;
-          text-overflow: ellipsis;
           white-space: nowrap;
         }
 
@@ -415,7 +403,14 @@ export default function WristbandsPage() {
                     <span className="wb-allergy">⚠ ALLERGY</span>
                   )}
                 </div>
-                <div className="wb-code">{c.qr_code}</div>
+                <div className="wb-qr">
+                  {dataUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={dataUrl} alt="" aria-hidden="true" />
+                  ) : (
+                    <span className="wb-qr--missing">…</span>
+                  )}
+                </div>
               </div>
             )
           })}
