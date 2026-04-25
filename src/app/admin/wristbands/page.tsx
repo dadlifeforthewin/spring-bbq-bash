@@ -268,14 +268,14 @@ export default function WristbandsPage() {
         }
         .wb-name {
           font-weight: 800;
-          font-size: 18px;
+          font-size: 17px;
           line-height: 1;
           text-transform: uppercase;
-          letter-spacing: 0.02em;
+          letter-spacing: 0.01em;
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
-          max-width: 3in;
+          max-width: 3.4in;
         }
         .wb-grade {
           font-size: 11px;
