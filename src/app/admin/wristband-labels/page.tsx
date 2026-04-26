@@ -14,17 +14,17 @@ type Child = {
 
 type PoolSlot = { qr_code: string; pool_position: number }
 
-// Avery 8164 layout — 3-1/3" × 4" labels, 2 across × 3 down on US letter,
-// 6 labels per sheet. Margins (Avery published spec):
+// Avery 5168 layout — 3-1/2" × 5" labels, 2 across × 2 down on US letter,
+// 4 labels per sheet. Margins (Avery published spec):
 //   top:        0.5in
 //   bottom:     0.5in
-//   left:       0.156in
-//   right:      0.188in
-//   col gap:    0.156in
+//   left:       0.75in
+//   right:      0.75in
+//   col gap:    0in (columns flush)
 //   row gap:    0in
-//   label:      4in × 3.333in
-const STRIPS_PER_LABEL = 4
-const LABELS_PER_SHEET = 6
+//   label:      3.5in × 5in
+const STRIPS_PER_LABEL = 6
+const LABELS_PER_SHEET = 4
 const STRIPS_PER_SHEET = STRIPS_PER_LABEL * LABELS_PER_SHEET // 24
 
 export default function WristbandLabelsPage() {
@@ -188,18 +188,18 @@ export default function WristbandLabelsPage() {
         }
         .al-printguide strong { color: var(--neon-cyan, #22d3ee); }
 
-        /* Avery 8164 sheet — US Letter, 6 labels (2×3), exact margins per spec */
+        /* Avery 5168 sheet — US Letter, 4 labels (2×2), exact margins per spec */
         .al-page {
           box-sizing: border-box;
           width: 8.5in;
           height: 11in;
           background: #fff;
           color: #000;
-          padding: 0.5in 0.188in 0.5in 0.156in;
+          padding: 0.5in 0.75in;
           display: grid;
-          grid-template-columns: 4in 4in;
-          grid-template-rows: 3.333in 3.333in 3.333in;
-          column-gap: 0.156in;
+          grid-template-columns: 3.5in 3.5in;
+          grid-template-rows: 5in 5in;
+          column-gap: 0;
           row-gap: 0;
           margin: 0 auto 24px;
           box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45);
@@ -215,11 +215,11 @@ export default function WristbandLabelsPage() {
 
         .al-label {
           box-sizing: border-box;
-          width: 4in;
-          height: 3.333in;
+          width: 3.5in;
+          height: 5in;
           display: grid;
           grid-template-rows: repeat(${STRIPS_PER_LABEL}, 1fr);
-          padding: 0.08in;
+          padding: 0.1in 0.08in;
           overflow: hidden;
           /* faint cell border on screen only — Avery labels have no border */
           outline: 0.5px solid #eaeaea;
@@ -314,7 +314,7 @@ export default function WristbandLabelsPage() {
       `}</style>
 
       <div className="al-toolbar">
-        <h1>Wristband Labels (Avery 8164)</h1>
+        <h1>Wristband Labels (Avery 5168)</h1>
         <input
           className="al-input"
           type="search"
@@ -334,7 +334,7 @@ export default function WristbandLabelsPage() {
       </div>
 
       <div className="al-printguide">
-        <strong>Print setup (Avery 8164, US Letter):</strong> Paper size{' '}
+        <strong>Print setup (Avery 5168, US Letter):</strong> Paper size{' '}
         <strong>US Letter (8.5 × 11)</strong>, scale <strong>100%</strong>, margins{' '}
         <strong>None</strong>, orientation <strong>Portrait</strong>, "Print backgrounds"{' '}
         <strong>ON</strong>. Each label has {STRIPS_PER_LABEL} strips separated by dashed
