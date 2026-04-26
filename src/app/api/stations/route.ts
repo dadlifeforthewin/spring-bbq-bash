@@ -21,7 +21,11 @@ export async function GET() {
       status: 200,
       headers: {
         'Content-Type': 'application/json',
-        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=3600',
+        // Edge cache disabled for event day — DB seed of the four missing
+        // stations (drinks, dj_shoutout, photo, roaming) wasn't propagating
+        // fast enough to volunteer tablets via the prior 5-min s-maxage.
+        // Re-enable the aggressive cache after the event.
+        'Cache-Control': 'no-store, no-cache, must-revalidate',
       },
     },
   )
